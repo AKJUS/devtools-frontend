@@ -20,7 +20,13 @@ export const NativeFunctions = [
   },
   {
     name: "isNaN",
-    signatures: [["number"]]
+    signatures: [["number"]],
+    receivers: ["Window","NumberConstructor"]
+  },
+  {
+    name: "isNaN",
+    signatures: [["x","?options"]],
+    receivers: ["MLGraphBuilder"]
   },
   {
     name: "isFinite",
@@ -8034,6 +8040,10 @@ export const NativeFunctions = [
     signatures: [["x","?options"]]
   },
   {
+    name: "isInfinite",
+    signatures: [["x","?options"]]
+  },
+  {
     name: "logicalNot",
     signatures: [["x","?options"]]
   },
@@ -9154,10 +9164,6 @@ export const NativeFunctions = [
   {
     name: "WebTransportError",
     signatures: [["?init"]]
-  },
-  {
-    name: "WebTransport",
-    signatures: [["url","?options"]]
   },
   {
     name: "USBAlternateInterface",
