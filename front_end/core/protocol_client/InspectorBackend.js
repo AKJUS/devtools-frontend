@@ -134,18 +134,8 @@ export class SessionRouter {
     unobserve(observer) {
         this.#observers.delete(observer);
     }
-    registerSession(target, sessionId, proxyConnection) {
-        // Only the Audits panel uses proxy connections. If it is ever possible to have multiple active at the
-        // same time, it should be tested thoroughly.
-        if (proxyConnection) {
-            for (const session of this.#sessions.values()) {
-                if (session.proxyConnection) {
-                    console.error('Multiple simultaneous proxy connections are currently unsupported');
-                    break;
-                }
-            }
-        }
-        this.#sessions.set(sessionId, { target, proxyConnection });
+    registerSession(target, sessionId) {
+        this.#sessions.set(sessionId, { target });
     }
     unregisterSession(sessionId) {
         const session = this.#sessions.get(sessionId);
@@ -219,23 +209,8 @@ export class SessionRouter {
             test.onMessageReceived(messageObjectCopy);
         }
         const messageObject = ((typeof message === 'string') ? JSON.parse(message) : message);
-        // Send all messages to proxy connections.
-        for (const session of this.#sessions.values()) {
-            if (!session.proxyConnection) {
-                continue;
-            }
-            if (!session.proxyConnection.onMessage) {
-                InspectorBackend.reportProtocolError('Protocol Error: the session has a proxyConnection with no _onMessage', messageObject);
-                continue;
-            }
-            session.proxyConnection.onMessage(messageObject);
-        }
         const sessionId = messageObject.sessionId || '';
         const session = this.#sessions.get(sessionId);
-        // If this message is directly for the target controlled by the proxy connection, don't handle it.
-        if (session?.proxyConnection) {
-            return;
-        }
         if (session?.target.getNeedsNodeJSPatching()) {
             NodeURL.patch(messageObject);
         }

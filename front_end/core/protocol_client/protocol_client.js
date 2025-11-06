@@ -1677,16 +1677,8 @@ var SessionRouter = class {
   unobserve(observer) {
     this.#observers.delete(observer);
   }
-  registerSession(target, sessionId, proxyConnection) {
-    if (proxyConnection) {
-      for (const session of this.#sessions.values()) {
-        if (session.proxyConnection) {
-          console.error("Multiple simultaneous proxy connections are currently unsupported");
-          break;
-        }
-      }
-    }
-    this.#sessions.set(sessionId, { target, proxyConnection });
+  registerSession(target, sessionId) {
+    this.#sessions.set(sessionId, { target });
   }
   unregisterSession(sessionId) {
     const session = this.#sessions.get(sessionId);
@@ -1759,21 +1751,8 @@ var SessionRouter = class {
       test.onMessageReceived(messageObjectCopy);
     }
     const messageObject = typeof message === "string" ? JSON.parse(message) : message;
-    for (const session2 of this.#sessions.values()) {
-      if (!session2.proxyConnection) {
-        continue;
-      }
-      if (!session2.proxyConnection.onMessage) {
-        InspectorBackend.reportProtocolError("Protocol Error: the session has a proxyConnection with no _onMessage", messageObject);
-        continue;
-      }
-      session2.proxyConnection.onMessage(messageObject);
-    }
     const sessionId = messageObject.sessionId || "";
     const session = this.#sessions.get(sessionId);
-    if (session?.proxyConnection) {
-      return;
-    }
     if (session?.target.getNeedsNodeJSPatching()) {
       NodeURL.patch(messageObject);
     }

@@ -94,7 +94,7 @@ export declare class SessionRouter implements CDPConnection {
     constructor(connection: ConnectionTransport);
     observe(observer: CDPConnectionObserver): void;
     unobserve(observer: CDPConnectionObserver): void;
-    registerSession(target: TargetBase, sessionId: string, proxyConnection?: ConnectionTransport | null): void;
+    registerSession(target: TargetBase, sessionId: string): void;
     unregisterSession(sessionId: string): void;
     private nextMessageId;
     connection(): ConnectionTransport;
