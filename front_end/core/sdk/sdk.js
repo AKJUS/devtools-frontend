@@ -18111,10 +18111,7 @@ var IOModel = class extends SDKModel {
     return result.data;
   }
   async close(handle) {
-    const result = await this.target().ioAgent().invoke_close({ handle });
-    if (result.getError()) {
-      console.error("Could not close stream.");
-    }
+    await this.target().ioAgent().invoke_close({ handle });
   }
   async resolveBlob(objectOrObjectId) {
     const objectId = objectOrObjectId instanceof RemoteObject ? objectOrObjectId.objectId : objectOrObjectId;
@@ -27500,6 +27497,9 @@ var ServerSentEventsParser = class {
   }
   async addBase64Chunk(raw) {
     await this.#decoder.addBase64Chunk(raw);
+  }
+  addTextChunk(chunk) {
+    this.#onTextChunk(chunk);
   }
   #onTextChunk(chunk) {
     let start = 0;
