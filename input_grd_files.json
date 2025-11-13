@@ -549,7 +549,6 @@
   "front_end/models/issues_manager/descriptions/unencodedDigestIncorrectDigestType.md",
   "front_end/models/issues_manager/descriptions/unencodedDigestMalformedDictionary.md",
   "front_end/models/issues_manager/descriptions/unencodedDigestUnknownAlgorithm.md",
-  "front_end/models/issues_manager/descriptions/userReidentificationBlocked.md",
   "front_end/models/workspace/workspace.js",
   "front_end/models/stack_trace/stack_trace.js",
   "front_end/models/stack_trace/stack_trace_impl.js",

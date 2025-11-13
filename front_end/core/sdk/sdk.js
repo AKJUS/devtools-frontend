@@ -481,10 +481,10 @@ var generatedProperties = [
       "column-height",
       "column-rule-break",
       "column-rule-color",
-      "column-rule-edge-end-outset",
-      "column-rule-edge-start-outset",
-      "column-rule-interior-end-outset",
-      "column-rule-interior-start-outset",
+      "column-rule-edge-end-inset",
+      "column-rule-edge-start-inset",
+      "column-rule-interior-end-inset",
+      "column-rule-interior-start-inset",
       "column-rule-style",
       "column-rule-visibility-items",
       "column-rule-width",
@@ -704,10 +704,10 @@ var generatedProperties = [
       "row-gap",
       "row-rule-break",
       "row-rule-color",
-      "row-rule-edge-end-outset",
-      "row-rule-edge-start-outset",
-      "row-rule-interior-end-outset",
-      "row-rule-interior-start-outset",
+      "row-rule-edge-end-inset",
+      "row-rule-edge-start-inset",
+      "row-rule-interior-end-inset",
+      "row-rule-interior-start-inset",
       "row-rule-style",
       "row-rule-visibility-items",
       "row-rule-width",
@@ -1791,28 +1791,28 @@ var generatedProperties = [
   },
   {
     "inherited": false,
-    "name": "column-rule-edge-end-outset"
+    "name": "column-rule-edge-end-inset"
   },
   {
     "inherited": false,
-    "name": "column-rule-edge-start-outset"
-  },
-  {
-    "inherited": false,
-    "name": "column-rule-interior-end-outset"
-  },
-  {
-    "inherited": false,
-    "name": "column-rule-interior-start-outset"
+    "name": "column-rule-edge-start-inset"
   },
   {
     "longhands": [
-      "column-rule-edge-start-outset",
-      "column-rule-edge-end-outset",
-      "column-rule-interior-start-outset",
-      "column-rule-interior-end-outset"
+      "column-rule-edge-start-inset",
+      "column-rule-edge-end-inset",
+      "column-rule-interior-start-inset",
+      "column-rule-interior-end-inset"
     ],
-    "name": "column-rule-outset"
+    "name": "column-rule-inset"
+  },
+  {
+    "inherited": false,
+    "name": "column-rule-interior-end-inset"
+  },
+  {
+    "inherited": false,
+    "name": "column-rule-interior-start-inset"
   },
   {
     "keywords": [
@@ -3800,28 +3800,28 @@ var generatedProperties = [
   },
   {
     "inherited": false,
-    "name": "row-rule-edge-end-outset"
+    "name": "row-rule-edge-end-inset"
   },
   {
     "inherited": false,
-    "name": "row-rule-edge-start-outset"
-  },
-  {
-    "inherited": false,
-    "name": "row-rule-interior-end-outset"
-  },
-  {
-    "inherited": false,
-    "name": "row-rule-interior-start-outset"
+    "name": "row-rule-edge-start-inset"
   },
   {
     "longhands": [
-      "row-rule-edge-start-outset",
-      "row-rule-edge-end-outset",
-      "row-rule-interior-start-outset",
-      "row-rule-interior-end-outset"
+      "row-rule-edge-start-inset",
+      "row-rule-edge-end-inset",
+      "row-rule-interior-start-inset",
+      "row-rule-interior-end-inset"
     ],
-    "name": "row-rule-outset"
+    "name": "row-rule-inset"
+  },
+  {
+    "inherited": false,
+    "name": "row-rule-interior-end-inset"
+  },
+  {
+    "inherited": false,
+    "name": "row-rule-interior-start-inset"
   },
   {
     "keywords": [
@@ -3909,16 +3909,16 @@ var generatedProperties = [
   },
   {
     "longhands": [
-      "row-rule-edge-start-outset",
-      "row-rule-edge-end-outset",
-      "row-rule-interior-start-outset",
-      "row-rule-interior-end-outset",
-      "column-rule-edge-start-outset",
-      "column-rule-edge-end-outset",
-      "column-rule-interior-start-outset",
-      "column-rule-interior-end-outset"
+      "row-rule-edge-start-inset",
+      "row-rule-edge-end-inset",
+      "row-rule-interior-start-inset",
+      "row-rule-interior-end-inset",
+      "column-rule-edge-start-inset",
+      "column-rule-edge-end-inset",
+      "column-rule-interior-start-inset",
+      "column-rule-interior-end-inset"
     ],
-    "name": "rule-outset"
+    "name": "rule-inset"
   },
   {
     "longhands": [
@@ -10688,11 +10688,6 @@ var NetworkDispatcher = class {
     networkRequest.setSecurityState(response.securityState);
     if (response.securityDetails) {
       networkRequest.setSecurityDetails(response.securityDetails);
-    }
-    if (Root2.Runtime.hostConfig.devToolsIpProtectionInDevTools?.enabled) {
-      if (response.isIpProtectionUsed) {
-        networkRequest.setIsIpProtectionUsed(response.isIpProtectionUsed);
-      }
     }
     const newResourceType = Common5.ResourceType.ResourceType.fromMimeTypeOverride(networkRequest.mimeType);
     if (newResourceType) {
@@ -28118,7 +28113,6 @@ var NetworkRequest = class _NetworkRequest extends Common27.ObjectWrapper.Object
   responseReceivedPromiseResolve;
   directSocketInfo;
   #directSocketChunks = [];
-  #isIpProtectionUsed;
   #isAdRelated;
   #appliedNetworkConditionsId;
   constructor(requestId, backendRequestId, url, documentURL, frameId, loaderId, initiator, hasUserGesture) {
@@ -28131,7 +28125,6 @@ var NetworkRequest = class _NetworkRequest extends Common27.ObjectWrapper.Object
     this.#loaderId = loaderId;
     this.#initiator = initiator;
     this.#hasUserGesture = hasUserGesture;
-    this.#isIpProtectionUsed = false;
     this.#isAdRelated = false;
   }
   static create(backendRequestId, url, documentURL, frameId, loaderId, initiator, hasUserGesture) {
@@ -29191,12 +29184,6 @@ var NetworkRequest = class _NetworkRequest extends Common27.ObjectWrapper.Object
   }
   isSameSite() {
     return this.#isSameSite;
-  }
-  setIsIpProtectionUsed(isIpProtectionUsed) {
-    this.#isIpProtectionUsed = isIpProtectionUsed;
-  }
-  isIpProtectionUsed() {
-    return this.#isIpProtectionUsed;
   }
   setIsAdRelated(isAdRelated) {
     this.#isAdRelated = isAdRelated;
