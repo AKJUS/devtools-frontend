@@ -962,8 +962,8 @@
   "entrypoints/inspector_main/RenderingOptions.ts | frameRenderingStats": {
     "message": "Frame Rendering Stats"
   },
-  "entrypoints/inspector_main/RenderingOptions.ts | highlightAdFrames": {
-    "message": "Highlight ad frames"
+  "entrypoints/inspector_main/RenderingOptions.ts | highlightAds": {
+    "message": "Highlight ads"
   },
   "entrypoints/inspector_main/RenderingOptions.ts | highlightsAreasOfThePageBlueThat": {
     "message": "Highlights areas of the page (blue) that were shifted. May not be suitable for people prone to photosensitive epilepsy."
@@ -971,11 +971,11 @@
   "entrypoints/inspector_main/RenderingOptions.ts | highlightsAreasOfThePageGreen": {
     "message": "Highlights areas of the page (green) that need to be repainted. May not be suitable for people prone to photosensitive epilepsy."
   },
+  "entrypoints/inspector_main/RenderingOptions.ts | highlightsElementsRedDetectedToBe": {
+    "message": "Highlights elements (red) detected to be ads."
+  },
   "entrypoints/inspector_main/RenderingOptions.ts | highlightsElementsTealThatCan": {
     "message": "Highlights elements (teal) that can slow down scrolling, including touch & wheel event handlers and other main-thread scrolling situations."
-  },
-  "entrypoints/inspector_main/RenderingOptions.ts | highlightsFramesRedDetectedToBe": {
-    "message": "Highlights frames (red) detected to be ads."
   },
   "entrypoints/inspector_main/RenderingOptions.ts | layerBorders": {
     "message": "Layer borders"
@@ -1312,12 +1312,6 @@
   },
   "generated/Deprecation.ts | LocalCSSFileExtensionRejected": {
     "message": "CSS cannot be loaded from file: URLs unless they end in a .css file extension."
-  },
-  "generated/Deprecation.ts | MediaSourceAbortRemove": {
-    "message": "Using SourceBuffer.abort() to abort remove()'s asynchronous range removal is deprecated due to specification change. Support will be removed in the future. You should listen to the updateend event instead. abort() is intended to only abort an asynchronous media append or reset parser state."
-  },
-  "generated/Deprecation.ts | MediaSourceDurationTruncatingBuffered": {
-    "message": "Setting MediaSource.duration below the highest presentation timestamp of any buffered coded frames is deprecated due to specification change. Support for implicit removal of truncated buffered media will be removed in the future. You should instead perform explicit remove(newDuration, oldDuration) on all sourceBuffers, where newDuration < oldDuration."
   },
   "generated/Deprecation.ts | NoSysexWebMIDIWithoutPermission": {
     "message": "Web MIDI will ask a permission to use even if the sysex is not specified in the MIDIOptions."
