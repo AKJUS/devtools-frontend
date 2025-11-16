@@ -29,6 +29,8 @@ core/i18n/DevToolsLocale.test.js
 core/i18n/NumberFormatter.test.js
 core/i18n/i18n.test.js
 core/i18n/time-utilities.test.js
+core/sdk/DebuggerModel.test.js
+core/sdk/RuntimeModel.test.js
 core/sdk/Target.test.js
 core/sdk/TargetManager.test.js
 foundation/Universe.test.js
@@ -85,7 +87,6 @@ core/sdk/Cookie.test.js
 core/sdk/CookieModel.test.js
 core/sdk/CookieParser.test.js
 core/sdk/DOMModel.test.js
-core/sdk/DebuggerModel.test.js
 core/sdk/EmulationModel.test.js
 core/sdk/EnhancedTracesParser.test.js
 core/sdk/FrameManager.test.js
@@ -99,7 +100,6 @@ core/sdk/PreloadingModel.test.js
 core/sdk/RehydratingConnection.test.js
 core/sdk/RemoteObject.test.js
 core/sdk/ResourceTreeModel.test.js
-core/sdk/RuntimeModel.test.js
 core/sdk/ScopeTreeCache.test.js
 core/sdk/ScreenCaptureModel.test.js
 core/sdk/Script.test.js
