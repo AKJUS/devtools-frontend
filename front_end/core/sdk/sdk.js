@@ -739,10 +739,6 @@ var generatedProperties = [
       "scroll-snap-align",
       "scroll-snap-stop",
       "scroll-snap-type",
-      "scroll-start-block",
-      "scroll-start-inline",
-      "scroll-start-x",
-      "scroll-start-y",
       "scroll-target-group",
       "scroll-timeline-axis",
       "scroll-timeline-name",
@@ -4112,25 +4108,6 @@ var generatedProperties = [
       "proximity"
     ],
     "name": "scroll-snap-type"
-  },
-  {
-    "longhands": [
-      "scroll-start-block",
-      "scroll-start-inline"
-    ],
-    "name": "scroll-start"
-  },
-  {
-    "name": "scroll-start-block"
-  },
-  {
-    "name": "scroll-start-inline"
-  },
-  {
-    "name": "scroll-start-x"
-  },
-  {
-    "name": "scroll-start-y"
   },
   {
     "keywords": [
@@ -9646,18 +9623,11 @@ var Target = class extends ProtocolClient.InspectorBackend.TargetBase {
     this.#isSuspended = suspended;
     this.#targetInfo = targetInfo;
   }
-  createModels(required) {
+  /** Creates the models in the order in which they are provided */
+  createModels(models) {
     this.#creatingModels = true;
-    const registeredModels2 = Array.from(SDKModel.registeredModels.entries());
-    for (const [modelClass, info] of registeredModels2) {
-      if (info.early) {
-        this.model(modelClass);
-      }
-    }
-    for (const [modelClass, info] of registeredModels2) {
-      if (info.autostart || required.has(modelClass)) {
-        this.model(modelClass);
-      }
+    for (const model of models) {
+      this.model(model);
     }
     this.#creatingModels = false;
   }
@@ -9812,7 +9782,11 @@ var TargetManager = class _TargetManager extends Common4.ObjectWrapper.ObjectWra
   #scopeTarget;
   #defaultScopeSet;
   #scopeChangeListeners;
-  constructor() {
+  #overrideAutoStartModels;
+  /**
+   * @param overrideAutoStartModels If provided, then the `autostart` flag on {@link RegistrationInfo} will be ignored.
+   */
+  constructor(overrideAutoStartModels) {
     super();
     this.#targets = /* @__PURE__ */ new Set();
     this.#observers = /* @__PURE__ */ new Set();
@@ -9824,6 +9798,7 @@ var TargetManager = class _TargetManager extends Common4.ObjectWrapper.ObjectWra
     this.#scopedObservers = /* @__PURE__ */ new WeakSet();
     this.#defaultScopeSet = false;
     this.#scopeChangeListeners = /* @__PURE__ */ new Set();
+    this.#overrideAutoStartModels = overrideAutoStartModels;
   }
   static instance({ forceNew } = { forceNew: false }) {
     if (!Root.DevToolsContext.globalInstance().has(_TargetManager) || forceNew) {
@@ -9963,12 +9938,26 @@ var TargetManager = class _TargetManager extends Common4.ObjectWrapper.ObjectWra
     this.#observers.delete(targetObserver);
     this.#scopedObservers.delete(targetObserver);
   }
+  /** @returns The set of models we create unconditionally for new targets in the order in which they should be created */
+  #autoStartModels() {
+    const earlyModels = /* @__PURE__ */ new Set();
+    const models = /* @__PURE__ */ new Set();
+    const shouldAutostart = (model, info) => this.#overrideAutoStartModels ? this.#overrideAutoStartModels.has(model) : info.autostart;
+    for (const [model, info] of SDKModel.registeredModels) {
+      if (info.early) {
+        earlyModels.add(model);
+      } else if (shouldAutostart(model, info) || this.#modelObservers.has(model)) {
+        models.add(model);
+      }
+    }
+    return [...earlyModels, ...models];
+  }
   createTarget(id, name, type, parentTarget, sessionId, waitForDebuggerInPage, connection, targetInfo) {
     const target = new Target(this, id, name, type, parentTarget, sessionId || "", this.#isSuspended, connection || null, targetInfo);
     if (waitForDebuggerInPage) {
       void target.pageAgent().invoke_waitForDebugger();
     }
-    target.createModels(new Set(this.#modelObservers.keysArray()));
+    target.createModels(this.#autoStartModels());
     this.#targets.add(target);
     const inScope = this.isInScope(target);
     for (const observer of [...this.#observers]) {
@@ -10062,7 +10051,7 @@ var TargetManager = class _TargetManager extends Common4.ObjectWrapper.ObjectWra
         /* targetInfo*/
         void 0
       );
-      this.#browserTarget.createModels(new Set(this.#modelObservers.keysArray()));
+      this.#browserTarget.createModels(this.#autoStartModels());
     }
     const targetId = await Host.InspectorFrontendHost.InspectorFrontendHostInstance.initialTargetId();
     void this.#browserTarget.targetAgent().invoke_autoAttachRelated({
@@ -18821,41 +18810,98 @@ var SourceMapScopesInfo = class _SourceMapScopesInfo {
     this.#generatedRanges = scopeInfo.ranges;
   }
   /**
-   * If the source map does not contain any scopes information, this factory function attempts to create bare bones scope information
+   * If the source map does not contain any scopes information, this factory function attempts to create scope information
    * via the script's AST combined with the mappings.
    *
    * We create the generated ranges from the scope tree and for each range we create an original scope that matches the bounds 1:1.
-   * We don't map the bounds via mappings as mappings are often iffy and it's not strictly required to translate stack traces where we
-   * map call-sites separately.
    */
   static createFromAst(sourceMap, scopeTree, text) {
-    const { scope, range } = convertScope(scopeTree, void 0, void 0);
-    return new _SourceMapScopesInfo(sourceMap, { scopes: [scope], ranges: [range] });
-    function convertScope(node, parentScope, parentRange) {
-      const start = positionFromOffset(node.start);
-      const end = positionFromOffset(node.end);
-      const isStackFrame = node.kind === 2;
-      const scope2 = {
-        start,
-        end,
-        name: sourceMap.findEntry(start.line, start.column, 0)?.name,
-        isStackFrame,
+    const numSourceUrls = sourceMap.sourceURLs().length;
+    const scopeBySourceUrl = [];
+    for (let i = 0; i < numSourceUrls; i++) {
+      const scope = {
+        start: { line: 0, column: 0 },
+        end: { line: Number.POSITIVE_INFINITY, column: Number.POSITIVE_INFINITY },
+        isStackFrame: false,
         variables: [],
         children: []
       };
+      scopeBySourceUrl.push(scope);
+    }
+    const { range } = convertScope(scopeTree, void 0);
+    return new _SourceMapScopesInfo(sourceMap, { scopes: scopeBySourceUrl, ranges: [range] });
+    function insertInScope(parent, newScope) {
+      for (const child of parent.children) {
+        if (contains2(child, newScope)) {
+          insertInScope(child, newScope);
+          return;
+        }
+      }
+      const childrenToKeep = [];
+      for (const child of parent.children) {
+        if (contains2(newScope, child)) {
+          newScope.children.push(child);
+          child.parent = newScope;
+        } else {
+          childrenToKeep.push(child);
+        }
+      }
+      const insertIndex = childrenToKeep.findIndex((child) => compareScopes(newScope, child) < 0);
+      if (insertIndex === -1) {
+        childrenToKeep.push(newScope);
+      } else {
+        childrenToKeep.splice(insertIndex, 0, newScope);
+      }
+      parent.children = childrenToKeep;
+      newScope.parent = parent;
+    }
+    function contains2(outer, inner) {
+      return comparePositions2(outer.start, inner.start) <= 0 && comparePositions2(outer.end, inner.end) >= 0;
+    }
+    function compareScopes(a, b) {
+      return comparePositions2(a.start, b.start);
+    }
+    function comparePositions2(a, b) {
+      if (a.line !== b.line) {
+        return a.line - b.line;
+      }
+      return a.column - b.column;
+    }
+    function convertScope(node, parentRange) {
+      const start = positionFromOffset(node.start);
+      const end = positionFromOffset(node.end);
+      const startEntry = sourceMap.findEntry(start.line, start.column);
+      const endEntry = sourceMap.findEntry(end.line, end.column);
+      const sourceIndex = startEntry?.sourceIndex;
+      const canMapOriginalPosition = startEntry && endEntry && sourceIndex !== void 0 && startEntry.sourceIndex === endEntry.sourceIndex && startEntry.sourceIndex !== void 0 && sourceIndex >= 0 && sourceIndex < numSourceUrls;
+      const isStackFrame = node.kind === 2;
+      let scope;
+      if (canMapOriginalPosition) {
+        scope = {
+          start: { line: startEntry.sourceLineNumber, column: startEntry.sourceColumnNumber },
+          end: { line: endEntry.sourceLineNumber, column: endEntry.sourceColumnNumber },
+          name: startEntry.name,
+          isStackFrame,
+          variables: [],
+          children: []
+        };
+      }
       const range2 = {
         start,
         end,
-        originalScope: scope2,
+        originalScope: scope,
         isStackFrame,
         isHidden: false,
         values: [],
         children: []
       };
       parentRange?.children.push(range2);
-      parentScope?.children.push(scope2);
-      node.children.forEach((child) => convertScope(child, scope2, range2));
-      return { scope: scope2, range: range2 };
+      if (canMapOriginalPosition && scope) {
+        const rootScope = scopeBySourceUrl[sourceIndex];
+        insertInScope(rootScope, scope);
+      }
+      node.children.forEach((child) => convertScope(child, range2));
+      return { range: range2 };
     }
     function positionFromOffset(offset) {
       const location = text.positionFromOffset(offset);
@@ -19077,7 +19123,14 @@ var SourceMapScopesInfo = class _SourceMapScopesInfo {
   /**
    * Returns the authored function name of the function containing the provided generated position.
    */
-  findOriginalFunctionName({ line, column }) {
+  findOriginalFunctionName(position) {
+    const originalInnerMostScope = this.findOriginalFunctionScope(position)?.scope ?? void 0;
+    return this.#findFunctionNameInOriginalScopeChain(originalInnerMostScope);
+  }
+  /**
+   * Returns the authored function scope of the function containing the provided generated position.
+   */
+  findOriginalFunctionScope({ line, column }) {
     let originalInnerMostScope;
     if (this.#generatedRanges.length > 0) {
       const rangeChain = this.#findGeneratedRangeChain(line, column);
@@ -19089,7 +19142,20 @@ var SourceMapScopesInfo = class _SourceMapScopesInfo {
       }
       originalInnerMostScope = this.#findOriginalScopeChain({ sourceIndex: entry.sourceIndex, line: entry.sourceLineNumber, column: entry.sourceColumnNumber }).at(-1);
     }
-    return this.#findFunctionNameInOriginalScopeChain(originalInnerMostScope) ?? null;
+    if (!originalInnerMostScope) {
+      return null;
+    }
+    const functionScope = this.#findFunctionScopeInOriginalScopeChain(originalInnerMostScope);
+    if (!functionScope) {
+      return null;
+    }
+    let rootScope = functionScope;
+    while (rootScope.parent) {
+      rootScope = rootScope.parent;
+    }
+    const sourceIndex = this.#originalScopes.indexOf(rootScope);
+    const url = sourceIndex !== -1 ? this.#sourceMap.sourceURLForSourceIndex(sourceIndex) : void 0;
+    return functionScope ? { scope: functionScope, url } : null;
   }
   /**
    * Given an original position, this returns all the surrounding original scopes from outer
@@ -19112,13 +19178,20 @@ var SourceMapScopesInfo = class _SourceMapScopesInfo {
     })([scope]);
     return result;
   }
-  #findFunctionNameInOriginalScopeChain(innerOriginalScope) {
+  #findFunctionScopeInOriginalScopeChain(innerOriginalScope) {
     for (let originalScope = innerOriginalScope; originalScope; originalScope = originalScope.parent) {
       if (originalScope.isStackFrame) {
-        return originalScope.name ?? "";
+        return originalScope;
       }
     }
     return null;
+  }
+  #findFunctionNameInOriginalScopeChain(innerOriginalScope) {
+    const functionScope = this.#findFunctionScopeInOriginalScopeChain(innerOriginalScope);
+    if (!functionScope) {
+      return null;
+    }
+    return functionScope.name ?? "";
   }
   /**
    * Returns one or more original stack frames for this single "raw frame" or call-site.

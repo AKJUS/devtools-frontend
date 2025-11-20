@@ -4166,16 +4166,17 @@ var LengthRenderer = class extends rendererBase(SDK6.CSSPropertyParserMatchers.L
     const valueElement = document.createElement("span");
     valueElement.tabIndex = -1;
     valueElement.textContent = match.text;
-    if (!context.tracing) {
-      void this.#attachPopover(valueElement, match, context);
-    }
+    const tooltip = this.#getTooltip(valueElement, match, context);
     const evaluation = context.tracing?.applyEvaluation([], () => {
       return {
         placeholder: [valueElement],
         asyncEvalCallback: () => this.#applyEvaluation(valueElement, match, context)
       };
     });
-    return evaluation ?? [valueElement];
+    if (evaluation) {
+      return evaluation;
+    }
+    return tooltip ? [valueElement, tooltip] : [valueElement];
   }
   async #applyEvaluation(valueElement, match, context) {
     const pixelValue = await resolveValues(this.#stylesPane, this.#propertyName, match, context, match.text);
@@ -4185,21 +4186,22 @@ var LengthRenderer = class extends rendererBase(SDK6.CSSPropertyParserMatchers.L
     }
     return false;
   }
-  async #attachPopover(valueElement, match, context) {
+  #getTooltip(valueElement, match, context) {
+    const tooltipId = this.#treeElement?.getTooltipId("length");
+    if (!tooltipId) {
+      return void 0;
+    }
+    valueElement.setAttribute("aria-details", tooltipId);
+    const tooltip = new Tooltips.Tooltip.Tooltip({ anchor: valueElement, variant: "rich", id: tooltipId, jslogContext: "length-popover" });
+    tooltip.addEventListener("beforetoggle", () => this.getTooltipValue(tooltip, match, context), { once: true });
+    return tooltip;
+  }
+  async getTooltipValue(tooltip, match, context) {
     const pixelValue = await resolveValues(this.#stylesPane, this.#propertyName, match, context, match.text);
     if (!pixelValue) {
       return;
     }
-    const tooltipId = this.#treeElement?.getTooltipId("length");
-    if (tooltipId) {
-      valueElement.setAttribute("aria-details", tooltipId);
-      const tooltip = new Tooltips.Tooltip.Tooltip({ anchor: valueElement, variant: "rich", id: tooltipId, jslogContext: "length-popover" });
-      tooltip.appendChild(document.createTextNode(pixelValue[0]));
-      valueElement.insertAdjacentElement("afterend", tooltip);
-    }
-    this.popOverAttachedForTest();
-  }
-  popOverAttachedForTest() {
+    tooltip.appendChild(document.createTextNode(pixelValue[0]));
   }
 };
 var BaseFunctionRenderer = class extends rendererBase(SDK6.CSSPropertyParserMatchers.BaseFunctionMatch) {
@@ -18928,6 +18930,7 @@ __export(ElementStatePaneWidget_exports, {
 import * as i18n43 from "./../../core/i18n/i18n.js";
 import * as SDK24 from "./../../core/sdk/sdk.js";
 import * as Buttons5 from "./../../ui/components/buttons/buttons.js";
+import * as UIHelpers from "./../../ui/helpers/helpers.js";
 import * as UI27 from "./../../ui/legacy/legacy.js";
 import { html as html14, render as render11 } from "./../../ui/lit/lit.js";
 import * as VisualLogging16 from "./../../ui/visual_logging/visual_logging.js";
@@ -19064,7 +19067,7 @@ var DEFAULT_VIEW9 = (input, _output, target) => {
         <devtools-checkbox class="small" title=${i18nString21(UIStrings22.emulatesAFocusedPage)}
             jslog=${VisualLogging16.toggle("emulate-page-focus").track({ change: true })} ${bindToSetting3("emulate-page-focus")}>${i18nString21(UIStrings22.emulateFocusedPage)}</devtools-checkbox>
         <devtools-button
-            @click=${() => UI27.UIUtils.openInNewTab("https://developer.chrome.com/docs/devtools/rendering/apply-effects#emulate_a_focused_page")}
+            @click=${() => UIHelpers.openInNewTab("https://developer.chrome.com/docs/devtools/rendering/apply-effects#emulate_a_focused_page")}
            .data=${{
     variant: "icon",
     iconName: "help",
