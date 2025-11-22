@@ -413,7 +413,7 @@ export class MainImpl {
         AutofillManager.AutofillManager.AutofillManager.instance();
         LiveMetrics.LiveMetrics.instance();
         CrUXManager.CrUXManager.instance();
-        void AiAssistanceModel.BuiltInAi.BuiltInAi.instance();
+        AiAssistanceModel.BuiltInAi.BuiltInAi.instance();
         new PauseListener();
         const actionRegistryInstance = UI.ActionRegistry.ActionRegistry.instance({ forceNew: true });
         // Required for legacy a11y layout tests
@@ -588,7 +588,7 @@ export class MainImpl {
         // @ts-expect-error Used in ElementsTreeOutline
         eventCopy['original'] = event;
         const document = event.target && event.target.ownerDocument;
-        const target = document ? Platform.DOMUtilities.deepActiveElement(document) : null;
+        const target = document ? UI.DOMUtilities.deepActiveElement(document) : null;
         if (target) {
             target.dispatchEvent(eventCopy);
         }
@@ -641,7 +641,7 @@ export class ZoomActionDelegate {
 }
 export class SearchActionDelegate {
     handleAction(_context, actionId) {
-        let searchableView = UI.SearchableView.SearchableView.fromElement(Platform.DOMUtilities.deepActiveElement(document));
+        let searchableView = UI.SearchableView.SearchableView.fromElement(UI.DOMUtilities.deepActiveElement(document));
         if (!searchableView) {
             const currentPanel = UI.InspectorView.InspectorView.instance().currentPanelDeprecated();
             if (currentPanel?.searchableView) {

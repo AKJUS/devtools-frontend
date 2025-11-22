@@ -1103,12 +1103,13 @@ export declare namespace Audits {
         FormInputWithNoLabelError = "FormInputWithNoLabelError",
         FormAutocompleteAttributeEmptyError = "FormAutocompleteAttributeEmptyError",
         FormEmptyIdAndNameAttributesForInputError = "FormEmptyIdAndNameAttributesForInputError",
-        FormAriaLabelledByToNonExistingId = "FormAriaLabelledByToNonExistingId",
+        FormAriaLabelledByToNonExistingIdError = "FormAriaLabelledByToNonExistingIdError",
         FormInputAssignedAutocompleteValueToIdOrNameAttributeError = "FormInputAssignedAutocompleteValueToIdOrNameAttributeError",
-        FormLabelHasNeitherForNorNestedInput = "FormLabelHasNeitherForNorNestedInput",
+        FormLabelHasNeitherForNorNestedInputError = "FormLabelHasNeitherForNorNestedInputError",
         FormLabelForMatchesNonExistingIdError = "FormLabelForMatchesNonExistingIdError",
         FormInputHasWrongButWellIntendedAutocompleteValueError = "FormInputHasWrongButWellIntendedAutocompleteValueError",
-        ResponseWasBlockedByORB = "ResponseWasBlockedByORB"
+        ResponseWasBlockedByORB = "ResponseWasBlockedByORB",
+        NavigationEntryMarkedSkippable = "NavigationEntryMarkedSkippable"
     }
     /**
      * Depending on the concrete errorType, different properties are set.
@@ -10322,6 +10323,12 @@ export declare namespace Network {
          * Expected to be unsigned integer.
          */
         receiveBufferSize?: number;
+        multicastLoopback?: boolean;
+        /**
+         * Unsigned int 8.
+         */
+        multicastTimeToLive?: integer;
+        multicastAllowAddressSharing?: boolean;
     }
     interface DirectUDPMessage {
         data: binary;
@@ -11484,6 +11491,14 @@ export declare namespace Network {
         identifier: RequestId;
         data: binary;
         timestamp: MonotonicTime;
+    }
+    interface DirectUDPSocketJoinedMulticastGroupEvent {
+        identifier: RequestId;
+        IPAddress: string;
+    }
+    interface DirectUDPSocketLeftMulticastGroupEvent {
+        identifier: RequestId;
+        IPAddress: string;
     }
     /**
      * Fired upon direct_socket.UDPSocket creation.

@@ -2141,8 +2141,8 @@ export const generatedProperties = [
             "math",
             "ruby",
             "ruby-text",
-            "masonry",
-            "inline-masonry"
+            "grid-lanes",
+            "inline-grid-lanes"
         ],
         "name": "display"
     },
@@ -3581,7 +3581,8 @@ export const generatedProperties = [
     },
     {
         "keywords": [
-            "auto"
+            "auto",
+            "none"
         ],
         "name": "position-anchor"
     },
@@ -5653,8 +5654,8 @@ export const generatedPropertyValues = {
             "math",
             "ruby",
             "ruby-text",
-            "masonry",
-            "inline-masonry"
+            "grid-lanes",
+            "inline-grid-lanes"
         ]
     },
     "dominant-baseline": {
@@ -6437,7 +6438,8 @@ export const generatedPropertyValues = {
     },
     "position-anchor": {
         "values": [
-            "auto"
+            "auto",
+            "none"
         ]
     },
     "position-area": {

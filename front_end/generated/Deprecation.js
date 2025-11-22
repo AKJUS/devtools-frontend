@@ -5,6 +5,10 @@
 // Re-generate with: npm run generate-protocol-resources
 export const UIStrings = {
     /**
+     * @description This warning occurs when the website uses Attribution Reporting.
+     */
+    AttributionReporting: "Attribution Reporting is deprecated and will be removed. See https://goo.gle/ps-status for details.",
+    /**
      * @description We show this warning when 1) an 'authorization' header is attached to the request by scripts, 2) there is no 'authorization' in the 'access-control-allow-headers' header in the response, and 3) there is a wildcard symbol ('*') in the 'access-control-allow-header' header in the response. This is allowed now, but we're planning to reject such responses and require responses to have an 'access-control-allow-headers' containing 'authorization'.
      */
     AuthorizationCoveredByWildcard: "Authorization will not be covered by the wildcard symbol (*) in CORS `Access-Control-Allow-Headers` handling.",
@@ -205,6 +209,10 @@ export const UIStrings = {
      */
     TextToSpeech_DisallowedByAutoplay: "`speechSynthesis.speak()` without user activation is deprecated and will be removed.",
     /**
+     * @description A deprecation warning shown in the DevTools Issues tab. It's shown when one of the Topics APIs like `document.browsingTopics()`, `<img browsingtopics>`, `<iframe browsingtopics>`, or `fetch(url, {browsingTopics: true})` are used.
+     */
+    Topics: "The Topics API is deprecated and will be removed in a future release.",
+    /**
      * @description A deprecation warning shown in the DevTools Issues tab. It's shown when a listener for the `unload` event is added.
      */
     UnloadHandler: "Unload event listeners are deprecated and will be removed.",
@@ -230,6 +238,9 @@ export const UIStrings = {
     XSLT: "XSLTProcessor and XSLT Processing Instructions have been deprecated by all browsers. These features will be removed from this browser soon.",
 };
 export const DEPRECATIONS_METADATA = {
+    "AttributionReporting": {
+        "chromeStatusFeature": 6320639375966208
+    },
     "AuthorizationCoveredByWildcard": {
         "milestone": 97
     },

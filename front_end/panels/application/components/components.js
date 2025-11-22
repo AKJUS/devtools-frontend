@@ -3061,255 +3061,22 @@ var SharedStorageMetadataView = class extends StorageMetadataView {
 };
 customElements.define("devtools-shared-storage-metadata-view", SharedStorageMetadataView);
 
-// gen/front_end/panels/application/components/StackTrace.js
-var StackTrace_exports = {};
-__export(StackTrace_exports, {
-  StackTrace: () => StackTrace,
-  StackTraceLinkButton: () => StackTraceLinkButton,
-  StackTraceRow: () => StackTraceRow
-});
-import "./../../../ui/components/expandable_list/expandable_list.js";
-import * as i18n23 from "./../../../core/i18n/i18n.js";
-import * as Components2 from "./../../../ui/legacy/components/utils/utils.js";
-import * as Lit11 from "./../../../ui/lit/lit.js";
-import * as VisualLogging8 from "./../../../ui/visual_logging/visual_logging.js";
-
-// gen/front_end/panels/application/components/stackTraceLinkButton.css.js
-var stackTraceLinkButton_css_default = `/*
- * Copyright 2021 The Chromium Authors
- * Use of this source code is governed by a BSD-style license that can be
- * found in the LICENSE file.
- */
-
-button.link {
-  color: var(--sys-color-primary);
-  text-decoration: underline;
-  cursor: pointer;
-  outline-offset: 2px;
-  border: none;
-  background: none;
-  font-family: inherit;
-  font-size: inherit;
-}
-
-/*# sourceURL=${import.meta.resolve("./stackTraceLinkButton.css")} */`;
-
-// gen/front_end/panels/application/components/stackTraceRow.css.js
-var stackTraceRow_css_default = `/*
- * Copyright 2021 The Chromium Authors
- * Use of this source code is governed by a BSD-style license that can be
- * found in the LICENSE file.
- */
-
-.stack-trace-row {
-  display: flex;
-}
-
-.stack-trace-function-name {
-  width: 100px;
-}
-
-.stack-trace-source-location {
-  display: flex;
-  overflow: hidden;
-}
-
-.text-ellipsis {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.stack-trace-source-location .text-ellipsis {
-  padding-right: 2px;
-}
-
-.ignore-list-link {
-  opacity: 60%;
-}
-
-.link,
-.devtools-link {
-  color: var(--sys-color-primary);
-  text-decoration: underline;
-  cursor: pointer;
-  outline-offset: 2px;
-  border: none;
-  background: none;
-  font-family: inherit;
-  font-size: var(--sys-size-6);
-
-  &:focus-visible {
-    outline: 2px solid var(--sys-color-state-focus-ring);
-    outline-offset: 0;
-    border-radius: var(--sys-shape-corner-extra-small);
-  }
-}
-
-/*# sourceURL=${import.meta.resolve("./stackTraceRow.css")} */`;
-
-// gen/front_end/panels/application/components/StackTrace.js
-var { html: html12 } = Lit11;
-var UIStrings12 = {
-  /**
-   * @description Error message stating that something went wrong when trying to render stack trace
-   */
-  cannotRenderStackTrace: "Cannot render stack trace",
-  /**
-   * @description A link to show more frames in the stack trace if more are available. Never 0.
-   */
-  showSMoreFrames: "{n, plural, =1 {Show # more frame} other {Show # more frames}}",
-  /**
-   * @description A link to rehide frames that are by default hidden.
-   */
-  showLess: "Show less",
-  /**
-   * @description Label for a stack trace. If a frame is created programmatically (i.e. via JavaScript), there is a
-   * stack trace for the line of code which caused the creation of the iframe. This is the stack trace we are showing here.
-   */
-  creationStackTrace: "Frame Creation `Stack Trace`"
-};
-var str_12 = i18n23.i18n.registerUIStrings("panels/application/components/StackTrace.ts", UIStrings12);
-var i18nString11 = i18n23.i18n.getLocalizedString.bind(void 0, str_12);
-var StackTraceRow = class extends HTMLElement {
-  #shadow = this.attachShadow({ mode: "open" });
-  #stackTraceRowItem = null;
-  set data(data) {
-    this.#stackTraceRowItem = data.stackTraceRowItem;
-    this.#render();
-  }
-  #render() {
-    if (!this.#stackTraceRowItem) {
-      return;
-    }
-    Lit11.render(html12`
-      <style>${stackTraceRow_css_default}</style>
-      <div class="stack-trace-row">
-              <div class="stack-trace-function-name text-ellipsis" title=${this.#stackTraceRowItem.functionName}>
-                ${this.#stackTraceRowItem.functionName}
-              </div>
-              <div class="stack-trace-source-location">
-                ${this.#stackTraceRowItem.link ? html12`<div class="text-ellipsis">\xA0@\xA0${this.#stackTraceRowItem.link}</div>` : Lit11.nothing}
-              </div>
-            </div>
-    `, this.#shadow, { host: this });
-  }
-};
-var StackTraceLinkButton = class extends HTMLElement {
-  #shadow = this.attachShadow({ mode: "open" });
-  #onShowAllClick = () => {
-  };
-  #hiddenCallFramesCount = null;
-  #expandedView = false;
-  set data(data) {
-    this.#onShowAllClick = data.onShowAllClick;
-    this.#hiddenCallFramesCount = data.hiddenCallFramesCount;
-    this.#expandedView = data.expandedView;
-    this.#render();
-  }
-  #render() {
-    if (!this.#hiddenCallFramesCount) {
-      return;
-    }
-    const linkText = this.#expandedView ? i18nString11(UIStrings12.showLess) : i18nString11(UIStrings12.showSMoreFrames, { n: this.#hiddenCallFramesCount });
-    Lit11.render(html12`
-      <style>${stackTraceLinkButton_css_default}</style>
-      <div class="stack-trace-row">
-          <button class="link" @click=${() => this.#onShowAllClick()}>
-            ${linkText}
-          </button>
-        </div>
-    `, this.#shadow, { host: this });
-  }
-};
-var StackTrace = class extends HTMLElement {
-  #shadow = this.attachShadow({ mode: "open" });
-  #linkifier = new Components2.Linkifier.Linkifier();
-  #stackTraceRows = [];
-  #showHidden = false;
-  set data(data) {
-    const { creationStackTrace, creationStackTraceTarget } = data.creationStackTraceData;
-    if (creationStackTrace) {
-      this.#stackTraceRows = data.buildStackTraceRows(creationStackTrace, creationStackTraceTarget, this.#linkifier, true, this.#onStackTraceRowsUpdated.bind(this));
-    }
-    this.#render();
-  }
-  #onStackTraceRowsUpdated(stackTraceRows) {
-    this.#stackTraceRows = stackTraceRows;
-    this.#render();
-  }
-  #onToggleShowAllClick() {
-    this.#showHidden = !this.#showHidden;
-    this.#render();
-  }
-  createRowTemplates() {
-    const expandableRows = [];
-    let hiddenCallFramesCount = 0;
-    for (const item2 of this.#stackTraceRows) {
-      let ignoreListHide = false;
-      if ("link" in item2 && item2.link) {
-        const uiLocation = Components2.Linkifier.Linkifier.uiLocation(item2.link);
-        ignoreListHide = Boolean(uiLocation?.isIgnoreListed());
-      }
-      if (this.#showHidden || !ignoreListHide) {
-        if ("functionName" in item2) {
-          expandableRows.push(html12`
-          <devtools-stack-trace-row data-stack-trace-row .data=${{
-            stackTraceRowItem: item2
-          }}></devtools-stack-trace-row>`);
-        }
-        if ("asyncDescription" in item2) {
-          expandableRows.push(html12`
-            <div>${item2.asyncDescription}</div>
-          `);
-        }
-      }
-      if ("functionName" in item2 && ignoreListHide) {
-        hiddenCallFramesCount++;
-      }
-    }
-    if (hiddenCallFramesCount) {
-      expandableRows.push(html12`
-      <devtools-stack-trace-link-button data-stack-trace-row .data=${{ onShowAllClick: this.#onToggleShowAllClick.bind(this), hiddenCallFramesCount, expandedView: this.#showHidden }}></devtools-stack-trace-link-button>
-      `);
-    }
-    return expandableRows;
-  }
-  #render() {
-    if (!this.#stackTraceRows.length) {
-      Lit11.render(html12`
-          <span>${i18nString11(UIStrings12.cannotRenderStackTrace)}</span>
-        `, this.#shadow, { host: this });
-      return;
-    }
-    const expandableRows = this.createRowTemplates();
-    Lit11.render(html12`
-        <devtools-expandable-list .data=${{ rows: expandableRows, title: i18nString11(UIStrings12.creationStackTrace) }}
-                                  jslog=${VisualLogging8.tree()}>
-        </devtools-expandable-list>
-      `, this.#shadow, { host: this });
-  }
-};
-customElements.define("devtools-stack-trace-row", StackTraceRow);
-customElements.define("devtools-stack-trace-link-button", StackTraceLinkButton);
-customElements.define("devtools-resources-stack-trace", StackTrace);
-
 // gen/front_end/panels/application/components/TrustTokensView.js
 var TrustTokensView_exports = {};
 __export(TrustTokensView_exports, {
   TrustTokensView: () => TrustTokensView,
-  i18nString: () => i18nString12
+  i18nString: () => i18nString11
 });
 import "./../../../ui/components/icon_button/icon_button.js";
 import "./../../../ui/legacy/components/data_grid/data_grid.js";
-import * as i18n25 from "./../../../core/i18n/i18n.js";
+import * as i18n23 from "./../../../core/i18n/i18n.js";
 import * as SDK5 from "./../../../core/sdk/sdk.js";
 import * as Buttons7 from "./../../../ui/components/buttons/buttons.js";
 import * as LegacyWrapper7 from "./../../../ui/components/legacy_wrapper/legacy_wrapper.js";
 import * as RenderCoordinator3 from "./../../../ui/components/render_coordinator/render_coordinator.js";
 import * as UI8 from "./../../../ui/legacy/legacy.js";
-import * as Lit12 from "./../../../ui/lit/lit.js";
-import * as VisualLogging9 from "./../../../ui/visual_logging/visual_logging.js";
+import * as Lit11 from "./../../../ui/lit/lit.js";
+import * as VisualLogging8 from "./../../../ui/visual_logging/visual_logging.js";
 
 // gen/front_end/panels/application/components/trustTokensView.css.js
 var trustTokensView_css_default = `/*
@@ -3350,8 +3117,8 @@ devtools-icon {
 
 // gen/front_end/panels/application/components/TrustTokensView.js
 var PRIVATE_STATE_TOKENS_EXPLANATION_URL = "https://developers.google.com/privacy-sandbox/protections/private-state-tokens";
-var { html: html13 } = Lit12;
-var UIStrings13 = {
+var { html: html12 } = Lit11;
+var UIStrings12 = {
   /**
    * @description Text for the issuer of an item
    */
@@ -3388,8 +3155,8 @@ var UIStrings13 = {
    */
   learnMore: "Learn more"
 };
-var str_13 = i18n25.i18n.registerUIStrings("panels/application/components/TrustTokensView.ts", UIStrings13);
-var i18nString12 = i18n25.i18n.getLocalizedString.bind(void 0, str_13);
+var str_12 = i18n23.i18n.registerUIStrings("panels/application/components/TrustTokensView.ts", UIStrings12);
+var i18nString11 = i18n23.i18n.getLocalizedString.bind(void 0, str_12);
 var REFRESH_INTERVAL_MS = 1e3;
 var TrustTokensView = class extends LegacyWrapper7.LegacyWrapper.WrappableComponent {
   #shadow = this.attachShadow({ mode: "open" });
@@ -3409,7 +3176,7 @@ var TrustTokensView = class extends LegacyWrapper7.LegacyWrapper.WrappableCompon
     const { tokens } = await mainTarget.storageAgent().invoke_getTrustTokens();
     tokens.sort((a, b) => a.issuerOrigin.localeCompare(b.issuerOrigin));
     await RenderCoordinator3.write("Render TrustTokensView", () => {
-      Lit12.render(html13`
+      Lit11.render(html12`
         <style>${trustTokensView_css_default}</style>
         <style>${UI8.inspectorCommonStyles}</style>
         ${this.#renderGridOrNoDataMessage(tokens)}
@@ -3421,32 +3188,32 @@ var TrustTokensView = class extends LegacyWrapper7.LegacyWrapper.WrappableCompon
   }
   #renderGridOrNoDataMessage(tokens) {
     if (tokens.length === 0) {
-      return html13`
-        <div class="empty-state" jslog=${VisualLogging9.section().context("empty-view")}>
-          <div class="empty-state-header">${i18nString12(UIStrings13.noTrustTokens)}</div>
+      return html12`
+        <div class="empty-state" jslog=${VisualLogging8.section().context("empty-view")}>
+          <div class="empty-state-header">${i18nString11(UIStrings12.noTrustTokens)}</div>
           <div class="empty-state-description">
-            <span>${i18nString12(UIStrings13.trustTokensDescription)}</span>
+            <span>${i18nString11(UIStrings12.trustTokensDescription)}</span>
             <x-link
               class="x-link devtools-link"
               href=${PRIVATE_STATE_TOKENS_EXPLANATION_URL}
-              jslog=${VisualLogging9.link().track({ click: true, keydown: "Enter|Space" }).context("learn-more")}
-            >${i18nString12(UIStrings13.learnMore)}</x-link>
+              jslog=${VisualLogging8.link().track({ click: true, keydown: "Enter|Space" }).context("learn-more")}
+            >${i18nString11(UIStrings12.learnMore)}</x-link>
           </div>
         </div>
       `;
     }
-    return html13`
+    return html12`
       <div>
-        <span class="heading">${i18nString12(UIStrings13.trustTokens)}</span>
-        <devtools-icon name="info" title=${i18nString12(UIStrings13.allStoredTrustTokensAvailableIn)}></devtools-icon>
+        <span class="heading">${i18nString11(UIStrings12.trustTokens)}</span>
+        <devtools-icon name="info" title=${i18nString11(UIStrings12.allStoredTrustTokensAvailableIn)}></devtools-icon>
         <devtools-data-grid striped inline>
           <table>
             <tr>
-              <th id="issuer" weight="10" sortable>${i18nString12(UIStrings13.issuer)}</th>
-              <th id="count" weight="5" sortable>${i18nString12(UIStrings13.storedTokenCount)}</th>
+              <th id="issuer" weight="10" sortable>${i18nString11(UIStrings12.issuer)}</th>
+              <th id="count" weight="5" sortable>${i18nString11(UIStrings12.storedTokenCount)}</th>
               <th id="delete-button" weight="1" sortable></th>
             </tr>
-            ${tokens.filter((token) => token.count > 0).map((token) => html13`
+            ${tokens.filter((token) => token.count > 0).map((token) => html12`
                 <tr>
                   <td>${removeTrailingSlash(token.issuerOrigin)}</td>
                   <td>${token.count}</td>
@@ -3454,7 +3221,7 @@ var TrustTokensView = class extends LegacyWrapper7.LegacyWrapper.WrappableCompon
                     <devtools-button .iconName=${"bin"}
                                     .jslogContext=${"delete-all"}
                                     .size=${"SMALL"}
-                                    .title=${i18nString12(UIStrings13.deleteTrustTokens, { PH1: removeTrailingSlash(token.issuerOrigin) })}
+                                    .title=${i18nString11(UIStrings12.deleteTrustTokens, { PH1: removeTrailingSlash(token.issuerOrigin) })}
                                     .variant=${"icon"}
                                     @click=${this.#deleteClickHandler.bind(this, removeTrailingSlash(token.issuerOrigin))}></devtools-button>
                   </td>
@@ -3481,7 +3248,6 @@ export {
   ServiceWorkerRouterView_exports as ServiceWorkerRouterView,
   SharedStorageAccessGrid_exports as SharedStorageAccessGrid,
   SharedStorageMetadataView_exports as SharedStorageMetadataView,
-  StackTrace_exports as StackTrace,
   StorageMetadataView_exports as StorageMetadataView,
   TrustTokensView_exports as TrustTokensView
 };
