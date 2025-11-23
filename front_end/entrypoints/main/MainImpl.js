@@ -169,7 +169,7 @@ export class MainImpl {
         await this.requestAndRegisterLocaleData();
         Host.userMetrics.syncSetting(Common.Settings.Settings.instance().moduleSetting('sync-preferences').get());
         const veLogging = config.devToolsVeLogging;
-        // Used by e2e_non_hosted to put VE Logs into "test mode".
+        // Used by e2e to put VE Logs into "test mode".
         const veLogsTestMode = Common.Settings.Settings.instance().createSetting('veLogsTestMode', false).get();
         if (veLogging?.enabled) {
             // Note: as of https://crrev.com/c/6734500 landing, veLogging.testing is hard-coded to false.
