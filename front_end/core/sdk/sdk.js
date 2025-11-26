@@ -2716,6 +2716,13 @@ var generatedProperties = [
   },
   {
     "longhands": [
+      "masonry-direction",
+      "masonry-fill"
+    ],
+    "name": "grid-lanes-flow"
+  },
+  {
+    "longhands": [
       "grid-row-start",
       "grid-row-end"
     ],
@@ -3173,13 +3180,6 @@ var generatedProperties = [
       "reverse"
     ],
     "name": "masonry-fill"
-  },
-  {
-    "longhands": [
-      "masonry-direction",
-      "masonry-fill"
-    ],
-    "name": "masonry-flow"
   },
   {
     "inherited": true,
@@ -19867,6 +19867,9 @@ __export(SourceMapCache_exports, {
 var SourceMapCache = class _SourceMapCache {
   static #INSTANCE = new _SourceMapCache("devtools-source-map-cache");
   static instance() {
+    if (typeof window === "undefined") {
+      return IN_MEMORY_INSTANCE;
+    }
     return this.#INSTANCE;
   }
   static createForTest(name) {
@@ -19901,6 +19904,17 @@ var SourceMapCache = class _SourceMapCache {
     await window.caches.delete(this.#name);
   }
 };
+var IN_MEMORY_INSTANCE = new class {
+  #cache = /* @__PURE__ */ new Map();
+  async set(debugId, sourceMap) {
+    this.#cache.set(debugId, sourceMap);
+  }
+  async get(debugId) {
+    return this.#cache.get(debugId) ?? null;
+  }
+  async disposeForTest() {
+  }
+}();
 
 // gen/front_end/core/sdk/SourceMapManager.js
 var SourceMapManager = class _SourceMapManager extends Common13.ObjectWrapper.ObjectWrapper {
