@@ -487,17 +487,11 @@ var FilteredListWidget = class extends Common.ObjectWrapper.eventMixin(UI.Widget
   createElementForItem(item2) {
     const wrapperElement = document.createElement("div");
     wrapperElement.className = "filtered-list-widget-item-wrapper";
-    const itemElement = wrapperElement.createChild("div");
-    const renderAsTwoRows = this.provider?.renderAsTwoRows();
-    itemElement.className = "filtered-list-widget-item " + (renderAsTwoRows ? "two-rows" : "one-row");
-    const titleElement = itemElement.createChild("div", "filtered-list-widget-title");
-    const subtitleElement = itemElement.createChild("div", "filtered-list-widget-subtitle");
-    subtitleElement.textContent = "\u200B";
     if (this.provider) {
-      this.provider.renderItem(item2, this.cleanValue(), titleElement, subtitleElement);
+      this.provider.renderItem(item2, this.cleanValue(), wrapperElement);
       wrapperElement.setAttribute("jslog", `${VisualLogging.item(this.provider.jslogContextAt(item2)).track({ click: true })}`);
     }
-    UI.ARIAUtils.markAsOption(itemElement);
+    UI.ARIAUtils.markAsOption(wrapperElement);
     return wrapperElement;
   }
   heightForItem(_item) {
@@ -765,13 +759,10 @@ var Provider = class {
   itemScoreAt(_itemIndex, _query) {
     return 1;
   }
-  renderItem(_itemIndex, _query, _titleElement, _subtitleElement) {
+  renderItem(_itemIndex, _query, _wrapperElement) {
   }
   jslogContextAt(_itemIndex) {
     return this.jslogContext;
-  }
-  renderAsTwoRows() {
-    return false;
   }
   selectItem(_itemIndex, _promptValue) {
   }
@@ -1133,32 +1124,30 @@ var CommandMenuProvider = class extends Provider {
     }
     return score;
   }
-  renderItem(itemIndex, query, titleElement, subtitleElement) {
+  renderItem(itemIndex, query, wrapperElement) {
     const command = this.commands[itemIndex];
+    const itemElement = wrapperElement.createChild("div", "filtered-list-widget-item one-row");
+    const titleElement = itemElement.createChild("div", "filtered-list-widget-title");
     titleElement.removeChildren();
     const icon = IconButton.Icon.create(categoryIcons[command.category]);
-    titleElement.parentElement?.parentElement?.insertBefore(icon, titleElement.parentElement);
+    wrapperElement.insertBefore(icon, itemElement);
     UI2.UIUtils.createTextChild(titleElement, command.title);
     FilteredListWidget.highlightRanges(titleElement, query, true);
+    const subtitleElement = itemElement.createChild("div", "filtered-list-widget-subtitle");
     if (command.featurePromotionId) {
       const badge = UI2.UIUtils.maybeCreateNewBadge(command.featurePromotionId);
       if (badge) {
-        titleElement.parentElement?.insertBefore(badge, subtitleElement);
+        itemElement.insertBefore(badge, subtitleElement);
       }
     }
     subtitleElement.textContent = command.shortcut;
     const deprecationWarning = command.deprecationWarning;
     if (deprecationWarning) {
-      const deprecatedTagElement = titleElement.parentElement?.createChild("span", "deprecated-tag");
-      if (deprecatedTagElement) {
-        deprecatedTagElement.textContent = i18nString3(UIStrings3.deprecated);
-        deprecatedTagElement.title = deprecationWarning;
-      }
+      const deprecatedTagElement = itemElement.createChild("span", "deprecated-tag");
+      deprecatedTagElement.textContent = i18nString3(UIStrings3.deprecated);
+      deprecatedTagElement.title = deprecationWarning;
     }
-    const tagElement = titleElement.parentElement?.parentElement?.createChild("span", "tag");
-    if (!tagElement) {
-      return;
-    }
+    const tagElement = wrapperElement.createChild("span", "tag");
     tagElement.textContent = command.category;
   }
   jslogContextAt(itemIndex) {
@@ -1274,12 +1263,14 @@ var HelpQuickOpen = class extends Provider {
   itemScoreAt(itemIndex, _query) {
     return -this.providers[itemIndex].prefix.length;
   }
-  renderItem(itemIndex, _query, titleElement, _subtitleElement) {
+  renderItem(itemIndex, _query, wrapperElement) {
     const provider = this.providers[itemIndex];
+    const itemElement = wrapperElement.createChild("div", "filtered-list-widget-item one-row");
+    const titleElement = itemElement.createChild("div", "filtered-list-widget-title");
     const iconElement = new IconButton2.Icon.Icon();
     iconElement.name = provider.iconName;
     iconElement.classList.add("large");
-    titleElement.parentElement?.parentElement?.insertBefore(iconElement, titleElement.parentElement);
+    wrapperElement.insertBefore(iconElement, itemElement);
     UI3.UIUtils.createTextChild(titleElement, provider.title);
   }
   jslogContextAt(itemIndex) {
@@ -1289,9 +1280,6 @@ var HelpQuickOpen = class extends Provider {
     if (itemIndex !== null) {
       QuickOpenImpl.show(this.providers[itemIndex].prefix);
     }
-  }
-  renderAsTwoRows() {
-    return false;
   }
 };
 registerProvider({

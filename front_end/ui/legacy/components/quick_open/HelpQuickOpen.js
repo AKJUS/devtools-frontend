@@ -30,12 +30,14 @@ export class HelpQuickOpen extends Provider {
     itemScoreAt(itemIndex, _query) {
         return -this.providers[itemIndex].prefix.length;
     }
-    renderItem(itemIndex, _query, titleElement, _subtitleElement) {
+    renderItem(itemIndex, _query, wrapperElement) {
         const provider = this.providers[itemIndex];
+        const itemElement = wrapperElement.createChild('div', 'filtered-list-widget-item one-row');
+        const titleElement = itemElement.createChild('div', 'filtered-list-widget-title');
         const iconElement = new IconButton.Icon.Icon();
         iconElement.name = provider.iconName;
         iconElement.classList.add('large');
-        titleElement.parentElement?.parentElement?.insertBefore(iconElement, titleElement.parentElement);
+        wrapperElement.insertBefore(iconElement, itemElement);
         UI.UIUtils.createTextChild(titleElement, provider.title);
     }
     jslogContextAt(itemIndex) {
@@ -45,9 +47,6 @@ export class HelpQuickOpen extends Provider {
         if (itemIndex !== null) {
             QuickOpenImpl.show(this.providers[itemIndex].prefix);
         }
-    }
-    renderAsTwoRows() {
-        return false;
     }
 }
 registerProvider({

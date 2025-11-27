@@ -6660,21 +6660,10 @@ var makeLineLevelProfilePlugin = (type) => class ProfilePlugin extends Plugin {
     if (!uiSourceCodeProfileMap) {
       return void 0;
     }
-    const editorProfileMap = /* @__PURE__ */ new Map();
-    for (const [lineNumber, columnData] of uiSourceCodeProfileMap) {
-      for (const [columnNumber, data] of columnData) {
-        const editorLocation = this.#transformer.uiLocationToEditorLocation(lineNumber - 1, columnNumber - 1);
-        const oneBasedFormattedLineNumber = editorLocation.lineNumber + 1;
-        const oneBasedFormattedColumnNumber = editorLocation.columnNumber + 1;
-        let columnData2 = editorProfileMap.get(oneBasedFormattedLineNumber);
-        if (!columnData2) {
-          columnData2 = /* @__PURE__ */ new Map();
-          editorProfileMap.set(oneBasedFormattedLineNumber, columnData2);
-        }
-        columnData2.set(oneBasedFormattedColumnNumber, (columnData2.get(oneBasedFormattedColumnNumber) || 0) + data);
-      }
-    }
-    return editorProfileMap;
+    return Workspace14.UISourceCode.createMappedProfileData(uiSourceCodeProfileMap, (line, column) => {
+      const editorLocation = this.#transformer.uiLocationToEditorLocation(line, column);
+      return [editorLocation.lineNumber, editorLocation.columnNumber];
+    });
   }
   editorExtension() {
     const map = this.getLineMap();
@@ -12463,8 +12452,10 @@ var FilteredUISourceCodeListProvider = class extends QuickOpen3.FilteredListWidg
     const fullDisplayName = uiSourceCode.fullDisplayName();
     return score + multiplier * (contentTypeBonus + this.scorer.calculateScore(fullDisplayName, null));
   }
-  renderItem(itemIndex, query, titleElement, subtitleElement) {
-    titleElement.parentElement?.parentElement?.classList.toggle("search-mode", Boolean(query));
+  renderItem(itemIndex, query, wrapperElement) {
+    const itemElement = wrapperElement.createChild("div", "filtered-list-widget-item two-rows");
+    const titleElement = itemElement.createChild("div", "filtered-list-widget-title");
+    wrapperElement.classList.toggle("search-mode", Boolean(query));
     query = this.rewriteQuery(query);
     const uiSourceCode = this.uiSourceCodes[itemIndex];
     const fullDisplayName = uiSourceCode.fullDisplayName();
@@ -12474,10 +12465,11 @@ var FilteredUISourceCodeListProvider = class extends QuickOpen3.FilteredListWidg
     const isIgnoreListed = Workspace25.IgnoreListManager.IgnoreListManager.instance().isUserOrSourceMapIgnoreListedUISourceCode(uiSourceCode);
     let tooltipText = fullDisplayName;
     if (isIgnoreListed) {
-      titleElement.parentElement?.classList.add("is-ignore-listed");
+      itemElement.classList.add("is-ignore-listed");
       tooltipText = i18nString18(UIStrings19.sIgnoreListed, { PH1: tooltipText });
     }
     titleElement.textContent = uiSourceCode.displayName() + (this.queryLineNumberAndColumnNumber || "");
+    const subtitleElement = itemElement.createChild("div", "filtered-list-widget-subtitle");
     this.renderSubtitleElement(subtitleElement, fullDisplayName.substring(0, fileNameIndex + 1));
     UI20.Tooltip.Tooltip.install(subtitleElement, tooltipText);
     const ranges = [];
@@ -12627,9 +12619,11 @@ var GoToLineQuickOpen = class extends QuickOpen4.FilteredListWidget.Provider {
   itemCount() {
     return this.#goToLineStrings.length;
   }
-  renderItem(itemIndex, _query, titleElement, _subtitleElement) {
+  renderItem(itemIndex, _query, wrapperElement) {
+    const itemElement = wrapperElement.createChild("div", "filtered-list-widget-item one-row");
+    const titleElement = itemElement.createChild("div", "filtered-list-widget-title");
     const icon = IconButton10.Icon.create("colon");
-    titleElement.parentElement?.parentElement?.insertBefore(icon, titleElement.parentElement);
+    wrapperElement.insertBefore(icon, itemElement);
     UI21.UIUtils.createTextChild(titleElement, this.#goToLineStrings[itemIndex]);
   }
   rewriteQuery(_query) {
@@ -12851,8 +12845,12 @@ var OpenFileQuickOpen = class extends FilteredUISourceCodeListProvider {
   filterProject(project) {
     return !project.isServiceProject();
   }
-  renderItem(itemIndex, query, titleElement, subtitleElement) {
-    super.renderItem(itemIndex, query, titleElement, subtitleElement);
+  renderItem(itemIndex, query, wrapperElement) {
+    super.renderItem(itemIndex, query, wrapperElement);
+    const itemElement = wrapperElement.firstChild;
+    if (!itemElement) {
+      return;
+    }
     const iconElement = new IconButton11.Icon.Icon();
     const { iconName, color } = PanelUtils2.iconDataForResourceType(this.itemContentTypeAt(itemIndex));
     iconElement.name = iconName;
@@ -12860,10 +12858,7 @@ var OpenFileQuickOpen = class extends FilteredUISourceCodeListProvider {
       iconElement.style.color = color;
     }
     iconElement.classList.add("large");
-    titleElement.parentElement?.parentElement?.insertBefore(iconElement, titleElement.parentElement);
-  }
-  renderAsTwoRows() {
-    return true;
+    wrapperElement.insertBefore(iconElement, itemElement);
   }
 };
 
@@ -13162,17 +13157,19 @@ var OutlineQuickOpen = class extends QuickOpen5.FilteredListWidget.Provider {
     }
     return -item.lineNumber - 1;
   }
-  renderItem(itemIndex, query, titleElement, _subtitleElement) {
+  renderItem(itemIndex, query, wrapperElement) {
     const item = this.items[itemIndex];
+    const itemElement = wrapperElement.createChild("div", "filtered-list-widget-item one-row");
+    const titleElement = itemElement.createChild("div", "filtered-list-widget-title");
     const icon = IconButton12.Icon.create("deployed");
-    titleElement.parentElement?.parentElement?.insertBefore(icon, titleElement.parentElement);
+    wrapperElement.insertBefore(icon, itemElement);
     titleElement.textContent = item.title + (item.subtitle ? item.subtitle : "");
     QuickOpen5.FilteredListWidget.FilteredListWidget.highlightRanges(titleElement, query);
     const sourceFrame = this.currentSourceFrame();
     if (!sourceFrame) {
       return;
     }
-    const tagElement = titleElement.parentElement?.parentElement?.createChild("span", "tag");
+    const tagElement = wrapperElement.createChild("span", "tag");
     if (!tagElement) {
       return;
     }
