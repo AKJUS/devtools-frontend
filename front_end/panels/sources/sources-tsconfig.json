@@ -151,7 +151,7 @@
       "path": "../../ui/components/buttons/bundle-tsconfig.json"
     },
     {
-      "path": "../../ui/components/icon_button/bundle-tsconfig.json"
+      "path": "../../ui/components/highlighting/bundle-tsconfig.json"
     },
     {
       "path": "../../ui/components/spinners/bundle-tsconfig.json"
@@ -164,6 +164,9 @@
     },
     {
       "path": "../../ui/i18n/bundle-tsconfig.json"
+    },
+    {
+      "path": "../../ui/kit/bundle-tsconfig.json"
     },
     {
       "path": "../../ui/legacy/bundle-tsconfig.json"

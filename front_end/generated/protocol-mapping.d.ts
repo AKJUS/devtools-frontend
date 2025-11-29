@@ -117,6 +117,10 @@ export namespace ProtocolMapping {
      */
     'DOM.attributeModified': [Protocol.DOM.AttributeModifiedEvent];
     /**
+     * Fired when `Element`'s adoptedStyleSheets are modified.
+     */
+    'DOM.adoptedStyleSheetsModified': [Protocol.DOM.AdoptedStyleSheetsModifiedEvent];
+    /**
      * Fired when `Element`'s attribute is removed.
      */
     'DOM.attributeRemoved': [Protocol.DOM.AttributeRemovedEvent];
@@ -4832,6 +4836,14 @@ export namespace ProtocolMapping {
     'Target.setRemoteLocations': {
       paramsType: [Protocol.Target.SetRemoteLocationsRequest];
       returnType: void;
+    };
+    /**
+     * Gets the targetId of the DevTools page target opened for the given target
+     * (if any).
+     */
+    'Target.getDevToolsTarget': {
+      paramsType: [Protocol.Target.GetDevToolsTargetRequest];
+      returnType: Protocol.Target.GetDevToolsTargetResponse;
     };
     /**
      * Opens a DevTools window for the target.

@@ -33,6 +33,7 @@ import * as Platform10 from "./../../core/platform/platform.js";
 import * as Root7 from "./../../core/root/root.js";
 import * as SDK18 from "./../../core/sdk/sdk.js";
 import * as PanelCommon from "./../common/common.js";
+import * as Annotations from "./../../ui/components/annotations/annotations.js";
 import * as Buttons4 from "./../../ui/components/buttons/buttons.js";
 import * as TreeOutline12 from "./../../ui/components/tree_outline/tree_outline.js";
 import * as UI21 from "./../../ui/legacy/legacy.js";
@@ -1346,7 +1347,7 @@ import * as Root4 from "./../../core/root/root.js";
 import * as SDK8 from "./../../core/sdk/sdk.js";
 import * as Bindings4 from "./../../models/bindings/bindings.js";
 import * as TextUtils4 from "./../../models/text_utils/text_utils.js";
-import * as IconButton3 from "./../../ui/components/icon_button/icon_button.js";
+import { createIcon as createIcon3, Icon as Icon2 } from "./../../ui/kit/kit.js";
 import * as InlineEditor3 from "./../../ui/legacy/components/inline_editor/inline_editor.js";
 import * as Components2 from "./../../ui/legacy/components/utils/utils.js";
 import * as UI11 from "./../../ui/legacy/legacy.js";
@@ -1592,7 +1593,7 @@ var StyleEditorWidget_exports = {};
 __export(StyleEditorWidget_exports, {
   StyleEditorWidget: () => StyleEditorWidget
 });
-import * as IconButton2 from "./../../ui/components/icon_button/icon_button.js";
+import { createIcon as createIcon2 } from "./../../ui/kit/kit.js";
 import * as UI9 from "./../../ui/legacy/legacy.js";
 
 // gen/front_end/panels/elements/StylePropertyTreeElement.js
@@ -1636,8 +1637,8 @@ import * as SDK6 from "./../../core/sdk/sdk.js";
 import * as Badges from "./../../models/badges/badges.js";
 import * as Bindings2 from "./../../models/bindings/bindings.js";
 import * as TextUtils from "./../../models/text_utils/text_utils.js";
-import * as IconButton from "./../../ui/components/icon_button/icon_button.js";
 import * as Tooltips from "./../../ui/components/tooltips/tooltips.js";
+import { createIcon, Icon } from "./../../ui/kit/kit.js";
 import * as ColorPicker2 from "./../../ui/legacy/components/color_picker/color_picker.js";
 import * as InlineEditor2 from "./../../ui/legacy/components/inline_editor/inline_editor.js";
 import * as UI8 from "./../../ui/legacy/legacy.js";
@@ -3763,7 +3764,7 @@ var LinkableNameRenderer = class extends rendererBase(SDK6.CSSPropertyParserMatc
           if (!maybeAnimationGroup) {
             return;
           }
-          const icon = IconButton.Icon.create("animation", "open-in-animations-panel");
+          const icon = createIcon("animation", "open-in-animations-panel");
           icon.setAttribute("jslog", `${VisualLogging3.link("open-in-animations-panel").track({ click: true })}`);
           icon.setAttribute("role", "button");
           icon.setAttribute("title", i18nString5(UIStrings5.jumpToAnimationsPanel));
@@ -3792,7 +3793,7 @@ var BezierRenderer = class extends rendererBase(SDK6.CSSPropertyParserMatchers.B
       return nodes;
     }
     const swatchPopoverHelper = this.#treeElement.parentPane().swatchPopoverHelper();
-    const icon = IconButton.Icon.create("bezier-curve-filled", "bezier-swatch-icon");
+    const icon = createIcon("bezier-curve-filled", "bezier-swatch-icon");
     icon.setAttribute("jslog", `${VisualLogging3.showStyleEditor("bezier")}`);
     icon.tabIndex = -1;
     icon.addEventListener("click", () => {
@@ -4752,7 +4753,7 @@ var StylePropertyTreeElement = class _StylePropertyTreeElement extends UI8.TreeO
     this.#tooltipKeyCounts.clear();
     this.updateState();
     if (this.isExpandable()) {
-      this.expandElement = IconButton.Icon.create("triangle-right", "expand-icon");
+      this.expandElement = createIcon("triangle-right", "expand-icon");
       this.expandElement.setAttribute("jslog", `${VisualLogging3.expand().track({ click: true })}`);
     }
     const renderers = this.property.parsedOk ? getPropertyRenderers(this.name, this.style, this.#parentPane, this.#matchedStyles, this, this.getComputedStyles() ?? /* @__PURE__ */ new Map()) : [];
@@ -4991,7 +4992,7 @@ var StylePropertyTreeElement = class _StylePropertyTreeElement extends UI8.TreeO
       if (hint) {
         const wrapper = document.createElement("span");
         wrapper.classList.add("hint-wrapper");
-        const hintIcon = new IconButton.Icon.Icon();
+        const hintIcon = new Icon();
         hintIcon.name = "info";
         hintIcon.classList.add("hint", "small");
         hintIcon.tabIndex = -1;
@@ -5686,7 +5687,7 @@ var StyleEditorWidget = class _StyleEditorWidget extends UI9.Widget.VBox {
     }
   }
   static createTriggerButton(pane9, section3, editorClass, buttonTitle, triggerKey) {
-    const triggerButton = IconButton2.Icon.create("flex-wrap", "styles-pane-button");
+    const triggerButton = createIcon2("flex-wrap", "styles-pane-button");
     triggerButton.title = buttonTitle;
     triggerButton.role = "button";
     triggerButton.onclick = async (event) => {
@@ -8881,7 +8882,7 @@ var SectionBlock = class _SectionBlock {
     this.sections = [];
     this.#expanded = expandedByDefault ?? false;
     if (expandable && titleElement instanceof HTMLElement) {
-      this.#icon = IconButton3.Icon.create(this.#expanded ? "triangle-down" : "triangle-right", "section-block-expand-icon");
+      this.#icon = createIcon3(this.#expanded ? "triangle-down" : "triangle-right", "section-block-expand-icon");
       titleElement.classList.toggle("empty-section", !this.#expanded);
       UI11.ARIAUtils.setExpanded(titleElement, this.#expanded);
       titleElement.appendChild(this.#icon);
@@ -9273,7 +9274,7 @@ var CSSPropertyPrompt = class extends UI11.TextPrompt.TextPrompt {
       if (!iconInfo) {
         continue;
       }
-      const icon = new IconButton3.Icon.Icon();
+      const icon = new Icon2();
       icon.name = iconInfo.iconName;
       icon.classList.add("extra-small");
       icon.style.transform = `rotate(${iconInfo.rotate}deg) scale(${iconInfo.scaleX * 1.1}, ${iconInfo.scaleY * 1.1})`;
@@ -10582,6 +10583,7 @@ import * as Badges4 from "./../../models/badges/badges.js";
 import * as Elements from "./../../models/elements/elements.js";
 import * as IssuesManager2 from "./../../models/issues_manager/issues_manager.js";
 import * as CodeHighlighter3 from "./../../ui/components/code_highlighter/code_highlighter.js";
+import * as Highlighting3 from "./../../ui/components/highlighting/highlighting.js";
 import * as IssueCounter from "./../../ui/components/issue_counter/issue_counter.js";
 import * as UI18 from "./../../ui/legacy/legacy.js";
 import { html as html9, nothing as nothing3, render as render6 } from "./../../ui/lit/lit.js";
@@ -10756,8 +10758,8 @@ import * as Adorners from "./../../ui/components/adorners/adorners.js";
 import * as Buttons2 from "./../../ui/components/buttons/buttons.js";
 import * as CodeHighlighter from "./../../ui/components/code_highlighter/code_highlighter.js";
 import * as Highlighting2 from "./../../ui/components/highlighting/highlighting.js";
-import * as IconButton4 from "./../../ui/components/icon_button/icon_button.js";
 import * as TextEditor from "./../../ui/components/text_editor/text_editor.js";
+import { createIcon as createIcon4, Icon as Icon3 } from "./../../ui/kit/kit.js";
 import * as Components5 from "./../../ui/legacy/components/utils/utils.js";
 import * as UI15 from "./../../ui/legacy/legacy.js";
 import * as Lit6 from "./../../ui/lit/lit.js";
@@ -11465,7 +11467,7 @@ var ElementsTreeElement = class _ElementsTreeElement extends UI15.TreeOutline.Tr
     this.expandAllButtonElement = null;
     this.performUpdate();
     if (this.nodeInternal.retained && !this.isClosingTag()) {
-      const icon = new IconButton4.Icon.Icon();
+      const icon = new Icon3();
       icon.name = "small-status-dot";
       icon.style.color = "var(--icon-error)";
       icon.classList.add("extra-small");
@@ -12650,7 +12652,7 @@ var ElementsTreeElement = class _ElementsTreeElement extends UI15.TreeOutline.Tr
         ++highlightIndex;
       }
       element.setTextContentTruncatedIfNeeded(value5);
-      UI15.UIUtils.highlightRangesWithStyleClass(element, result.entityRanges, "webkit-html-entity-value");
+      Highlighting2.highlightRangesWithStyleClass(element, result.entityRanges, "webkit-html-entity-value");
     }
     const hasText = forceValue || value4.length > 0;
     const attrSpanElement = parentElement.createChild("span", "webkit-html-attribute");
@@ -12864,7 +12866,7 @@ var ElementsTreeElement = class _ElementsTreeElement extends UI15.TreeOutline.Tr
           }
           const result = convertUnicodeCharsToHTMLEntities(firstChild.nodeValue());
           textNodeElement.textContent = Platform7.StringUtilities.collapseWhitespace(result.text);
-          UI15.UIUtils.highlightRangesWithStyleClass(textNodeElement, result.entityRanges, "webkit-html-entity-value");
+          Highlighting2.highlightRangesWithStyleClass(textNodeElement, result.entityRanges, "webkit-html-entity-value");
           UI15.UIUtils.createTextChild(titleDOM, "\u200B");
           this.buildTagDOM(titleDOM, tagName, true, false, updateRecord);
           if (updateRecord?.hasChangedChildren()) {
@@ -12899,7 +12901,7 @@ var ElementsTreeElement = class _ElementsTreeElement extends UI15.TreeOutline.Tr
           textNodeElement.setAttribute("jslog", `${VisualLogging7.value("text-node").track({ change: true, dblclick: true })}`);
           const result = convertUnicodeCharsToHTMLEntities(node.nodeValue());
           textNodeElement.textContent = Platform7.StringUtilities.collapseWhitespace(result.text);
-          UI15.UIUtils.highlightRangesWithStyleClass(textNodeElement, result.entityRanges, "webkit-html-entity-value");
+          Highlighting2.highlightRangesWithStyleClass(textNodeElement, result.entityRanges, "webkit-html-entity-value");
           UI15.UIUtils.createTextChild(titleDOM, '"');
           if (updateRecord?.isCharDataModified()) {
             UI15.UIUtils.runCSSAnimationOnce(textNodeElement, "dom-update-highlight");
@@ -13086,7 +13088,7 @@ var ElementsTreeElement = class _ElementsTreeElement extends UI15.TreeOutline.Tr
     return adorner;
   }
   adornSlot({ name }) {
-    const linkIcon = IconButton4.Icon.create("select-element");
+    const linkIcon = createIcon4("select-element");
     const slotText = document.createElement("span");
     slotText.textContent = name;
     const adornerContent = document.createElement("span");
@@ -13108,7 +13110,7 @@ var ElementsTreeElement = class _ElementsTreeElement extends UI15.TreeOutline.Tr
     const adornerContent = document.createElement("span");
     adornerContent.textContent = name;
     adornerContent.classList.add("adorner-with-icon");
-    const linkIcon = IconButton4.Icon.create("select-element");
+    const linkIcon = createIcon4("select-element");
     adornerContent.append(linkIcon);
     const adorner = new Adorners.Adorner.Adorner();
     adorner.data = {
@@ -13919,7 +13921,7 @@ li.hovered:not(.always-parent) + ol.children:not(.shadow-root) {
 import * as Common10 from "./../../core/common/common.js";
 import * as i18n25 from "./../../core/i18n/i18n.js";
 import * as Adorners2 from "./../../ui/components/adorners/adorners.js";
-import * as IconButton5 from "./../../ui/components/icon_button/icon_button.js";
+import { createIcon as createIcon5 } from "./../../ui/kit/kit.js";
 import * as UI16 from "./../../ui/legacy/legacy.js";
 import * as ElementsComponents6 from "./components/components.js";
 var UIStrings13 = {
@@ -13951,7 +13953,7 @@ var ShortcutTreeElement = class extends UI16.TreeOutline.TreeElement {
     const config = ElementsComponents6.AdornerManager.getRegisteredAdorner(ElementsComponents6.AdornerManager.RegisteredAdorners.REVEAL);
     const name = config.name;
     const adornerContent = document.createElement("span");
-    const linkIcon = IconButton5.Icon.create("select-element");
+    const linkIcon = createIcon5("select-element");
     const slotText = document.createElement("span");
     slotText.textContent = name;
     adornerContent.append(linkIcon);
@@ -14028,7 +14030,7 @@ __export(TopLayerContainer_exports, {
 import * as Common11 from "./../../core/common/common.js";
 import * as i18n27 from "./../../core/i18n/i18n.js";
 import * as SDK14 from "./../../core/sdk/sdk.js";
-import * as IconButton6 from "./../../ui/components/icon_button/icon_button.js";
+import { createIcon as createIcon6 } from "./../../ui/kit/kit.js";
 import * as UI17 from "./../../ui/legacy/legacy.js";
 import * as ElementsComponents7 from "./components/components.js";
 var UIStrings14 = {
@@ -14096,7 +14098,7 @@ var TopLayerContainer = class extends UI17.TreeOutline.TreeElement {
     const config = ElementsComponents7.AdornerManager.getRegisteredAdorner(ElementsComponents7.AdornerManager.RegisteredAdorners.TOP_LAYER);
     const adornerContent = document.createElement("span");
     adornerContent.classList.add("adorner-with-icon");
-    const linkIcon = IconButton6.Icon.create("select-element");
+    const linkIcon = createIcon6("select-element");
     const adornerText = document.createElement("span");
     adornerText.textContent = `top-layer (${topLayerElementIndex})`;
     adornerContent.append(linkIcon);
@@ -14259,7 +14261,7 @@ var DOMTreeWidget = class extends UI18.Widget.Widget {
       return;
     }
     this.#currentHighlightedNode = null;
-    this.requestUpdate();
+    this.performUpdate();
   }
   selectDOMNode(node, focus2) {
     this.#viewOutput?.elementsTreeOutline?.selectDOMNode(node, focus2);
@@ -14287,6 +14289,9 @@ var DOMTreeWidget = class extends UI18.Widget.Widget {
    */
   getTreeOutlineForTesting() {
     return this.#viewOutput.elementsTreeOutline;
+  }
+  treeElementForNode(node) {
+    return this.#viewOutput.elementsTreeOutline?.findTreeElement(node) || null;
   }
   performUpdate() {
     this.#view({
@@ -14350,7 +14355,7 @@ var DOMTreeWidget = class extends UI18.Widget.Widget {
       treeElement.highlightSearchResults(query);
     }
     treeElement.reveal();
-    const matches = treeElement.listItemElement.getElementsByClassName(UI18.UIUtils.highlightedSearchResultClassName);
+    const matches = treeElement.listItemElement.getElementsByClassName(Highlighting3.highlightedSearchResultClassName);
     if (matches.length) {
       matches[0].scrollIntoViewIfNeeded(false);
     }
@@ -17076,6 +17081,9 @@ var ElementsPanel = class _ElementsPanel extends UI21.Panel.Panel {
     SDK18.TargetManager.TargetManager.instance().addEventListener("NameChanged", (event) => this.targetNameChanged(event.data));
     Common15.Settings.Settings.instance().moduleSetting("show-ua-shadow-dom").addChangeListener(this.showUAShadowDOMChanged.bind(this));
     PanelCommon.ExtensionServer.ExtensionServer.instance().addEventListener("SidebarPaneAdded", this.extensionSidebarPaneAdded, this);
+    if (Annotations.AnnotationRepository.annotationsEnabled()) {
+      PanelCommon.AnnotationManager.instance().initializePlacementForAnnotationType(Annotations.AnnotationType.ELEMENT_NODE, this.resolveRelativePosition.bind(this), this.#domTreeWidget.element);
+    }
   }
   initializeFullAccessibilityTreeView() {
     this.accessibilityTreeButton = createAccessibilityTreeToggleButton(false);
@@ -17753,6 +17761,40 @@ ${node.simpleSelector()} {}`, false);
   }
   copyStyles(node) {
     this.#domTreeWidget.copyStyles(node);
+  }
+  async resolveRelativePosition(parentElement, revealNode, lookupId, node) {
+    if (!node) {
+      const backendNodeId = Number(lookupId);
+      if (isNaN(backendNodeId)) {
+        return null;
+      }
+      const rootDOMNode = this.#domTreeWidget.rootDOMNode;
+      if (!rootDOMNode) {
+        return null;
+      }
+      const domModel = rootDOMNode.domModel();
+      const nodes = await domModel.pushNodesByBackendIdsToFrontend(/* @__PURE__ */ new Set([backendNodeId]));
+      if (!nodes) {
+        return null;
+      }
+      const foundNode = nodes.get(backendNodeId);
+      if (!foundNode) {
+        return null;
+      }
+      node = foundNode;
+    }
+    const element = this.#domTreeWidget.treeElementForNode(node);
+    if (!element) {
+      return null;
+    }
+    if (revealNode) {
+      await Common15.Revealer.reveal(node);
+    }
+    const targetRect = element.listItemElement.getBoundingClientRect();
+    const parentRect = parentElement.getBoundingClientRect();
+    const relativeX = 0;
+    const relativeY = targetRect.y - parentRect.y;
+    return { x: relativeX, y: relativeY };
   }
   static firstInspectElementCompletedForTest = function() {
   };
