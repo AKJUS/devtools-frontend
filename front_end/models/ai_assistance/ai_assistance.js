@@ -515,12 +515,14 @@ var AiAgent = class {
         if (!("answer" in parsedResponse)) {
           throw new Error("Expected a completed response to have an answer");
         }
-        this.#history.push({
-          parts: [{
-            text: parsedResponse.answer
-          }],
-          role: Host.AidaClient.Role.MODEL
-        });
+        if (!functionCall) {
+          this.#history.push({
+            parts: [{
+              text: parsedResponse.answer
+            }],
+            role: Host.AidaClient.Role.MODEL
+          });
+        }
         Host.userMetrics.actionTaken(Host.UserMetrics.Action.AiAssistanceAnswerReceived);
         yield {
           type: "answer",
@@ -529,11 +531,16 @@ var AiAgent = class {
           complete: true,
           rpcId
         };
-        break;
+        if (!functionCall) {
+          break;
+        }
       }
       if (functionCall) {
         try {
-          const result = yield* this.#callFunction(functionCall.name, functionCall.args, options);
+          const result = yield* this.#callFunction(functionCall.name, functionCall.args, {
+            ...options,
+            explanation: textResponse
+          });
           if (options.signal?.aborted) {
             yield this.#createErrorResponse(
               "abort"
@@ -572,13 +579,20 @@ var AiAgent = class {
     if (!call) {
       throw new Error(`Function ${name} is not found.`);
     }
+    const parts = [];
+    if (options?.explanation) {
+      parts.push({
+        text: options.explanation
+      });
+    }
+    parts.push({
+      functionCall: {
+        name,
+        args
+      }
+    });
     this.#history.push({
-      parts: [{
-        functionCall: {
-          name,
-          args
-        }
-      }],
+      parts,
       role: Host.AidaClient.Role.MODEL
     });
     let code;
@@ -665,7 +679,8 @@ var AiAgent = class {
         yield {
           rpcId,
           functionCall: aidaResponse.functionCalls[0],
-          completed: true
+          completed: true,
+          text: aidaResponse.explanation
         };
         break;
       }
@@ -5000,6 +5015,7 @@ import * as i18n9 from "./../../core/i18n/i18n.js";
 import * as Platform4 from "./../../core/platform/platform.js";
 import * as Root7 from "./../../core/root/root.js";
 import * as SDK5 from "./../../core/sdk/sdk.js";
+import * as Annotations2 from "./../../ui/components/annotations/annotations.js";
 
 // gen/front_end/models/ai_assistance/ChangeManager.js
 var ChangeManager_exports = {};
@@ -6018,6 +6034,31 @@ const data = {
         return await this.executeAction(params.code, options);
       }
     });
+    if (Annotations2.AnnotationRepository.annotationsEnabled()) {
+      this.declareFunction("addElementAnnotation", {
+        description: "Adds a visual annotation in the Elements panel, attached to a node with the specific UID provided. Use it to highlight nodes in the Elements panel and provide contextual suggestions to the user related to their queries.",
+        parameters: {
+          type: 6,
+          description: "",
+          nullable: false,
+          properties: {
+            elementId: {
+              type: 1,
+              description: "The UID of the element to annotate.",
+              nullable: false
+            },
+            annotationMessage: {
+              type: 1,
+              description: "The message the annotation should show to the user.",
+              nullable: false
+            }
+          }
+        },
+        handler: async (params) => {
+          return await this.addElementAnnotation(params.elementId, params.annotationMessage);
+        }
+      });
+    }
   }
   async generateObservation(action, { throwOnSideEffect }) {
     const functionDeclaration = `async function ($0) {
@@ -6250,6 +6291,28 @@ const data = {
       await scope.uninstall();
     }
   }
+  async addElementAnnotation(elementId, annotationMessage) {
+    if (!Annotations2.AnnotationRepository.annotationsEnabled()) {
+      console.warn("Received agent request to add annotation with annotations disabled");
+      return { error: "Annotations are not currently enabled" };
+    }
+    console.log(`AI AGENT EVENT: Styling Agent adding annotation for element ${elementId} with message '${annotationMessage}'`);
+    const selectedNode = this.#getSelectedNode();
+    if (!selectedNode) {
+      return { error: "Error: Unable to find currently selected element." };
+    }
+    const domModel = selectedNode.domModel();
+    const backendNodeId = Number(elementId);
+    const nodeMap = await domModel.pushNodesByBackendIdsToFrontend(/* @__PURE__ */ new Set([backendNodeId]));
+    const node = nodeMap?.get(backendNodeId);
+    if (!node) {
+      return { error: `Error: Could not find the element with backendNodeId=${elementId}` };
+    }
+    Annotations2.AnnotationRepository.instance().addElementsAnnotation(annotationMessage, node);
+    return {
+      result: `Annotation added for element ${elementId}: ${annotationMessage}`
+    };
+  }
   async *handleContextDetails(selectedElement) {
     if (!selectedElement) {
       return;
@@ -6285,6 +6348,9 @@ __export(AiConversation_exports, {
 });
 import * as Host8 from "./../../core/host/host.js";
 import * as Root8 from "./../../core/root/root.js";
+import * as SDK6 from "./../../core/sdk/sdk.js";
+import * as Trace7 from "./../trace/trace.js";
+import * as NetworkTimeCalculator3 from "./../network_time_calculator/network_time_calculator.js";
 
 // gen/front_end/models/ai_assistance/AiHistoryStorage.js
 var AiHistoryStorage_exports = {};
@@ -6597,7 +6663,76 @@ ${item.text.trim()}`);
     }
     return agent;
   }
+  #factsCache = /* @__PURE__ */ new Map();
+  async #createFactsForExtraContext(contexts) {
+    for (const context of contexts) {
+      const cached = this.#factsCache.get(context);
+      if (cached) {
+        this.#agent.addFact(cached);
+        continue;
+      }
+      if (context instanceof SDK6.DOMModel.DOMNode) {
+        const desc = await StylingAgent.describeElement(context);
+        const fact = {
+          text: `Relevant HTML element:
+${desc}`,
+          metadata: {
+            source: "devtools-floaty",
+            score: 1
+          }
+        };
+        this.#factsCache.set(context, fact);
+        this.#agent.addFact(fact);
+      } else if (context instanceof SDK6.NetworkRequest.NetworkRequest) {
+        const calculator = new NetworkTimeCalculator3.NetworkTransferTimeCalculator();
+        calculator.updateBoundaries(context);
+        const formatter = new NetworkRequestFormatter(context, calculator);
+        const desc = await formatter.formatNetworkRequest();
+        const fact = {
+          text: `Relevant network request:
+${desc}`,
+          metadata: {
+            source: "devtools-floaty",
+            score: 1
+          }
+        };
+        this.#factsCache.set(context, fact);
+        this.#agent.addFact(fact);
+      } else if ("insight" in context) {
+        const focus = AgentFocus.fromInsight(context.trace, context.insight);
+        const formatter = new PerformanceInsightFormatter(focus, context.insight);
+        const text = `Relevant Performance Insight:
+${formatter.formatInsight()}`;
+        const fact = {
+          text,
+          metadata: {
+            source: "devtools-floaty",
+            score: 1
+          }
+        };
+        this.#factsCache.set(context, fact);
+        this.#agent.addFact(fact);
+      } else {
+        const time = Trace7.Types.Timing.Micro(context.event.ts - context.traceStartTime);
+        const desc = `Trace event: ${context.event.name}
+Time: ${micros(time)}`;
+        const fact = {
+          text: `Relevant trace event:
+${desc}`,
+          metadata: {
+            source: "devtools-floaty",
+            score: 1
+          }
+        };
+        this.#factsCache.set(context, fact);
+        this.#agent.addFact(fact);
+      }
+    }
+  }
   async *run(initialQuery, options, multimodalInput) {
+    if (options.extraContext) {
+      await this.#createFactsForExtraContext(options.extraContext);
+    }
     for await (const data of this.#agent.run(initialQuery, options, multimodalInput)) {
       if (data.type !== "answer" || data.complete) {
         void this.addHistoryItem(data);
@@ -6670,14 +6805,17 @@ var BuiltInAi_exports = {};
 __export(BuiltInAi_exports, {
   BuiltInAi: () => BuiltInAi
 });
+import * as Common7 from "./../../core/common/common.js";
 import * as Host10 from "./../../core/host/host.js";
 import * as Root10 from "./../../core/root/root.js";
 var builtInAiInstance;
-var BuiltInAi = class _BuiltInAi {
+var BuiltInAi = class _BuiltInAi extends Common7.ObjectWrapper.ObjectWrapper {
   #availability = null;
   #hasGpu;
   #consoleInsightsSession;
   initDoneForTesting;
+  #downloadProgress = null;
+  #currentlyCreatingSession = false;
   static instance() {
     if (builtInAiInstance === void 0) {
       builtInAiInstance = new _BuiltInAi();
@@ -6685,8 +6823,9 @@ var BuiltInAi = class _BuiltInAi {
     return builtInAiInstance;
   }
   constructor() {
+    super();
     this.#hasGpu = this.#isGpuAvailable();
-    this.initDoneForTesting = this.getLanguageModelAvailability().then(() => this.initialize()).then(() => this.#sendAvailabilityMetrics());
+    this.initDoneForTesting = this.getLanguageModelAvailability().then(() => this.#sendAvailabilityMetrics()).then(() => this.initialize());
   }
   async getLanguageModelAvailability() {
     if (!Root10.Runtime.hostConfig.devToolsAiPromptApi?.enabled) {
@@ -6694,11 +6833,48 @@ var BuiltInAi = class _BuiltInAi {
       return this.#availability;
     }
     try {
-      this.#availability = await window.LanguageModel.availability({ expectedOutputs: [{ type: "text", languages: ["en"] }] });
+      this.#availability = await window.LanguageModel.availability({
+        expectedInputs: [{
+          type: "text",
+          languages: ["en"]
+        }],
+        expectedOutputs: [{
+          type: "text",
+          languages: ["en"]
+        }]
+      });
     } catch {
       this.#availability = "unavailable";
     }
     return this.#availability;
+  }
+  isDownloading() {
+    return this.#availability === "downloading";
+  }
+  isEventuallyAvailable() {
+    if (!this.#hasGpu && !Boolean(Root10.Runtime.hostConfig.devToolsAiPromptApi?.allowWithoutGpu)) {
+      return false;
+    }
+    return this.#availability === "available" || this.#availability === "downloading" || this.#availability === "downloadable";
+  }
+  #setDownloadProgress(newValue) {
+    this.#downloadProgress = newValue;
+    this.dispatchEventToListeners("downloadProgressChanged", this.#downloadProgress);
+  }
+  getDownloadProgress() {
+    return this.#downloadProgress;
+  }
+  startDownloadingModel() {
+    if (!Root10.Runtime.hostConfig.devToolsAiPromptApi?.allowWithoutGpu && !this.#hasGpu) {
+      return;
+    }
+    if (this.#availability !== "downloadable") {
+      return;
+    }
+    void this.#createSession();
+    setTimeout(() => {
+      void this.getLanguageModelAvailability();
+    }, 1e3);
   }
   #isGpuAvailable() {
     const canvas = document.createElement("canvas");
@@ -6727,14 +6903,24 @@ var BuiltInAi = class _BuiltInAi {
     if (!Root10.Runtime.hostConfig.devToolsAiPromptApi?.allowWithoutGpu && !this.#hasGpu) {
       return;
     }
-    if (this.#availability !== "available") {
+    if (this.#availability !== "available" && this.#availability !== "downloading") {
       return;
     }
     await this.#createSession();
   }
   async #createSession() {
+    if (this.#currentlyCreatingSession) {
+      return;
+    }
+    this.#currentlyCreatingSession = true;
+    const monitor = (m) => {
+      m.addEventListener("downloadprogress", (e) => {
+        this.#setDownloadProgress(e.loaded);
+      });
+    };
     try {
       this.#consoleInsightsSession = await window.LanguageModel.create({
+        monitor,
         initialPrompts: [{
           role: "system",
           content: `
@@ -6764,11 +6950,16 @@ Your instructions are as follows:
         }]
       });
       if (this.#availability !== "available") {
+        this.dispatchEventToListeners(
+          "downloadedAndSessionCreated"
+          /* Events.DOWNLOADED_AND_SESSION_CREATED */
+        );
         void this.getLanguageModelAvailability();
       }
     } catch (e) {
       console.error("Error when creating LanguageModel session", e.message);
     }
+    this.#currentlyCreatingSession = false;
   }
   static removeInstance() {
     builtInAiInstance = void 0;
@@ -6868,13 +7059,13 @@ var ConversationHandler_exports = {};
 __export(ConversationHandler_exports, {
   ConversationHandler: () => ConversationHandler
 });
-import * as Common7 from "./../../core/common/common.js";
+import * as Common8 from "./../../core/common/common.js";
 import * as Host11 from "./../../core/host/host.js";
 import * as i18n13 from "./../../core/i18n/i18n.js";
 import * as Platform5 from "./../../core/platform/platform.js";
 import * as Root11 from "./../../core/root/root.js";
-import * as SDK6 from "./../../core/sdk/sdk.js";
-import * as NetworkTimeCalculator3 from "./../network_time_calculator/network_time_calculator.js";
+import * as SDK7 from "./../../core/sdk/sdk.js";
+import * as NetworkTimeCalculator4 from "./../network_time_calculator/network_time_calculator.js";
 var UIStringsNotTranslate4 = {
   /**
    * @description Error message shown when AI assistance is not enabled in DevTools settings.
@@ -6890,8 +7081,8 @@ async function inspectElementBySelector(selector) {
   if (!whitespaceTrimmedQuery.length) {
     return null;
   }
-  const showUAShadowDOM = Common7.Settings.Settings.instance().moduleSetting("show-ua-shadow-dom").get();
-  const domModels = SDK6.TargetManager.TargetManager.instance().models(SDK6.DOMModel.DOMModel, { scoped: true });
+  const showUAShadowDOM = Common8.Settings.Settings.instance().moduleSetting("show-ua-shadow-dom").get();
+  const domModels = SDK7.TargetManager.TargetManager.instance().models(SDK7.DOMModel.DOMModel, { scoped: true });
   const performSearchPromises = domModels.map((domModel) => domModel.performSearch(whitespaceTrimmedQuery, showUAShadowDOM));
   const resultCounts = await Promise.all(performSearchPromises);
   const index = resultCounts.findIndex((value) => value > 0);
@@ -6901,7 +7092,7 @@ async function inspectElementBySelector(selector) {
   return null;
 }
 async function inspectNetworkRequestByUrl(selector) {
-  const networkManagers = SDK6.TargetManager.TargetManager.instance().models(SDK6.NetworkManager.NetworkManager, { scoped: true });
+  const networkManagers = SDK7.TargetManager.TargetManager.instance().models(SDK7.NetworkManager.NetworkManager, { scoped: true });
   const results = networkManagers.map((networkManager) => {
     let request2 = networkManager.requestForURL(Platform5.DevToolsPath.urlString`${selector}`);
     if (!request2 && selector.at(-1) === "/") {
@@ -6915,7 +7106,7 @@ async function inspectNetworkRequestByUrl(selector) {
   return request ?? null;
 }
 var conversationHandlerInstance;
-var ConversationHandler = class _ConversationHandler extends Common7.ObjectWrapper.ObjectWrapper {
+var ConversationHandler = class _ConversationHandler extends Common8.ObjectWrapper.ObjectWrapper {
   #aiAssistanceEnabledSetting;
   #aidaClient;
   #aidaAvailability;
@@ -6940,7 +7131,7 @@ var ConversationHandler = class _ConversationHandler extends Common7.ObjectWrapp
   }
   #getAiAssistanceEnabledSetting() {
     try {
-      return Common7.Settings.moduleSetting("ai-assistance-enabled");
+      return Common8.Settings.moduleSetting("ai-assistance-enabled");
     } catch {
       return;
     }
@@ -7071,7 +7262,7 @@ var ConversationHandler = class _ConversationHandler extends Common7.ObjectWrapp
     if (!request) {
       return this.#generateErrorResponse(`Can't find request with the given selector ${requestUrl}`);
     }
-    const calculator = new NetworkTimeCalculator3.NetworkTransferTimeCalculator();
+    const calculator = new NetworkTimeCalculator4.NetworkTransferTimeCalculator();
     calculator.updateBoundaries(request);
     return this.#createAndDoExternalConversation({
       conversationType: "drjones-network-request",
