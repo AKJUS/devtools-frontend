@@ -662,6 +662,8 @@ var consoleInsightTeaser_css_default = `/*
 
   .response-container {
     height: 85px;
+    display: flex;
+    flex-direction: column;
   }
 
   @keyframes gradient {
@@ -741,6 +743,27 @@ var consoleInsightTeaser_css_default = `/*
 
     devtools-checkbox {
       margin-left: auto;
+    }
+  }
+
+  .progress-line {
+    display: flex;
+    align-items: center;
+    flex-grow: 1;
+
+    .label {
+      margin-right: var(--sys-size-6);
+    }
+
+    .indicator-container {
+      height: var(--sys-size-5);
+      background-color: var(--sys-color-surface5);
+      flex-grow: 1
+    }
+
+    .indicator {
+      background-color: var(--sys-color-primary);
+      height: 100%;
     }
   }
 }
@@ -1439,7 +1462,7 @@ var consoleView_css_default = `/* Copyright 2021 The Chromium Authors
   height: 0;
 }
 
-devtools-console-insight {
+.devtools-console-insight {
   margin: 9px 22px 11px 24px;
 }
 
@@ -1974,13 +1997,18 @@ var ConsoleViewMessage = class _ConsoleViewMessage {
     this.consoleGroupInternal = null;
   }
   setInsight(insight) {
-    this.elementInternal?.querySelector("devtools-console-insight")?.remove();
+    this.elementInternal?.querySelector(".devtools-console-insight")?.remove();
     this.elementInternal?.append(insight);
     this.elementInternal?.classList.toggle("has-insight", true);
     insight.addEventListener("close", () => {
       Host.userMetrics.actionTaken(Host.UserMetrics.Action.InsightClosed);
       this.elementInternal?.classList.toggle("has-insight", false);
-      this.elementInternal?.removeChild(insight);
+      const widget = UI2.Widget.Widget.get(insight);
+      if (widget) {
+        widget.detach();
+      } else {
+        this.elementInternal?.removeChild(insight);
+      }
       this.#teaser?.setInactive(false);
     }, { once: true });
     this.#teaser?.setInactive(true);
@@ -2962,7 +2990,7 @@ var ConsoleViewMessage = class _ConsoleViewMessage {
     if (!this.shouldShowInsights()) {
       return false;
     }
-    if (!Common4.Settings.Settings.instance().moduleSetting("console-insight-teasers-enabled").getIfNotDisabled() || !AiAssistanceModel.BuiltInAi.BuiltInAi.instance().hasSession()) {
+    if (!Common4.Settings.Settings.instance().moduleSetting("console-insight-teasers-enabled").getIfNotDisabled() || !AiAssistanceModel.BuiltInAi.BuiltInAi.instance().isEventuallyAvailable()) {
       return false;
     }
     const devtoolsLocale = i18n3.DevToolsLocale.DevToolsLocale.instance();
@@ -3918,6 +3946,7 @@ function formatStackTrace(message) {
 
 // gen/front_end/panels/console/ConsoleInsightTeaser.js
 var { render: render2, html } = Lit;
+var BUILT_IN_AI_DOCUMENTATION = "https://developer.chrome.com/docs/ai/built-in";
 var UIStringsNotTranslate = {
   /**
    * @description Link text in the disclaimer dialog, linking to a settings page containing more information
@@ -3978,13 +4007,114 @@ var UIStringsNotTranslate = {
   /**
    * @description Header text if there was an error during AI summary generation
    */
-  summaryNotAvailable: "Summary not available"
+  summaryNotAvailable: "Summary not available",
+  /**
+   * @description Header text informing the user that they can get an AI-generated explanation
+   */
+  getHelpForWarning: "Get help understanding this warning",
+  /**
+   * @description Header text informing the user that they can get an AI-generated explanation
+   */
+  getHelpForError: "Get help understanding this error",
+  /**
+   * @description Call to action for downloading an AI model
+   */
+  toUseDownload: "To use Chrome\u2019s Built-in AI here and elsewhere, download the AI model (~4 GB).",
+  /**
+   * @description Button text to trigger model download
+   */
+  downloadModel: "Download model",
+  /**
+   * @description Header text while the model download is in progress
+   */
+  downloadingAiModel: "Downloading AI model",
+  /**
+   * @description Label for a progress bar for the AI model download
+   */
+  progress: "Progress",
+  /**
+   * @description Progress indicator when the progress status is unknown. If the
+   * progress status is known, this is replaced by a progress bar.
+   */
+  progressUnknown: "Progress: unknown"
 };
 var lockedString = i18n5.i18n.lockedString;
 var CODE_SNIPPET_WARNING_URL = "https://support.google.com/legal/answer/13505487";
 var DATA_USAGE_URL = "https://developer.chrome.com/docs/devtools/ai-assistance/get-started#data-use";
 var EXPLAIN_TEASER_ACTION_ID = "explain.console-message.teaser";
 var SLOW_GENERATION_CUTOFF_MILLISECONDS = 3500;
+function renderNoModel(input) {
+  return html`
+    <div class="teaser-tooltip-container">
+      <div class="response-container">
+        <h2>${input.isForWarning ? lockedString(UIStringsNotTranslate.getHelpForWarning) : lockedString(UIStringsNotTranslate.getHelpForError)}
+        </h2>
+        <div>You can get quick answers from
+          <x-link
+            .jslog=${VisualLogging2.link().track({ click: true, keydown: "Enter|Space" }).context("insights-teaser-built-in-ai-documentation")}
+            class="link"
+            href=${BUILT_IN_AI_DOCUMENTATION}
+          >
+            Chrome’s Built-in AI
+          </x-link>
+          , without any data leaving your device.
+        </div>
+        <div>${lockedString(UIStringsNotTranslate.toUseDownload)}</div>
+      </div>
+      <div class="tooltip-footer">
+        <devtools-button
+          title=${lockedString(UIStringsNotTranslate.downloadModel)}
+          .jslogContext=${"insights-teaser-download-model"}
+          .variant=${"primary"}
+          @click=${input.onDownloadModelClick}
+          @focusout=${(e) => {
+    e.stopPropagation();
+  }}
+        >
+          ${lockedString(UIStringsNotTranslate.downloadModel)}
+        </devtools-button>
+        ${renderDontShowCheckbox(input)}
+      </div>
+    </div>
+  `;
+}
+function renderDownloading(input) {
+  const percent = ((input.downloadProgress || 0) * 100).toFixed(0);
+  return html`
+    <div class="teaser-tooltip-container">
+      <div class="response-container">
+        <h2>${lockedString(UIStringsNotTranslate.downloadingAiModel)}</h2>
+        <div class="progress-line">
+          ${input.downloadProgress === null ? html`
+              <div class="label">${lockedString(UIStringsNotTranslate.progressUnknown)}</div>
+            ` : html`
+              <div class="label">${lockedString(UIStringsNotTranslate.progress)}</div>
+              <div class="indicator-container">
+                <div
+                  class="indicator"
+                  role="progressbar"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                  aria-valuenow=${percent}
+                  style="width: ${percent}%"
+                ></div>
+              </div>
+          `}
+        </div>
+      </div>
+      <div class="tooltip-footer">
+        <devtools-button
+          title=${lockedString(UIStringsNotTranslate.downloadModel)}
+          .jslogContext=${"insights-teaser-download-model"}
+          .variant=${"primary"}
+          .disabled=${true}
+        >
+          ${lockedString(UIStringsNotTranslate.downloadModel)}
+        </devtools-button>
+      </div>
+    </div>
+  `;
+}
 function renderGenerating(input) {
   return html`
     <div class="teaser-tooltip-container">
@@ -4098,6 +4228,10 @@ var DEFAULT_VIEW = (input, _output, target) => {
     >
       ${(() => {
     switch (input.state) {
+      case "no-model":
+        return renderNoModel(input);
+      case "downloading":
+        return renderDownloading(input);
       case "ready":
       case "generating":
         return renderGenerating(input);
@@ -4125,16 +4259,24 @@ var ConsoleInsightTeaser = class extends UI3.Widget.Widget {
   #timeoutId = null;
   #aidaAvailability;
   #boundOnAidaAvailabilityChange;
+  #boundOnDownloadProgressChange;
+  #boundOnSessionCreation;
+  #downloadProgress = null;
   #state;
+  #eventListeners = [];
+  #isForWarning;
   constructor(uuid, consoleViewMessage, element, view) {
     super(element);
     this.#view = view ?? DEFAULT_VIEW;
     this.#uuid = uuid;
     this.#promptBuilder = new PromptBuilder(consoleViewMessage);
     this.#consoleViewMessage = consoleViewMessage;
+    this.#isForWarning = this.#consoleViewMessage.consoleMessage().level === "warning";
     this.#boundOnAidaAvailabilityChange = this.#onAidaAvailabilityChange.bind(this);
+    this.#boundOnDownloadProgressChange = this.#onDownloadProgressChange.bind(this);
+    this.#boundOnSessionCreation = this.#onSessionCreation.bind(this);
     this.#builtInAi = AiAssistanceModel3.BuiltInAi.BuiltInAi.instance();
-    this.#state = "ready";
+    this.#state = this.#builtInAi.hasSession() ? "ready" : "no-model";
     this.requestUpdate();
   }
   #getConsoleInsightsEnabledSetting() {
@@ -4166,6 +4308,24 @@ var ConsoleInsightTeaser = class extends UI3.Widget.Widget {
       return;
     }
     void this.#showFreDialog();
+  }
+  #onDownloadModelClick(event) {
+    event.stopPropagation();
+    this.#state = "downloading";
+    this.#builtInAi.startDownloadingModel();
+    Host2.userMetrics.actionTaken(Host2.UserMetrics.Action.InsightTeaserModelDownloadStarted);
+    this.requestUpdate();
+  }
+  #onDownloadProgressChange(event) {
+    this.#downloadProgress = event.data;
+    this.requestUpdate();
+  }
+  #onSessionCreation() {
+    if (this.#builtInAi.hasSession() && (this.#state === "no-model" || this.#state === "downloading")) {
+      this.#state = "ready";
+      Host2.userMetrics.actionTaken(Host2.UserMetrics.Action.InsightTeaserModelDownloadCompleted);
+      this.maybeGenerateTeaser();
+    }
   }
   async #showFreDialog() {
     const noLogging = Root2.Runtime.hostConfig.aidaAvailability?.enterprisePolicyValue === Root2.Runtime.GenAiEnterprisePolicyValue.ALLOW_WITHOUT_LOGGING;
@@ -4206,11 +4366,34 @@ var ConsoleInsightTeaser = class extends UI3.Widget.Widget {
     }
   }
   maybeGenerateTeaser() {
+    const startGeneratingTeaser = () => {
+      if (!this.#isInactive && Common5.Settings.Settings.instance().moduleSetting("console-insight-teasers-enabled").get()) {
+        void this.#generateTeaserText();
+      }
+    };
+    const hasSession = this.#builtInAi.hasSession();
     switch (this.#state) {
-      case "ready":
-        if (!this.#isInactive && Common5.Settings.Settings.instance().moduleSetting("console-insight-teasers-enabled").get()) {
-          void this.#generateTeaserText();
+      case "no-model":
+      case "downloading":
+        if (hasSession) {
+          this.#state = "ready";
+          startGeneratingTeaser();
+        } else {
+          if (this.#eventListeners.length === 0) {
+            this.#eventListeners = [
+              this.#builtInAi.addEventListener("downloadProgressChanged", this.#boundOnDownloadProgressChange),
+              this.#builtInAi.addEventListener("downloadedAndSessionCreated", this.#boundOnSessionCreation)
+            ];
+          }
+          if (this.#builtInAi.isDownloading()) {
+            this.#state = "downloading";
+            this.#downloadProgress = this.#builtInAi.getDownloadProgress();
+          }
         }
+        this.requestUpdate();
+        return;
+      case "ready":
+        startGeneratingTeaser();
         this.requestUpdate();
         return;
       case "generating":
@@ -4237,6 +4420,7 @@ var ConsoleInsightTeaser = class extends UI3.Widget.Widget {
     if (this.#timeoutId) {
       clearTimeout(this.#timeoutId);
     }
+    Common5.EventTarget.removeEventListeners(this.#eventListeners);
   }
   setInactive(isInactive) {
     if (this.#isInactive === isInactive) {
@@ -4322,7 +4506,10 @@ var ConsoleInsightTeaser = class extends UI3.Widget.Widget {
       dontShowChanged: this.#dontShowChanged.bind(this),
       hasTellMeMoreButton: this.#hasTellMeMoreButton(),
       isSlowGeneration: this.#isSlow,
-      state: this.#state
+      onDownloadModelClick: this.#onDownloadModelClick.bind(this),
+      downloadProgress: this.#downloadProgress,
+      state: this.#state,
+      isForWarning: this.#isForWarning
     }, void 0, this.contentElement);
   }
   wasShown() {
@@ -4339,8 +4526,8 @@ var ConsoleInsightTeaser = class extends UI3.Widget.Widget {
 // gen/front_end/panels/console/ConsolePinPane.js
 var ConsolePinPane_exports = {};
 __export(ConsolePinPane_exports, {
-  ConsolePin: () => ConsolePin,
-  ConsolePinPane: () => ConsolePinPane
+  ConsolePinPane: () => ConsolePinPane,
+  ConsolePinPresenter: () => ConsolePinPresenter
 });
 import * as Common6 from "./../../core/common/common.js";
 import * as i18n7 from "./../../core/i18n/i18n.js";
@@ -4534,7 +4721,7 @@ var ConsolePinPane = class extends UI4.Widget.VBox {
     }
   }
   addPin(expression, userGesture) {
-    const pin = new ConsolePin(expression, this, this.focusOut);
+    const pin = new ConsolePinPresenter(expression, this, this.focusOut);
     this.contentElement.appendChild(pin.element());
     this.pins.add(pin);
     this.savePins();
@@ -4574,7 +4761,7 @@ var ConsolePinPane = class extends UI4.Widget.VBox {
   updatedForTest() {
   }
 };
-var ConsolePin = class {
+var ConsolePinPresenter = class {
   pinPane;
   focusOut;
   pinElement;
@@ -4626,7 +4813,7 @@ var ConsolePin = class {
     this.committedExpression = expression;
     this.hovered = false;
     this.lastNode = null;
-    this.editor = this.createEditor(expression, nameElement);
+    this.editor = this.#createEditor(expression, nameElement);
     this.pinPreview.addEventListener("mouseenter", this.setHovered.bind(this, true), false);
     this.pinPreview.addEventListener("mouseleave", this.setHovered.bind(this, false), false);
     this.pinPreview.addEventListener("click", (event) => {
@@ -4641,7 +4828,7 @@ var ConsolePin = class {
       }
     });
   }
-  createEditor(doc, parent) {
+  #createInitialEditorState(doc) {
     const extensions = [
       CodeMirror.EditorView.contentAttributes.of({ "aria-label": i18nString3(UIStrings3.liveExpressionEditor) }),
       CodeMirror.EditorView.lineWrapping,
@@ -4695,7 +4882,7 @@ var ConsolePin = class {
           }
         }
       ]),
-      CodeMirror.EditorView.domEventHandlers({ blur: (_e, view) => this.onBlur(view) }),
+      CodeMirror.EditorView.domEventHandlers({ blur: (_e, view) => this.#onBlur(view) }),
       TextEditor.Config.baseConfiguration(doc),
       TextEditor.Config.closeBrackets.instance(),
       TextEditor.Config.autocompletion.instance()
@@ -4703,11 +4890,14 @@ var ConsolePin = class {
     if (Root3.Runtime.Runtime.queryParam("noJavaScriptCompletion") !== "true") {
       extensions.push(TextEditor.JavaScript.completion());
     }
-    const editor = new TextEditor.TextEditor.TextEditor(CodeMirror.EditorState.create({ doc, extensions }));
+    return CodeMirror.EditorState.create({ doc, extensions });
+  }
+  #createEditor(doc, parent) {
+    const editor = new TextEditor.TextEditor.TextEditor(this.#createInitialEditorState(doc));
     parent.appendChild(editor);
     return editor;
   }
-  onBlur(editor) {
+  #onBlur(editor) {
     const text = editor.state.doc.toString();
     const trimmedText = text.trim();
     this.committedExpression = trimmedText;

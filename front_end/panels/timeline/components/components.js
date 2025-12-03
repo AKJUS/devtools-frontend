@@ -6013,10 +6013,7 @@ var NetworkRequestTooltip = class _NetworkRequestTooltip extends HTMLElement {
     this.#render();
   }
   set data(data) {
-    if (this.#data.networkRequest === data.networkRequest) {
-      return;
-    }
-    if (this.#data.entityMapper === data.entityMapper) {
+    if (this.#data.networkRequest === data.networkRequest && this.#data.entityMapper === data.entityMapper) {
       return;
     }
     this.#data = { networkRequest: data.networkRequest, entityMapper: data.entityMapper };

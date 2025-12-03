@@ -118,7 +118,7 @@ export class ConsolePinPane extends UI.Widget.VBox {
         }
     }
     addPin(expression, userGesture) {
-        const pin = new ConsolePin(expression, this, this.focusOut);
+        const pin = new ConsolePinPresenter(expression, this, this.focusOut);
         this.contentElement.appendChild(pin.element());
         this.pins.add(pin);
         this.savePins();
@@ -158,7 +158,7 @@ export class ConsolePinPane extends UI.Widget.VBox {
     updatedForTest() {
     }
 }
-export class ConsolePin {
+export class ConsolePinPresenter {
     pinPane;
     focusOut;
     pinElement;
@@ -207,7 +207,7 @@ export class ConsolePin {
         this.committedExpression = expression;
         this.hovered = false;
         this.lastNode = null;
-        this.editor = this.createEditor(expression, nameElement);
+        this.editor = this.#createEditor(expression, nameElement);
         this.pinPreview.addEventListener('mouseenter', this.setHovered.bind(this, true), false);
         this.pinPreview.addEventListener('mouseleave', this.setHovered.bind(this, false), false);
         this.pinPreview.addEventListener('click', (event) => {
@@ -223,7 +223,7 @@ export class ConsolePin {
             }
         });
     }
-    createEditor(doc, parent) {
+    #createInitialEditorState(doc) {
         const extensions = [
             CodeMirror.EditorView.contentAttributes.of({ 'aria-label': i18nString(UIStrings.liveExpressionEditor) }),
             CodeMirror.EditorView.lineWrapping,
@@ -279,7 +279,7 @@ export class ConsolePin {
                     },
                 },
             ]),
-            CodeMirror.EditorView.domEventHandlers({ blur: (_e, view) => this.onBlur(view) }),
+            CodeMirror.EditorView.domEventHandlers({ blur: (_e, view) => this.#onBlur(view) }),
             TextEditor.Config.baseConfiguration(doc),
             TextEditor.Config.closeBrackets.instance(),
             TextEditor.Config.autocompletion.instance(),
@@ -287,11 +287,14 @@ export class ConsolePin {
         if (Root.Runtime.Runtime.queryParam('noJavaScriptCompletion') !== 'true') {
             extensions.push(TextEditor.JavaScript.completion());
         }
-        const editor = new TextEditor.TextEditor.TextEditor(CodeMirror.EditorState.create({ doc, extensions }));
+        return CodeMirror.EditorState.create({ doc, extensions });
+    }
+    #createEditor(doc, parent) {
+        const editor = new TextEditor.TextEditor.TextEditor(this.#createInitialEditorState(doc));
         parent.appendChild(editor);
         return editor;
     }
-    onBlur(editor) {
+    #onBlur(editor) {
         const text = editor.state.doc.toString();
         const trimmedText = text.trim();
         this.committedExpression = trimmedText;

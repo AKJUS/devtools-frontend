@@ -1,5 +1,3 @@
-import * as CodeMirror from '../../third_party/codemirror.next/codemirror.next.js';
-import * as TextEditor from '../../ui/components/text_editor/text_editor.js';
 import * as UI from '../../ui/legacy/legacy.js';
 export declare class ConsolePinPane extends UI.Widget.VBox {
     private readonly liveExpressionButton;
@@ -12,14 +10,15 @@ export declare class ConsolePinPane extends UI.Widget.VBox {
     savePins(): void;
     private contextMenuEventFired;
     private removeAllPins;
-    removePin(pin: ConsolePin): void;
+    removePin(pin: ConsolePinPresenter): void;
     addPin(expression: string, userGesture?: boolean): void;
     private focusedPinAfterDeletion;
     wasShown(): void;
     performUpdate(): Promise<void>;
     private updatedForTest;
 }
-export declare class ConsolePin {
+export declare class ConsolePinPresenter {
+    #private;
     private readonly pinPane;
     private readonly focusOut;
     private readonly pinElement;
@@ -32,8 +31,6 @@ export declare class ConsolePin {
     private lastNode;
     private deletePinIcon;
     constructor(expression: string, pinPane: ConsolePinPane, focusOut: () => void);
-    createEditor(doc: string, parent: HTMLElement): TextEditor.TextEditor.TextEditor;
-    onBlur(editor: CodeMirror.EditorView): void;
     setHovered(hovered: boolean): void;
     expression(): string;
     element(): Element;

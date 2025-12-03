@@ -1,6 +1,7 @@
 // Copyright 2025 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
+import * as Annotations from '../../../ui/components/annotations/annotations.js';
 import * as CrUXManager from '../../crux-manager/crux-manager.js';
 import * as Trace from '../../trace/trace.js';
 import { AIQueries } from '../performance/AIQueries.js';
@@ -135,6 +136,13 @@ export class PerformanceTraceFormatter {
                 if (cls) {
                     const eventText = cls.worstClusterEvent ? `, event: ${this.serializeEvent(cls.worstClusterEvent)}` : '';
                     parts.push(`  - CLS: ${cls.value.toFixed(2)}${eventText}`);
+                    if (Annotations.AnnotationRepository.annotationsEnabled()) {
+                        const worstClusterEvent = cls.worstClusterEvent;
+                        const layoutShiftData = worstClusterEvent?.worstShiftEvent?.args?.data;
+                        if (layoutShiftData?.impacted_nodes && layoutShiftData.impacted_nodes?.length > 0) {
+                            Annotations.AnnotationRepository.instance().addElementsAnnotation('This element is impacted by a layout shift', layoutShiftData.impacted_nodes[0].node_id.toString());
+                        }
+                    }
                 }
             }
             else {
@@ -445,7 +453,7 @@ export class PerformanceTraceFormatter {
      * talk to jacktfranklin@.
      */
     #networkRequestVerbosely(request, options) {
-        const { url, statusCode, initialPriority, priority, fromServiceWorker, mimeType, responseHeaders, syntheticData, protocol } = request.args.data;
+        const { url, requestId, statusCode, initialPriority, priority, fromServiceWorker, mimeType, responseHeaders, syntheticData, protocol } = request.args.data;
         const parsedTrace = this.#parsedTrace;
         const titlePrefix = `## ${options?.customTitle ?? 'Network request'}`;
         // Note: unlike other agents, we do have the ability to include
@@ -483,7 +491,7 @@ export class PerformanceTraceFormatter {
         const initiatorUrls = initiators.map(initiator => initiator.args.data.url);
         const eventKey = this.#eventsSerializer.keyForEvent(request);
         const eventKeyLine = eventKey ? `eventKey: ${eventKey}\n` : '';
-        return `${titlePrefix}: ${url}
+        return `${titlePrefix}: ${url}${Annotations.AnnotationRepository.annotationsEnabled() ? `\nrequestId: ${requestId}` : ''}
 ${eventKeyLine}Timings:
 - Queued at: ${micros(startTimesForLifecycle.queuedAt)}
 - Request sent at: ${micros(startTimesForLifecycle.requestSentAt)}
