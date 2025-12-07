@@ -8794,6 +8794,7 @@ var threadsSidebarPane_css_default = `/*
   appearance: none;
   border-width: 0;
   background-color: var(--sys-color-cdt-base-container);
+  width: 100%;
 }
 
 .thread-item + .thread-item {

@@ -20,6 +20,18 @@ const UIStrings = {
     /**
      * @description Text in App Manifest View of the Application panel
      */
+    noManifestDetected: 'No manifest detected',
+    /**
+     * @description Description text on manifests in App Manifest View of the Application panel which describes the app manifest view tab
+     */
+    manifestDescription: 'A manifest defines how your app appears on phone’s home screens and what the app looks like on launch.',
+    /**
+     * @description Text in App Manifest View of the Application panel
+     */
+    appManifest: 'Manifest',
+    /**
+     * @description Text in App Manifest View of the Application panel
+     */
     errorsAndWarnings: 'Errors and warnings',
     /**
      * @description Text in App Manifest View of the Application panel
@@ -801,7 +813,7 @@ function setSectionContents(items, section) {
         render(item.content, element);
     }
 }
-const DEFAULT_VIEW = (input, _output, _target) => {
+export const DEFAULT_VIEW = (input, _output, _target) => {
     const { reportView, errorsSection, installabilitySection, identitySection, presentationSection, protocolHandlersView, iconsSection, windowControlsSection, shortcutSections, screenshotsSections, identityData, presentationData, protocolHandlersData, iconsData, shortcutsData, screenshotsData, installabilityErrors, warnings, errors, imageErrors, windowControlsData, selectedPlatform, onSelectOs, onToggleWcoToolbar, } = input;
     if (identitySection && identityData) {
         renderIdentity(identitySection, identityData);
@@ -843,7 +855,6 @@ export class AppManifestView extends Common.ObjectWrapper.eventMixin(UI.Widget.V
     protocolHandlersSection;
     shortcutSections;
     screenshotsSections;
-    throttler;
     registeredListeners;
     target;
     resourceTreeModel;
@@ -857,7 +868,7 @@ export class AppManifestView extends Common.ObjectWrapper.eventMixin(UI.Widget.V
     appIdResponse;
     wcoToolbarEnabled = false;
     view;
-    constructor(emptyView, reportView, throttler, view = DEFAULT_VIEW) {
+    constructor(view = DEFAULT_VIEW) {
         super({
             jslog: `${VisualLogging.pane('manifest')}`,
             useShadowDom: true,
@@ -865,11 +876,11 @@ export class AppManifestView extends Common.ObjectWrapper.eventMixin(UI.Widget.V
         this.view = view;
         this.registerRequiredCSS(appManifestViewStyles);
         this.contentElement.classList.add('manifest-container');
-        this.emptyView = emptyView;
+        this.emptyView = new UI.EmptyWidget.EmptyWidget(i18nString(UIStrings.noManifestDetected), i18nString(UIStrings.manifestDescription));
         this.emptyView.link = 'https://web.dev/add-manifest/';
         this.emptyView.show(this.contentElement);
         this.emptyView.hideWidget();
-        this.reportView = reportView;
+        this.reportView = new UI.ReportView.ReportView(i18nString(UIStrings.appManifest));
         this.reportView.registerRequiredCSS(appManifestViewStyles);
         this.reportView.element.classList.add('manifest-view-header');
         this.reportView.show(this.contentElement);
@@ -890,7 +901,6 @@ export class AppManifestView extends Common.ObjectWrapper.eventMixin(UI.Widget.V
             this.reportView.appendSection(UIStrings.windowControlsOverlay, undefined, 'window-controls-overlay');
         this.shortcutSections = [];
         this.screenshotsSections = [];
-        this.throttler = throttler;
         SDK.TargetManager.TargetManager.instance().observeTargets(this);
         this.registeredListeners = [];
         this.manifestUrl = Platform.DevToolsPath.EmptyUrlString;
@@ -1044,7 +1054,6 @@ export class AppManifestView extends Common.ObjectWrapper.eventMixin(UI.Widget.V
             onSelectOs,
             onToggleWcoToolbar,
         }, undefined, this.contentElement);
-        this.dispatchEventToListeners("ManifestRendered" /* Events.MANIFEST_RENDERED */);
     }
     stringProperty(parsedManifest, name) {
         const value = parsedManifest[name];

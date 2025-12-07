@@ -156,13 +156,14 @@ interface ViewInput {
     onToggleWcoToolbar?: (enabled: boolean) => Promise<void>;
 }
 type View = (input: ViewInput, output: undefined, target: HTMLElement) => void;
+export declare const DEFAULT_VIEW: View;
 declare const AppManifestView_base: (new (...args: any[]) => {
     "__#private@#events": Common.ObjectWrapper.ObjectWrapper<EventTypes>;
-    addEventListener<T extends keyof EventTypes>(eventType: T, listener: (arg0: Common.EventTarget.EventTargetEvent<EventTypes[T], any>) => void, thisObject?: Object): Common.EventTarget.EventDescriptor<EventTypes, T>;
-    once<T extends keyof EventTypes>(eventType: T): Promise<EventTypes[T]>;
-    removeEventListener<T extends keyof EventTypes>(eventType: T, listener: (arg0: Common.EventTarget.EventTargetEvent<EventTypes[T], any>) => void, thisObject?: Object): void;
-    hasEventListeners(eventType: keyof EventTypes): boolean;
-    dispatchEventToListeners<T extends keyof EventTypes>(eventType: Platform.TypeScriptUtilities.NoUnion<T>, ...eventData: Common.EventTarget.EventPayloadToRestParameters<EventTypes, T>): void;
+    addEventListener<T extends Events.MANIFEST_DETECTED>(eventType: T, listener: (arg0: Common.EventTarget.EventTargetEvent<EventTypes[T], any>) => void, thisObject?: Object): Common.EventTarget.EventDescriptor<EventTypes, T>;
+    once<T extends Events.MANIFEST_DETECTED>(eventType: T): Promise<EventTypes[T]>;
+    removeEventListener<T extends Events.MANIFEST_DETECTED>(eventType: T, listener: (arg0: Common.EventTarget.EventTargetEvent<EventTypes[T], any>) => void, thisObject?: Object): void;
+    hasEventListeners(eventType: Events.MANIFEST_DETECTED): boolean;
+    dispatchEventToListeners<T extends Events.MANIFEST_DETECTED>(eventType: Platform.TypeScriptUtilities.NoUnion<T>, ...eventData: Common.EventTarget.EventPayloadToRestParameters<EventTypes, T>): void;
 }) & typeof UI.Widget.VBox;
 export declare class AppManifestView extends AppManifestView_base implements SDK.TargetManager.Observer {
     private readonly emptyView;
@@ -176,7 +177,6 @@ export declare class AppManifestView extends AppManifestView_base implements SDK
     private readonly protocolHandlersSection;
     private readonly shortcutSections;
     private readonly screenshotsSections;
-    private readonly throttler;
     private registeredListeners;
     private target?;
     private resourceTreeModel?;
@@ -190,7 +190,7 @@ export declare class AppManifestView extends AppManifestView_base implements SDK
     private appIdResponse;
     private wcoToolbarEnabled;
     private readonly view;
-    constructor(emptyView: UI.EmptyWidget.EmptyWidget, reportView: UI.ReportView.ReportView, throttler: Common.Throttler.Throttler, view?: View);
+    constructor(view?: View);
     getStaticSections(): UI.ReportView.Section[];
     getManifestElement(): Element;
     targetAdded(target: SDK.Target.Target): void;
@@ -216,11 +216,9 @@ export declare class AppManifestView extends AppManifestView_base implements SDK
     private processProtocolHandlers;
 }
 export declare const enum Events {
-    MANIFEST_DETECTED = "ManifestDetected",
-    MANIFEST_RENDERED = "ManifestRendered"
+    MANIFEST_DETECTED = "ManifestDetected"
 }
 export interface EventTypes {
     [Events.MANIFEST_DETECTED]: boolean;
-    [Events.MANIFEST_RENDERED]: void;
 }
 export {};
