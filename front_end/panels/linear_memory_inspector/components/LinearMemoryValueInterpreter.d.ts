@@ -14,6 +14,16 @@ export interface LinearMemoryValueInterpreterData {
 export declare class LinearMemoryValueInterpreter extends HTMLElement {
     #private;
     set data(data: LinearMemoryValueInterpreterData);
+    set value(value: ArrayBuffer);
+    get value(): ArrayBuffer;
+    set valueTypes(value: Set<ValueType>);
+    get valueTypes(): Set<ValueType>;
+    set valueTypeModes(value: Map<ValueType, ValueTypeMode>);
+    get valueTypeModes(): Map<ValueType, ValueTypeMode>;
+    set endianness(value: Endianness);
+    get endianness(): Endianness;
+    set memoryLength(value: number);
+    get memoryLength(): number;
     get onValueTypeModeChange(): (type: ValueType, mode: ValueTypeMode) => void;
     set onValueTypeModeChange(value: (type: ValueType, mode: ValueTypeMode) => void);
     get onJumpToAddressClicked(): (address: number) => void;

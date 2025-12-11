@@ -943,6 +943,25 @@ var str_5 = i18n9.i18n.registerUIStrings("panels/linear_memory_inspector/compone
 var i18nString5 = i18n9.i18n.getLocalizedString.bind(void 0, str_5);
 var { render: render4, html: html4 } = Lit3;
 var { widgetConfig } = UI4.Widget;
+function renderEndiannessSetting(onEndiannessChanged, currentEndiannes) {
+  return html4`
+    <label data-endianness-setting="true" title=${i18nString5(UIStrings5.changeEndianness)}>
+      <select
+        jslog=${VisualLogging4.dropDown("linear-memory-inspector.endianess").track({ change: true })}
+        style="border: none;"
+        data-endianness="true" @change=${(e) => onEndiannessChanged(e.target.value)}>
+        ${[
+    "Little Endian",
+    "Big Endian"
+    /* Endianness.BIG */
+  ].map((endianness) => {
+    return html4`<option value=${endianness} .selected=${currentEndiannes === endianness}
+            jslog=${VisualLogging4.item(Platform3.StringUtilities.toKebabCase(endianness)).track({ click: true })}>${i18n9.i18n.lockedString(endianness)}</option>`;
+  })}
+      </select>
+    </label>
+    `;
+}
 var LinearMemoryValueInterpreter = class extends HTMLElement {
   #shadow = this.attachShadow({ mode: "open" });
   #onValueTypeModeChange = () => {
@@ -970,6 +989,36 @@ var LinearMemoryValueInterpreter = class extends HTMLElement {
     this.#onEndiannessChanged = data.onEndiannessChanged;
     this.#onValueTypeToggled = data.onValueTypeToggled;
     this.#render();
+  }
+  set value(value) {
+    this.#buffer = value;
+  }
+  get value() {
+    return this.#buffer;
+  }
+  set valueTypes(value) {
+    this.#valueTypes = value;
+  }
+  get valueTypes() {
+    return this.#valueTypes;
+  }
+  set valueTypeModes(value) {
+    this.#valueTypeModeConfig = value;
+  }
+  get valueTypeModes() {
+    return this.#valueTypeModeConfig;
+  }
+  set endianness(value) {
+    this.#endianness = value;
+  }
+  get endianness() {
+    return this.#endianness;
+  }
+  set memoryLength(value) {
+    this.#memoryLength = value;
+  }
+  get memoryLength() {
+    return this.#memoryLength;
   }
   get onValueTypeModeChange() {
     return this.#onValueTypeModeChange;
@@ -1005,7 +1054,7 @@ var LinearMemoryValueInterpreter = class extends HTMLElement {
       <style>${linearMemoryValueInterpreter_css_default}</style>
       <div class="value-interpreter">
         <div class="settings-toolbar">
-          ${this.#renderEndiannessSetting()}
+          ${renderEndiannessSetting(this.#onEndiannessChanged, this.#endianness)}
           <devtools-button data-settings="true" class="toolbar-button ${this.#showSettings ? "" : "disabled"}"
               title=${i18nString5(UIStrings5.toggleValueTypeSettings)} @click=${this.#onSettingsToggle}
               jslog=${VisualLogging4.toggleSubpane("linear-memory-inspector.toggle-value-settings").track({ click: true })}
@@ -1036,25 +1085,6 @@ var LinearMemoryValueInterpreter = class extends HTMLElement {
         </div>
       </div>
     `, this.#shadow, { host: this });
-  }
-  #renderEndiannessSetting() {
-    return html4`
-    <label data-endianness-setting="true" title=${i18nString5(UIStrings5.changeEndianness)}>
-      <select
-        jslog=${VisualLogging4.dropDown("linear-memory-inspector.endianess").track({ change: true })}
-        style="border: none;"
-        data-endianness="true" @change=${(e) => this.#onEndiannessChanged(e.target.value)}>
-        ${[
-      "Little Endian",
-      "Big Endian"
-      /* Endianness.BIG */
-    ].map((endianness) => {
-      return html4`<option value=${endianness} .selected=${this.#endianness === endianness}
-            jslog=${VisualLogging4.item(Platform3.StringUtilities.toKebabCase(endianness)).track({ click: true })}>${i18n9.i18n.lockedString(endianness)}</option>`;
-    })}
-      </select>
-    </label>
-    `;
   }
   #onSettingsToggle() {
     this.#showSettings = !this.#showSettings;
@@ -1206,7 +1236,7 @@ var BYTE_GROUP_MARGIN = 8;
 var BYTE_GROUP_SIZE = 4;
 var LinearMemoryViewer = class extends HTMLElement {
   #shadow = this.attachShadow({ mode: "open" });
-  #resizeObserver = new ResizeObserver(() => this.#resize());
+  #resizeObserver = new ResizeObserver(() => requestAnimationFrame(this.#resize.bind(this)));
   #isObservingResize = false;
   #memory = new Uint8Array();
   #address = 0;

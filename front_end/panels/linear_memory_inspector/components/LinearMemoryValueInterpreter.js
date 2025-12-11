@@ -27,6 +27,24 @@ const str_ = i18n.i18n.registerUIStrings('panels/linear_memory_inspector/compone
 const i18nString = i18n.i18n.getLocalizedString.bind(undefined, str_);
 const { render, html } = Lit;
 const { widgetConfig } = UI.Widget;
+function renderEndiannessSetting(onEndiannessChanged, currentEndiannes) {
+    // Disabled until https://crbug.com/1079231 is fixed.
+    // clang-format off
+    return html `
+    <label data-endianness-setting="true" title=${i18nString(UIStrings.changeEndianness)}>
+      <select
+        jslog=${VisualLogging.dropDown('linear-memory-inspector.endianess').track({ change: true })}
+        style="border: none;"
+        data-endianness="true" @change=${(e) => onEndiannessChanged(e.target.value)}>
+        ${["Little Endian" /* Endianness.LITTLE */, "Big Endian" /* Endianness.BIG */].map(endianness => {
+        return html `<option value=${endianness} .selected=${currentEndiannes === endianness}
+            jslog=${VisualLogging.item(Platform.StringUtilities.toKebabCase(endianness)).track({ click: true })}>${i18n.i18n.lockedString(endianness)}</option>`;
+    })}
+      </select>
+    </label>
+    `;
+    // clang-format on
+}
 export class LinearMemoryValueInterpreter extends HTMLElement {
     #shadow = this.attachShadow({ mode: 'open' });
     #onValueTypeModeChange = () => { };
@@ -50,6 +68,36 @@ export class LinearMemoryValueInterpreter extends HTMLElement {
         this.#onEndiannessChanged = data.onEndiannessChanged;
         this.#onValueTypeToggled = data.onValueTypeToggled;
         this.#render();
+    }
+    set value(value) {
+        this.#buffer = value;
+    }
+    get value() {
+        return this.#buffer;
+    }
+    set valueTypes(value) {
+        this.#valueTypes = value;
+    }
+    get valueTypes() {
+        return this.#valueTypes;
+    }
+    set valueTypeModes(value) {
+        this.#valueTypeModeConfig = value;
+    }
+    get valueTypeModes() {
+        return this.#valueTypeModeConfig;
+    }
+    set endianness(value) {
+        this.#endianness = value;
+    }
+    get endianness() {
+        return this.#endianness;
+    }
+    set memoryLength(value) {
+        this.#memoryLength = value;
+    }
+    get memoryLength() {
+        return this.#memoryLength;
     }
     get onValueTypeModeChange() {
         return this.#onValueTypeModeChange;
@@ -87,7 +135,7 @@ export class LinearMemoryValueInterpreter extends HTMLElement {
       <style>${linearMemoryValueInterpreterStyles}</style>
       <div class="value-interpreter">
         <div class="settings-toolbar">
-          ${this.#renderEndiannessSetting()}
+          ${renderEndiannessSetting(this.#onEndiannessChanged, this.#endianness)}
           <devtools-button data-settings="true" class="toolbar-button ${this.#showSettings ? '' : 'disabled'}"
               title=${i18nString(UIStrings.toggleValueTypeSettings)} @click=${this.#onSettingsToggle}
               jslog=${VisualLogging.toggleSubpane('linear-memory-inspector.toggle-value-settings').track({ click: true })}
@@ -119,24 +167,6 @@ export class LinearMemoryValueInterpreter extends HTMLElement {
         </div>
       </div>
     `, this.#shadow, { host: this });
-        // clang-format on
-    }
-    #renderEndiannessSetting() {
-        // Disabled until https://crbug.com/1079231 is fixed.
-        // clang-format off
-        return html `
-    <label data-endianness-setting="true" title=${i18nString(UIStrings.changeEndianness)}>
-      <select
-        jslog=${VisualLogging.dropDown('linear-memory-inspector.endianess').track({ change: true })}
-        style="border: none;"
-        data-endianness="true" @change=${(e) => this.#onEndiannessChanged(e.target.value)}>
-        ${["Little Endian" /* Endianness.LITTLE */, "Big Endian" /* Endianness.BIG */].map(endianness => {
-            return html `<option value=${endianness} .selected=${this.#endianness === endianness}
-            jslog=${VisualLogging.item(Platform.StringUtilities.toKebabCase(endianness)).track({ click: true })}>${i18n.i18n.lockedString(endianness)}</option>`;
-        })}
-      </select>
-    </label>
-    `;
         // clang-format on
     }
     #onSettingsToggle() {
