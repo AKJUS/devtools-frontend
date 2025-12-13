@@ -47,6 +47,9 @@
     },
     {
       "path": "../../core/sdk/bundle-tsconfig.json"
+    },
+    {
+      "path": "../greendev/bundle-tsconfig.json"
     }
   ]
 }
