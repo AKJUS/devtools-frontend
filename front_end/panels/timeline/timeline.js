@@ -5223,13 +5223,14 @@ var StatusDialog = class extends UI5.Widget.VBox {
     this.downloadTraceButton.classList.remove("hidden");
   }
   remove() {
-    this.element.parentNode?.classList.remove("tinted");
+    this.element.parentNode?.classList.remove("opaque", "tinted");
     this.stopTimer();
     this.element.remove();
   }
-  showPane(parent) {
+  showPane(parent, mode = "opaque") {
     this.show(parent);
-    parent.classList.add("tinted");
+    parent.classList.toggle("tinted", mode === "tinted");
+    parent.classList.toggle("opaque", mode === "opaque");
   }
   enableAndFocusButton() {
     this.button.classList.remove("hidden");
@@ -7316,8 +7317,15 @@ var timelinePanel_css_default = `/*
   pointer-events: none;
 }
 
-.timeline.panel .status-pane-container.tinted {
+.timeline.panel .status-pane-container.opaque {
   background-color: var(--sys-color-cdt-base-container);
+  pointer-events: auto;
+}
+
+.timeline.panel .status-pane-container.tinted {
+  /* stylelint-disable-next-line plugin/use_theme_colors */
+  background-color: #0005;
+  background-blend-mode: multiply;
   pointer-events: auto;
 }
 
@@ -7987,6 +7995,18 @@ var UIStrings20 = {
    */
   initializingTracing: "Initializing tracing\u2026",
   /**
+   * @description Text in Timeline Panel of the Performance panel. Shown to the user after they request to download the trace.
+   */
+  preparingTraceForDownload: "Preparing\u2026",
+  /**
+   * @description Text in Timeline Panel of the Performance panel. Shown to the user after they request to download the trace.
+   */
+  compressingTraceForDownload: "Compressing\u2026",
+  /**
+   * @description Text in Timeline Panel of the Performance panel. Shown to the user after they request to download the trace.
+   */
+  encodingTraceForDownload: "Encoding\u2026",
+  /**
    * @description Tooltip description for a checkbox that toggles the visibility of data added by extensions of this panel (Performance).
    */
   showDataAddedByExtensions: "Show data added by extensions of the Performance panel",
@@ -8375,7 +8395,7 @@ var TimelinePanel = class _TimelinePanel extends Common10.ObjectWrapper.eventMix
    * Pass `highlightInsight: true` to flash the insight with the background highlight colour.
    */
   #setActiveInsight(insight, opts = { highlightInsight: false }) {
-    if (insight) {
+    if (insight && this.#splitWidget.showMode() !== "Both") {
       this.#splitWidget.showBoth();
     }
     this.#sideBar.setActiveInsight(insight, { highlight: opts.highlightInsight });
@@ -8978,9 +8998,26 @@ var TimelinePanel = class _TimelinePanel extends Common10.ObjectWrapper.eventMix
         return;
       }
       this.#showExportTraceErrorDialog(error);
+    } finally {
+      this.statusDialog?.remove();
+      this.statusDialog = null;
     }
   }
   async innerSaveToFile(traceEvents, metadata, config) {
+    this.statusDialog = new StatusDialog({
+      hideStopButton: true,
+      showProgress: true
+    }, async () => {
+      this.statusDialog?.remove();
+      this.statusDialog = null;
+    });
+    this.statusDialog.showPane(this.statusPaneContainer, "tinted");
+    this.statusDialog.updateStatus(i18nString20(UIStrings20.preparingTraceForDownload));
+    this.statusDialog.updateProgressBar(i18nString20(UIStrings20.preparingTraceForDownload), 0);
+    this.statusDialog.requestUpdate();
+    await this.statusDialog.updateComplete;
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    await new Promise((resolve) => requestAnimationFrame(resolve));
     const isoDate = Platform11.DateUtilities.toISO8601Compact(metadata.startTime ? new Date(metadata.startTime) : /* @__PURE__ */ new Date());
     const isCpuProfile = metadata.dataOrigin === "CPUProfile";
     const { includeResourceContent, includeSourceMaps } = config;
@@ -9005,14 +9042,22 @@ var TimelinePanel = class _TimelinePanel extends Common10.ObjectWrapper.eventMix
     }
     let blob = new Blob(blobParts, { type: "application/json" });
     if (config.shouldCompress) {
+      this.statusDialog.updateStatus(i18nString20(UIStrings20.compressingTraceForDownload));
+      this.statusDialog.updateProgressBar(i18nString20(UIStrings20.compressingTraceForDownload), 0);
       fileName = `${fileName}.gz`;
-      const gzStream = Common10.Gzip.compressStream(blob.stream());
+      const inputSize = blob.size;
+      const monitoredStream = Common10.Gzip.createMonitoredStream(blob.stream(), (bytesRead) => {
+        this.statusDialog?.updateProgressBar(i18nString20(UIStrings20.compressingTraceForDownload), bytesRead / inputSize * 100);
+      });
+      const gzStream = Common10.Gzip.compressStream(monitoredStream);
       blob = await new Response(gzStream, {
         headers: { "Content-Type": "application/gzip" }
       }).blob();
     }
     let bytesAsB64 = null;
     try {
+      this.statusDialog.updateStatus(i18nString20(UIStrings20.encodingTraceForDownload));
+      this.statusDialog.updateProgressBar(i18nString20(UIStrings20.encodingTraceForDownload), 100);
       bytesAsB64 = await Common10.Base64.encode(blob);
     } catch {
     }
@@ -9038,6 +9083,8 @@ var TimelinePanel = class _TimelinePanel extends Common10.ObjectWrapper.eventMix
       a.click();
       URL.revokeObjectURL(url);
     }
+    this.statusDialog.remove();
+    this.statusDialog = null;
   }
   async handleSaveToFileAction() {
     const exportTraceOptionsElement = this.saveButton.element;
@@ -9407,7 +9454,7 @@ var TimelinePanel = class _TimelinePanel extends Common10.ObjectWrapper.eventMix
       {
         description: error,
         buttonText: i18nString20(UIStrings20.close),
-        hideStopButton: true,
+        hideStopButton: false,
         showProgress: void 0,
         showTimer: void 0
       },
@@ -14980,24 +15027,13 @@ var TimelineFlameChartNetworkDataProvider = class {
   }
   /**
    * When users zoom in the flamechart, we only want to show them the network
-   * requests between startTime and endTime. This function will call the
-   * trackAppender to update the timeline data, and then force to create a new
-   * PerfUI.FlameChart.FlameChartTimelineData instance to force the flamechart
-   * to re-render.
+   * requests between startTime and endTime.
    */
   #updateTimelineData(startTime, endTime) {
     if (!this.#networkTrackAppender || !this.#timelineData) {
       return;
     }
     this.#maxLevel = this.#networkTrackAppender.relayoutEntriesWithinBounds(this.#events, startTime, endTime);
-    this.#timelineData = PerfUI15.FlameChart.FlameChartTimelineData.create({
-      entryLevels: this.#timelineData?.entryLevels,
-      entryTotalTimes: this.#timelineData?.entryTotalTimes,
-      entryStartTimes: this.#timelineData?.entryStartTimes,
-      groups: this.#timelineData?.groups,
-      initiatorsData: this.#timelineData.initiatorsData,
-      entryDecorations: this.#timelineData.entryDecorations
-    });
   }
   /**
    * Note that although we use the same mechanism to track configuration
@@ -15858,17 +15894,8 @@ var TimelineFlameChartView = class extends Common15.ObjectWrapper.eventMixin(UI1
     for (const overlay of this.#currentInsightOverlays) {
       entries.push(...Overlays3.Overlays.entriesForOverlay(overlay));
     }
-    let relatedEventsList = this.#activeInsight?.model.relatedEvents;
-    if (!relatedEventsList) {
-      relatedEventsList = [];
-    } else if (relatedEventsList instanceof Map) {
-      relatedEventsList = Array.from(relatedEventsList.keys());
-    }
-    this.#dimInsightRelatedEvents([...entries, ...relatedEventsList]);
     if (options.updateTraceWindow) {
-      for (const entry of entries) {
-        this.#expandEntryTrack(entry);
-      }
+      this.#bulkExpandGroupsForEntries(entries);
       const overlaysBounds = Overlays3.Overlays.traceWindowContainingOverlays(this.#currentInsightOverlays);
       if (overlaysBounds) {
         const percentage = options.updateTraceWindowPercentage ?? 50;
@@ -15876,9 +15903,18 @@ var TimelineFlameChartView = class extends Common15.ObjectWrapper.eventMixin(UI1
         TraceBounds15.TraceBounds.BoundsManager.instance().setTimelineVisibleWindow(expandedBounds, { ignoreMiniMapBounds: true, shouldAnimate: true });
       }
     }
+    let relatedEventsList = this.#activeInsight?.model.relatedEvents;
+    if (!relatedEventsList) {
+      relatedEventsList = [];
+    } else if (relatedEventsList instanceof Map) {
+      relatedEventsList = Array.from(relatedEventsList.keys());
+    }
+    this.#dimInsightRelatedEvents([...entries, ...relatedEventsList]);
     if (entries.length !== 0) {
       const earliestEntry = entries.reduce((earliest, current) => earliest.ts < current.ts ? earliest : current, entries[0]);
-      this.revealEventVertically(earliestEntry);
+      requestAnimationFrame(() => {
+        this.revealEventVertically(earliestEntry);
+      });
     }
   }
   hoverAnnotationInSidebar(annotation) {
@@ -15916,6 +15952,37 @@ var TimelineFlameChartView = class extends Common15.ObjectWrapper.eventMixin(UI1
     if (!this.#activeInsight) {
       this.#updateFlameChartDimmerWithEvents(this.#activeInsightDimmer, null);
     }
+  }
+  /**
+   * Bulk expands the tracks (e.g. groups) that the given entries belong to.
+   * Will update them all at once and then do a redraw.
+   */
+  #bulkExpandGroupsForEntries(entries) {
+    const networkGroupIndexes = /* @__PURE__ */ new Set();
+    const mainGroupIndexes = /* @__PURE__ */ new Set();
+    for (const entry of entries) {
+      const chartName = Overlays3.Overlays.chartForEntry(entry);
+      const provider = chartName === "main" ? this.mainDataProvider : this.networkDataProvider;
+      const entryIndex = provider.indexForEvent?.(entry) ?? null;
+      if (entryIndex === null) {
+        continue;
+      }
+      const group = provider.groupForEvent?.(entryIndex) ?? null;
+      if (!group) {
+        continue;
+      }
+      if (group.expanded) {
+        continue;
+      }
+      const groupIndex = provider.timelineData().groups.indexOf(group);
+      if (chartName === "main") {
+        mainGroupIndexes.add(groupIndex);
+      } else {
+        networkGroupIndexes.add(groupIndex);
+      }
+    }
+    this.mainFlameChart.bulkExpandGroups([...mainGroupIndexes]);
+    this.networkFlameChart.bulkExpandGroups([...networkGroupIndexes]);
   }
   /**
    * Expands the track / group that the given entry is in.
