@@ -5352,14 +5352,63 @@ async function innerForTraceCalculate({ recordingStartTime, cruxFieldData } = {}
 // gen/front_end/panels/timeline/TimelineController.js
 var UIStrings14 = {
   /**
+   * @description Text in Timeline Panel of the Performance panel
+   */
+  initializingTracing: "Initializing tracing\u2026",
+  /**
    * @description Text in Timeline Controller of the Performance panel indicating that the Performance Panel cannot
    * record a performance trace because the type of target (where possible types are page, service worker and shared
    * worker) doesn't support it.
    */
-  tracingNotSupported: "Performance trace recording not supported for this type of target"
+  tracingNotSupported: "Performance trace recording not supported for this type of target",
+  /**
+   * @description Text in a status dialog shown during a performance trace of a web page. It indicates to the user what the tracing is currently waiting on.
+   */
+  waitingForLoadEvent: "Waiting for load event\u2026",
+  /**
+   * @description Text in a status dialog shown during a performance trace of a web page. It indicates to the user what the tracing is currently waiting on.
+   */
+  waitingForLoadEventPlus5Seconds: "Waiting for load event (+5s)\u2026"
 };
 var str_14 = i18n27.i18n.registerUIStrings("panels/timeline/TimelineController.ts", UIStrings14);
 var i18nString14 = i18n27.i18n.getLocalizedString.bind(void 0, str_14);
+var StatusChecker = class {
+  #checkers = [];
+  #listener = null;
+  #currentStatus = null;
+  add(title, promise) {
+    const item = { title, complete: false };
+    this.#checkers.push(item);
+    void promise.finally(() => {
+      item.complete = true;
+      this.#evaluate();
+    });
+  }
+  setListener(listener) {
+    this.#listener = null;
+    this.#evaluate();
+    this.#listener = listener;
+    listener(this.#currentStatus);
+  }
+  removeListener() {
+    this.#listener = null;
+  }
+  #evaluate() {
+    let nextStatus = null;
+    for (const checker of this.#checkers) {
+      if (!checker.complete) {
+        nextStatus = checker.title;
+        break;
+      }
+    }
+    if (nextStatus !== this.#currentStatus) {
+      this.#currentStatus = nextStatus;
+      if (this.#listener) {
+        this.#listener(nextStatus);
+      }
+    }
+  }
+};
 var TimelineController = class {
   primaryPageTarget;
   rootTarget;
@@ -5370,6 +5419,9 @@ var TimelineController = class {
   #recordingStartTime = null;
   client;
   tracingCompletePromise = null;
+  // These properties are only used for "Reload and record".
+  #statusChecker = null;
+  #loadEventFiredCb = null;
   /**
    * We always need to profile against the DevTools root target, which is
    * the target that DevTools is attached to.
@@ -5407,9 +5459,45 @@ var TimelineController = class {
       await this.tracingManager.reset();
     }
   }
+  async #navigateToAboutBlank() {
+    const aboutBlankNavigationComplete = new Promise(async (resolve, reject) => {
+      const target = this.primaryPageTarget;
+      const resourceModel = target.model(SDK5.ResourceTreeModel.ResourceTreeModel);
+      if (!resourceModel) {
+        reject("Could not load resourceModel");
+        return;
+      }
+      function waitForAboutBlank(event) {
+        if (event.data.url === "about:blank") {
+          resolve();
+        } else {
+          reject(`Unexpected navigation to ${event.data.url}`);
+        }
+        resourceModel?.removeEventListener(SDK5.ResourceTreeModel.Events.FrameNavigated, waitForAboutBlank);
+      }
+      resourceModel.addEventListener(SDK5.ResourceTreeModel.Events.FrameNavigated, waitForAboutBlank);
+      await resourceModel.navigate("about:blank");
+    });
+    await aboutBlankNavigationComplete;
+  }
+  async #navigateWithSDK(url) {
+    const resourceModel = this.primaryPageTarget.model(SDK5.ResourceTreeModel.ResourceTreeModel);
+    if (!resourceModel) {
+      throw new Error("expected to find ResourceTreeModel");
+    }
+    const loadPromiseWithResolvers = Promise.withResolvers();
+    this.#loadEventFiredCb = loadPromiseWithResolvers.resolve;
+    SDK5.TargetManager.TargetManager.instance().addModelListener(SDK5.ResourceTreeModel.ResourceTreeModel, SDK5.ResourceTreeModel.Events.Load, this.#onLoadEventFired, this);
+    void resourceModel.navigate(url);
+    await loadPromiseWithResolvers.promise;
+  }
   async startRecording(options) {
     function disabledByDefault(category) {
       return "disabled-by-default-" + category;
+    }
+    this.client.recordingStatus(i18nString14(UIStrings14.initializingTracing));
+    if (options.navigateToUrl) {
+      await this.#navigateToAboutBlank();
     }
     const categoriesArray = [
       Root2.Runtime.experiments.isEnabled("timeline-show-all-events") ? "*" : "-*",
@@ -5460,8 +5548,23 @@ var TimelineController = class {
     const response = await this.startRecordingWithCategories(categoriesArray.join(","));
     if (response.getError()) {
       await SDK5.TargetManager.TargetManager.instance().resumeAllTargets();
+      throw new Error(response.getError());
     }
-    return response;
+    if (!options.navigateToUrl) {
+      return;
+    }
+    this.#statusChecker?.removeListener();
+    this.#statusChecker = new StatusChecker();
+    const loadEvent = this.#navigateWithSDK(options.navigateToUrl);
+    this.#statusChecker.add(i18nString14(UIStrings14.waitingForLoadEvent), loadEvent);
+    this.#statusChecker.add(i18nString14(UIStrings14.waitingForLoadEventPlus5Seconds), loadEvent.then(() => new Promise((resolve) => setTimeout(resolve, 5e3))));
+    this.#statusChecker.setListener((status) => {
+      if (status === null) {
+        void this.stopRecording();
+      } else {
+        this.client.recordingStatus(status);
+      }
+    });
   }
   async #onFrameNavigated(event) {
     if (!event.data.isPrimaryFrame()) {
@@ -5469,11 +5572,21 @@ var TimelineController = class {
     }
     this.#navigationUrls.push(event.data.url);
   }
+  async #onLoadEventFired(event) {
+    if (!event.data.resourceTreeModel.mainFrame?.isPrimaryFrame()) {
+      return;
+    }
+    this.#loadEventFiredCb?.();
+  }
   async stopRecording() {
+    this.#statusChecker?.removeListener();
+    this.#statusChecker = null;
+    this.#loadEventFiredCb = null;
     if (this.tracingManager) {
       this.tracingManager.stop();
     }
     SDK5.TargetManager.TargetManager.instance().removeModelListener(SDK5.ResourceTreeModel.ResourceTreeModel, SDK5.ResourceTreeModel.Events.FrameNavigated, this.#onFrameNavigated, this);
+    SDK5.TargetManager.TargetManager.instance().removeModelListener(SDK5.ResourceTreeModel.ResourceTreeModel, SDK5.ResourceTreeModel.Events.Load, this.#onLoadEventFired, this);
     const throttlingManager = SDK5.CPUThrottlingManager.CPUThrottlingManager.instance();
     const optionDuringRecording = throttlingManager.cpuThrottlingOption();
     throttlingManager.setCPUThrottlingOption(SDK5.CPUThrottlingManager.NoThrottlingOption);
@@ -7991,10 +8104,6 @@ var UIStrings20 = {
    */
   processingTrace: "Processing trace\u2026",
   /**
-   * @description Text in Timeline Panel of the Performance panel
-   */
-  initializingTracing: "Initializing tracing\u2026",
-  /**
    * @description Text in Timeline Panel of the Performance panel. Shown to the user after they request to download the trace.
    */
   preparingTraceForDownload: "Preparing\u2026",
@@ -8084,7 +8193,6 @@ var TimelinePanel = class _TimelinePanel extends Common10.ObjectWrapper.eventMix
   recordingOptionUIControls;
   state;
   recordingPageReload;
-  millisecondsToRecordAfterLoadEvent;
   toggleRecordAction;
   recordReloadAction;
   #historyManager;
@@ -8191,18 +8299,14 @@ var TimelinePanel = class _TimelinePanel extends Common10.ObjectWrapper.eventMix
       ">\u{1F4AB}</div>`;
     const adorner = new Adorners.Adorner.Adorner();
     adorner.classList.add("fix-perf-icon");
-    adorner.data = {
-      name: i18nString20(UIStrings20.fixMe),
-      content: adornerContent
-    };
+    adorner.name = i18nString20(UIStrings20.fixMe);
+    adorner.append(adornerContent);
     this.#traceEngineModel = traceModel || this.#instantiateNewModel();
-    this.#listenForProcessingProgress();
     this.element.addEventListener("contextmenu", this.contextMenu.bind(this), false);
     this.dropTarget = new UI10.DropTarget.DropTarget(this.element, [UI10.DropTarget.Type.File, UI10.DropTarget.Type.URI], i18nString20(UIStrings20.dropTimelineFileOrUrlHere), this.handleDrop.bind(this));
     this.recordingOptionUIControls = [];
     this.state = "Idle";
     this.recordingPageReload = false;
-    this.millisecondsToRecordAfterLoadEvent = 5e3;
     this.toggleRecordAction = UI10.ActionRegistry.ActionRegistry.instance().getAction("timeline.toggle-recording");
     this.recordReloadAction = UI10.ActionRegistry.ActionRegistry.instance().getAction("timeline.record-reload");
     this.#historyManager = new TimelineHistoryManager(this.#minimapComponent, this.#isNode);
@@ -8274,7 +8378,6 @@ var TimelinePanel = class _TimelinePanel extends Common10.ObjectWrapper.eventMix
     });
     this.statusPaneContainer = this.timelinePane.element.createChild("div", "status-pane-container fill");
     this.createFileSelector();
-    SDK7.TargetManager.TargetManager.instance().addModelListener(SDK7.ResourceTreeModel.ResourceTreeModel, SDK7.ResourceTreeModel.Events.Load, this.loadEventFired, this);
     this.flameChart = new TimelineFlameChartView(this);
     this.element.addEventListener("toggle-popover", (event) => this.flameChart.togglePopover(event.detail));
     this.#onMainEntryHovered = this.#onEntryHovered.bind(this, this.flameChart.getMainDataProvider());
@@ -8442,7 +8545,20 @@ var TimelinePanel = class _TimelinePanel extends Common10.ObjectWrapper.eventMix
       "timeline-debug-mode"
       /* Root.Runtime.ExperimentName.TIMELINE_DEBUG_MODE */
     );
-    return Trace23.TraceModel.Model.createWithAllHandlers(config);
+    const traceEngineModel = Trace23.TraceModel.Model.createWithAllHandlers(config);
+    traceEngineModel.addEventListener(Trace23.TraceModel.ModelUpdateEvent.eventName, (e) => {
+      const updateEvent = e;
+      const str = i18nString20(UIStrings20.processed);
+      const traceParseMaxProgress = 0.7;
+      if (updateEvent.data.type === "COMPLETE") {
+        this.statusDialog?.updateProgressBar(str, 100 * traceParseMaxProgress);
+      } else if (updateEvent.data.type === "PROGRESS_UPDATE") {
+        const data = updateEvent.data.data;
+        this.statusDialog?.updateProgressBar(str, data.percent * 100 * traceParseMaxProgress);
+      }
+    });
+    this.#traceEngineModel = traceEngineModel;
+    return this.#traceEngineModel;
   }
   static extensionDataVisibilitySetting() {
     return Common10.Settings.Settings.instance().createSetting("timeline-show-extension-data", true);
@@ -9314,31 +9430,6 @@ var TimelinePanel = class _TimelinePanel extends Common10.ObjectWrapper.eventMix
     const navigationEntry = entries[currentIndex];
     return navigationEntry.url;
   }
-  async #navigateToAboutBlank() {
-    const aboutBlankNavigationComplete = new Promise(async (resolve, reject) => {
-      if (!this.controller) {
-        reject("Could not find TimelineController");
-        return;
-      }
-      const target = this.controller.primaryPageTarget;
-      const resourceModel = target.model(SDK7.ResourceTreeModel.ResourceTreeModel);
-      if (!resourceModel) {
-        reject("Could not load resourceModel");
-        return;
-      }
-      function waitForAboutBlank(event) {
-        if (event.data.url === "about:blank") {
-          resolve();
-        } else {
-          reject(`Unexpected navigation to ${event.data.url}`);
-        }
-        resourceModel?.removeEventListener(SDK7.ResourceTreeModel.Events.FrameNavigated, waitForAboutBlank);
-      }
-      resourceModel.addEventListener(SDK7.ResourceTreeModel.Events.FrameNavigated, waitForAboutBlank);
-      await resourceModel.navigate("about:blank");
-    });
-    await aboutBlankNavigationComplete;
-  }
   async #startCPUProfilingRecording() {
     try {
       this.cpuProfiler = UI10.Context.Context.instance().flavor(SDK7.CPUProfilerModel.CPUProfilerModel);
@@ -9384,21 +9475,14 @@ var TimelinePanel = class _TimelinePanel extends Common10.ObjectWrapper.eventMix
         throw new Error("Could not create Timeline controller");
       }
       const urlToTrace = await this.#evaluateInspectedURL();
-      if (this.recordingPageReload) {
-        await this.#navigateToAboutBlank();
-      }
-      const recordingOptions = {
+      await this.controller.startRecording({
         enableJSSampling: !this.disableCaptureJSProfileSetting.get(),
         capturePictures: this.captureLayersAndPicturesSetting.get(),
         captureFilmStrip: this.showScreenshotsSetting.get(),
-        captureSelectorStats: this.captureSelectorStatsSetting.get()
-      };
-      const response = await this.controller.startRecording(recordingOptions);
-      if (response.getError()) {
-        throw new Error(response.getError());
-      }
-      const recordingConfig = this.recordingPageReload ? { navigateToUrl: urlToTrace } : void 0;
-      this.recordingStarted(recordingConfig);
+        captureSelectorStats: this.captureSelectorStatsSetting.get(),
+        navigateToUrl: this.recordingPageReload ? urlToTrace : void 0
+      });
+      this.recordingStarted();
     } catch (e) {
       await this.recordingFailed(e.message);
     }
@@ -9565,7 +9649,7 @@ var TimelinePanel = class _TimelinePanel extends Common10.ObjectWrapper.eventMix
   }
   onClearButton() {
     this.#historyManager.clear();
-    this.#traceEngineModel = this.#instantiateNewModel();
+    this.#instantiateNewModel();
     ModificationsManager.reset();
     this.#uninstallSourceMapsResolver();
     this.flameChart.getMainDataProvider().reset();
@@ -9803,24 +9887,14 @@ var TimelinePanel = class _TimelinePanel extends Common10.ObjectWrapper.eventMix
     console.warn("Could not get entry color for ", entry);
     return ThemeSupport17.ThemeSupport.instance().getComputedValue("--app-color-system");
   }
-  recordingStarted(config) {
-    if (config && this.recordingPageReload && this.controller) {
-      const resourceModel = this.controller?.primaryPageTarget.model(SDK7.ResourceTreeModel.ResourceTreeModel);
-      if (!resourceModel) {
-        void this.recordingFailed("Could not navigate to original URL");
-        return;
-      }
-      void resourceModel.navigate(config.navigateToUrl);
-    }
+  recordingStarted() {
     this.#changeView({ mode: "STATUS_PANE_OVERLAY" });
     this.setState(
       "Recording"
       /* State.RECORDING */
     );
-    this.showRecordingStarted();
     if (this.statusDialog) {
       this.statusDialog.enableAndFocusButton();
-      this.statusDialog.updateStatus(i18nString20(UIStrings20.tracing));
       this.statusDialog.updateProgressBar(i18nString20(UIStrings20.bufferUsage), 0);
       this.statusDialog.startTimer();
     }
@@ -9828,6 +9902,11 @@ var TimelinePanel = class _TimelinePanel extends Common10.ObjectWrapper.eventMix
   recordingProgress(usage) {
     if (this.statusDialog) {
       this.statusDialog.updateProgressBar(i18nString20(UIStrings20.bufferUsage), usage * 100);
+    }
+  }
+  recordingStatus(status) {
+    if (this.statusDialog) {
+      this.statusDialog.updateStatus(status);
     }
   }
   /**
@@ -9885,19 +9964,6 @@ var TimelinePanel = class _TimelinePanel extends Common10.ObjectWrapper.eventMix
   }
   async processingStarted() {
     this.statusDialog?.updateStatus(i18nString20(UIStrings20.processingTrace));
-  }
-  #listenForProcessingProgress() {
-    this.#traceEngineModel.addEventListener(Trace23.TraceModel.ModelUpdateEvent.eventName, (e) => {
-      const updateEvent = e;
-      const str = i18nString20(UIStrings20.processed);
-      const traceParseMaxProgress = 0.7;
-      if (updateEvent.data.type === "COMPLETE") {
-        this.statusDialog?.updateProgressBar(str, 100 * traceParseMaxProgress);
-      } else if (updateEvent.data.type === "PROGRESS_UPDATE") {
-        const data = updateEvent.data.data;
-        this.statusDialog?.updateProgressBar(str, data.percent * 100 * traceParseMaxProgress);
-      }
-    });
   }
   #onSourceMapsNodeNamesResolved() {
     this.flameChart.getMainDataProvider().timelineData(true);
@@ -10170,24 +10236,13 @@ var TimelinePanel = class _TimelinePanel extends Common10.ObjectWrapper.eventMix
       buttonText: void 0
     }, () => this.stopRecording());
     this.statusDialog.showPane(this.statusPaneContainer);
-    this.statusDialog.updateStatus(i18nString20(UIStrings20.initializingTracing));
+    this.statusDialog.updateStatus(i18nString20(UIStrings20.tracing));
     this.statusDialog.updateProgressBar(i18nString20(UIStrings20.bufferUsage), 0);
   }
   cancelLoading() {
     if (this.loader) {
       void this.loader.cancel();
     }
-  }
-  async loadEventFired(event) {
-    if (this.state !== "Recording" || !this.recordingPageReload || this.controller?.primaryPageTarget !== event.data.resourceTreeModel.target()) {
-      return;
-    }
-    const controller = this.controller;
-    await new Promise((r) => window.setTimeout(r, this.millisecondsToRecordAfterLoadEvent));
-    if (controller !== this.controller || this.state !== "Recording") {
-      return;
-    }
-    void this.stopRecording();
   }
   frameForSelection(selection) {
     if (this.#viewMode.mode !== "VIEWING_TRACE") {
@@ -10325,7 +10380,7 @@ var TimelinePanel = class _TimelinePanel extends Common10.ObjectWrapper.eventMix
    * 3. Flash the Insight with the highlight colour we use in other panels.
    */
   revealInsight(insightModel) {
-    const insightSetKey = insightModel.navigationId ?? Trace23.Types.Events.NO_NAVIGATION;
+    const insightSetKey = insightModel.navigation?.args.data?.navigationId ?? Trace23.Types.Events.NO_NAVIGATION;
     this.#setActiveInsight({ model: insightModel, insightSetKey }, { highlightInsight: true });
   }
   static async *handleExternalRecordRequest() {
@@ -11167,6 +11222,10 @@ var TimelineUIUtils = class _TimelineUIUtils {
         link = "https://web.dev/lcp/";
         name = "largest contentful paint";
         break;
+      case "largestContentfulPaint::CandidateForSoftNavigation":
+        link = "https://developer.chrome.com/docs/web-platform/soft-navigations-experiment";
+        name = "largest contentful paint (soft navigation)";
+        break;
       case "firstContentfulPaint":
         link = "https://web.dev/first-contentful-paint/";
         name = "first contentful paint";
@@ -11285,6 +11344,18 @@ var TimelineUIUtils = class _TimelineUIUtils {
     if (parsedTrace.data.Meta.traceIsGeneric) {
       _TimelineUIUtils.renderEventJson(event, contentHelper);
       return contentHelper.fragment;
+    }
+    if (Trace24.Types.Events.isNavigationStart(event)) {
+      url = event.args.data?.documentLoaderURL ?? event.args.data?.url;
+      if (url) {
+        contentHelper.appendElementRow(i18nString21(UIStrings21.url), LegacyComponents.Linkifier.Linkifier.linkifyURL(url));
+      }
+    }
+    if (Trace24.Types.Events.isSoftNavigationStart(event)) {
+      url = event.args.context.URL;
+      if (url) {
+        contentHelper.appendElementRow(i18nString21(UIStrings21.url), LegacyComponents.Linkifier.Linkifier.linkifyURL(url));
+      }
     }
     if (Trace24.Types.Events.isV8Compile(event)) {
       url = event.args.data?.url;
@@ -11635,6 +11706,7 @@ var TimelineUIUtils = class _TimelineUIUtils {
         contentHelper.appendTextRow(i18nString21(UIStrings21.type), unsafeEventData["type"]);
         break;
       }
+      case "largestContentfulPaint::CandidateForSoftNavigation":
       // @ts-expect-error Fall-through intended.
       case "largestContentfulPaint::Candidate": {
         contentHelper.appendTextRow(i18nString21(UIStrings21.type), String(unsafeEventData["type"]));
@@ -12243,6 +12315,10 @@ var TimelineUIUtils = class _TimelineUIUtils {
         color = "var(--color-text-primary)";
         tall = true;
         break;
+      case "SoftNavigationStart":
+        color = "var(--sys-color-blue)";
+        tall = true;
+        break;
       case "FrameStartedLoading":
         color = "green";
         tall = true;
@@ -12263,6 +12339,7 @@ var TimelineUIUtils = class _TimelineUIUtils {
         color = "var(--sys-color-green-bright)";
         tall = true;
         break;
+      case "largestContentfulPaint::CandidateForSoftNavigation":
       case "largestContentfulPaint::Candidate":
         color = "var(--sys-color-green)";
         tall = true;
@@ -12441,18 +12518,18 @@ function timeStampForEventAdjustedForClosestNavigationIfPossible(event, parsedTr
     const { startTime } = Trace24.Helpers.Timing.eventTimingsMilliSeconds(event);
     return startTime;
   }
-  const time = Trace24.Helpers.Timing.timeStampForEventAdjustedByClosestNavigation(event, parsedTrace.data.Meta.traceBounds, parsedTrace.data.Meta.navigationsByNavigationId, parsedTrace.data.Meta.navigationsByFrameId);
+  const time = Trace24.Helpers.Timing.timeStampForEventAdjustedByClosestNavigation(event, parsedTrace.data.Meta.traceBounds, parsedTrace.data.Meta.navigationsByNavigationId, parsedTrace.data.Meta.softNavigationsById, parsedTrace.data.Meta.navigationsByFrameId);
   return Trace24.Helpers.Timing.microToMilli(time);
 }
 function isMarkerEvent(parsedTrace, event) {
   const { Name: Name8 } = Trace24.Types.Events;
-  if (event.name === "TimeStamp" || event.name === "navigationStart") {
+  if (event.name === "TimeStamp" || event.name === "navigationStart" || event.name === "SoftNavigationStart") {
     return true;
   }
   if (Trace24.Types.Events.isFirstContentfulPaint(event) || Trace24.Types.Events.isFirstPaint(event)) {
     return event.args.frame === parsedTrace.data.Meta.mainFrameId;
   }
-  if (Trace24.Types.Events.isMarkDOMContent(event) || Trace24.Types.Events.isMarkLoad(event) || Trace24.Types.Events.isLargestContentfulPaintCandidate(event)) {
+  if (Trace24.Types.Events.isMarkDOMContent(event) || Trace24.Types.Events.isMarkLoad(event) || Trace24.Types.Events.isAnyLargestContentfulPaintCandidate(event)) {
     if (!event.args.data) {
       return false;
     }
@@ -15400,21 +15477,29 @@ var SORT_ORDER_PAGE_LOAD_MARKERS = {
     /* Trace.Types.Events.Name.NAVIGATION_START */
   ]: 0,
   [
+    "SoftNavigationStart"
+    /* Trace.Types.Events.Name.SOFT_NAVIGATION_START */
+  ]: 1,
+  [
     "MarkLoad"
     /* Trace.Types.Events.Name.MARK_LOAD */
-  ]: 1,
+  ]: 2,
   [
     "firstContentfulPaint"
     /* Trace.Types.Events.Name.MARK_FCP */
-  ]: 2,
+  ]: 3,
   [
     "MarkDOMContent"
     /* Trace.Types.Events.Name.MARK_DOM_CONTENT */
-  ]: 3,
+  ]: 4,
   [
     "largestContentfulPaint::Candidate"
     /* Trace.Types.Events.Name.MARK_LCP_CANDIDATE */
-  ]: 4
+  ]: 5,
+  [
+    "largestContentfulPaint::CandidateForSoftNavigation"
+    /* Trace.Types.Events.Name.MARK_LCP_CANDIDATE_FOR_SOFT_NAVIGATION */
+  ]: 6
 };
 var TIMESTAMP_THRESHOLD_MS = Trace32.Types.Timing.Micro(10);
 var TimelineFlameChartView = class extends Common15.ObjectWrapper.eventMixin(UI18.Widget.VBox) {
@@ -15846,13 +15931,13 @@ var TimelineFlameChartView = class extends Common15.ObjectWrapper.eventMixin(UI1
     this.bulkRemoveOverlays(this.#markers);
     const markerEvents = parsedTrace.data.PageLoadMetrics.allMarkerEvents;
     const markers = markerEvents.filter(
-      (event) => event.name === "navigationStart" || event.name === "largestContentfulPaint::Candidate" || event.name === "firstContentfulPaint" || event.name === "MarkDOMContent" || event.name === "MarkLoad"
+      (event) => event.name === "navigationStart" || event.name === "SoftNavigationStart" || event.name === "largestContentfulPaint::Candidate" || event.name === "largestContentfulPaint::CandidateForSoftNavigation" || event.name === "firstContentfulPaint" || event.name === "MarkDOMContent" || event.name === "MarkLoad"
       /* Trace.Types.Events.Name.MARK_LOAD */
     );
     this.#sortMarkersForPreferredVisualOrder(markers);
     const overlayByTs = /* @__PURE__ */ new Map();
     markers.forEach((marker) => {
-      const adjustedTimestamp = Trace32.Helpers.Timing.timeStampForEventAdjustedByClosestNavigation(marker, parsedTrace.data.Meta.traceBounds, parsedTrace.data.Meta.navigationsByNavigationId, parsedTrace.data.Meta.navigationsByFrameId);
+      const adjustedTimestamp = Trace32.Helpers.Timing.timeStampForEventAdjustedByClosestNavigation(marker, parsedTrace.data.Meta.traceBounds, parsedTrace.data.Meta.navigationsByNavigationId, parsedTrace.data.Meta.softNavigationsById, parsedTrace.data.Meta.navigationsByFrameId);
       let matchingOverlay = false;
       for (const [ts, overlay] of overlayByTs.entries()) {
         if (Math.abs(marker.ts - ts) <= TIMESTAMP_THRESHOLD_MS) {
@@ -17976,7 +18061,11 @@ var SORT_ORDER_PAGE_LOAD_MARKERS2 = {
   [
     "largestContentfulPaint::Candidate"
     /* Trace.Types.Events.Name.MARK_LCP_CANDIDATE */
-  ]: 4
+  ]: 4,
+  [
+    "largestContentfulPaint::CandidateForSoftNavigation"
+    /* Trace.Types.Events.Name.MARK_LCP_CANDIDATE_FOR_SOFT_NAVIGATION */
+  ]: 5
 };
 var TimingsTrackAppender = class {
   appenderName = "Timings";
@@ -18094,7 +18183,7 @@ var TimingsTrackAppender = class {
       color = "#1A6937";
       title = "FCP";
     }
-    if (Trace34.Types.Events.isLargestContentfulPaintCandidate(markerEvent)) {
+    if (Trace34.Types.Events.isAnyLargestContentfulPaintCandidate(markerEvent)) {
       color = "#1A3422";
       title = "LCP";
     }
@@ -18173,7 +18262,7 @@ var TimingsTrackAppender = class {
       info.title = event.devtoolsObj.tooltipText || event.name;
     }
     if (Trace34.Types.Events.isMarkerEvent(event) || Trace34.Types.Events.isPerformanceMark(event) || Trace34.Types.Events.isConsoleTimeStamp(event) || isExtensibilityMarker) {
-      const timeOfEvent = Trace34.Helpers.Timing.timeStampForEventAdjustedByClosestNavigation(event, this.#parsedTrace.data.Meta.traceBounds, this.#parsedTrace.data.Meta.navigationsByNavigationId, this.#parsedTrace.data.Meta.navigationsByFrameId);
+      const timeOfEvent = Trace34.Helpers.Timing.timeStampForEventAdjustedByClosestNavigation(event, this.#parsedTrace.data.Meta.traceBounds, this.#parsedTrace.data.Meta.navigationsByNavigationId, this.#parsedTrace.data.Meta.softNavigationsById, this.#parsedTrace.data.Meta.navigationsByFrameId);
       info.formattedTime = getDurationString(timeOfEvent);
     }
   }

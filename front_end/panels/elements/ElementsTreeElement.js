@@ -31,6 +31,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+import '../../ui/components/adorners/adorners.js';
 import * as Common from '../../core/common/common.js';
 import * as Host from '../../core/host/host.js';
 import * as i18n from '../../core/i18n/i18n.js';
@@ -41,12 +42,11 @@ import * as Badges from '../../models/badges/badges.js';
 import * as TextUtils from '../../models/text_utils/text_utils.js';
 import * as Workspace from '../../models/workspace/workspace.js';
 import * as CodeMirror from '../../third_party/codemirror.next/codemirror.next.js';
-import * as Adorners from '../../ui/components/adorners/adorners.js';
 import * as Buttons from '../../ui/components/buttons/buttons.js';
 import * as CodeHighlighter from '../../ui/components/code_highlighter/code_highlighter.js';
 import * as Highlighting from '../../ui/components/highlighting/highlighting.js';
 import * as TextEditor from '../../ui/components/text_editor/text_editor.js';
-import { createIcon, Icon } from '../../ui/kit/kit.js';
+import { Icon } from '../../ui/kit/kit.js';
 import * as Components from '../../ui/legacy/components/utils/utils.js';
 import * as UI from '../../ui/legacy/legacy.js';
 import * as Lit from '../../ui/lit/lit.js';
@@ -61,7 +61,7 @@ import { ElementsPanel } from './ElementsPanel.js';
 import { MappedCharToEntity } from './ElementsTreeOutline.js';
 import { ImagePreviewPopover } from './ImagePreviewPopover.js';
 import { getRegisteredDecorators } from './MarkerDecorator.js';
-const { html, nothing, render, Directives: { ref, repeat } } = Lit;
+const { html, nothing, render, Directives: { ref } } = Lit;
 const UIStrings = {
     /**
      * @description Title for Ad adorner. This iframe is marked as advertisement frame.
@@ -348,11 +348,11 @@ const i18nString = i18n.i18n.getLocalizedString.bind(undefined, str_);
 export function isOpeningTag(context) {
     return context.tagType === "OPENING_TAG" /* TagType.OPENING */;
 }
-function adornerRef(input) {
+export function adornerRef() {
     let adorner;
     return ref((el) => {
         if (adorner) {
-            input.onAdornerRemoved(adorner);
+            ElementsPanel.instance().deregisterAdorner(adorner);
         }
         adorner = el;
         if (adorner) {
@@ -362,12 +362,22 @@ function adornerRef(input) {
             else {
                 adorner.hide();
             }
-            input.onAdornerAdded(adorner);
+            ElementsPanel.instance().registerAdorner(adorner);
         }
     });
 }
+function handleAdornerKeydown(cb) {
+    return (event) => {
+        if (event.code === 'Enter' || event.code === 'Space') {
+            cb(event);
+            event.preventDefault();
+            event.stopPropagation();
+        }
+    };
+}
 export const DEFAULT_VIEW = (input, output, target) => {
     const adAdornerConfig = ElementsComponents.AdornerManager.getRegisteredAdorner(ElementsComponents.AdornerManager.RegisteredAdorners.AD);
+    const slotAdornerConfig = ElementsComponents.AdornerManager.getRegisteredAdorner(ElementsComponents.AdornerManager.RegisteredAdorners.SLOT);
     const viewSourceAdornerConfig = ElementsComponents.AdornerManager.getRegisteredAdorner(ElementsComponents.AdornerManager.RegisteredAdorners.VIEW_SOURCE);
     const containerAdornerConfig = ElementsComponents.AdornerManager.getRegisteredAdorner(ElementsComponents.AdornerManager.RegisteredAdorners.CONTAINER);
     const flexAdornerConfig = ElementsComponents.AdornerManager.getRegisteredAdorner(ElementsComponents.AdornerManager.RegisteredAdorners.FLEX);
@@ -378,9 +388,12 @@ export const DEFAULT_VIEW = (input, output, target) => {
     const popoverAdornerConfig = ElementsComponents.AdornerManager.getRegisteredAdorner(ElementsComponents.AdornerManager.RegisteredAdorners.POPOVER);
     const topLayerAdornerConfig = ElementsComponents.AdornerManager.getRegisteredAdorner(ElementsComponents.AdornerManager.RegisteredAdorners.TOP_LAYER);
     const scrollAdornerConfig = ElementsComponents.AdornerManager.getRegisteredAdorner(ElementsComponents.AdornerManager.RegisteredAdorners.SCROLL);
-    const hasAdorners = input.adorners?.size || input.showAdAdorner || input.showContainerAdorner ||
-        input.showFlexAdorner || input.showGridAdorner || input.showGridLanesAdorner || input.showMediaAdorner ||
-        input.showPopoverAdorner || input.showTopLayerAdorner || input.showViewSourceAdorner || input.showScrollAdorner;
+    const scrollSnapAdornerConfig = ElementsComponents.AdornerManager.getRegisteredAdorner(ElementsComponents.AdornerManager.RegisteredAdorners.SCROLL_SNAP);
+    const startingStyleAdornerConfig = ElementsComponents.AdornerManager.getRegisteredAdorner(ElementsComponents.AdornerManager.RegisteredAdorners.STARTING_STYLE);
+    const hasAdorners = input.showAdAdorner || input.showContainerAdorner || input.showFlexAdorner ||
+        input.showGridAdorner || input.showGridLanesAdorner || input.showMediaAdorner || input.showPopoverAdorner ||
+        input.showTopLayerAdorner || input.showViewSourceAdorner || input.showScrollAdorner ||
+        input.showScrollSnapAdorner || input.showSlotAdorner || input.showStartingStyleAdorner;
     // clang-format off
     render(html `
     <div ${ref(el => { output.contentElement = el; })}>
@@ -392,15 +405,17 @@ export const DEFAULT_VIEW = (input, output, target) => {
       ${hasAdorners ? html `<div class="adorner-container ${!hasAdorners ? 'hidden' : ''}">
         ${input.showAdAdorner ? html `<devtools-adorner
           aria-label=${i18nString(UIStrings.thisFrameWasIdentifiedAsAnAd)}
-          .data=${{ name: adAdornerConfig.name, jslogContext: adAdornerConfig.name }}
-          ${adornerRef(input)}>
+          .name=${adAdornerConfig.name}
+          jslog=${VisualLogging.adorner(adAdornerConfig.name)}
+          ${adornerRef()}>
           <span>${adAdornerConfig.name}</span>
         </devtools-adorner>` : nothing}
         ${input.showViewSourceAdorner ? html `<devtools-adorner
-          .data=${{ name: viewSourceAdornerConfig.name, jslogContext: viewSourceAdornerConfig.name }}
+          .name=${viewSourceAdornerConfig.name}
+          jslog=${VisualLogging.adorner(viewSourceAdornerConfig.name)}
           aria-label=${i18nString(UIStrings.viewSourceCode)}
           @click=${input.onViewSourceAdornerClick}
-          ${adornerRef(input)}>
+          ${adornerRef()}>
           <span>${viewSourceAdornerConfig.name}</span>
         </devtools-adorner>` : nothing}
         ${input.showContainerAdorner ? html `<devtools-adorner
@@ -408,18 +423,13 @@ export const DEFAULT_VIEW = (input, output, target) => {
           role=button
           toggleable=true
           tabindex=0
-          .data=${{ name: containerAdornerConfig.name, jslogContext: containerAdornerConfig.name }}
+          .name=${containerAdornerConfig.name}
           jslog=${VisualLogging.adorner(containerAdornerConfig.name).track({ click: true })}
           active=${input.containerAdornerActive}
           aria-label=${input.containerAdornerActive ? i18nString(UIStrings.enableContainer) : i18nString(UIStrings.disableContainer)}
           @click=${input.onContainerAdornerClick}
-          @keydown=${(event) => {
-        if (event.code === 'Enter' || event.code === 'Space') {
-            input.onContainerAdornerClick(event);
-            event.stopPropagation();
-        }
-    }}
-          ${adornerRef(input)}>
+          @keydown=${handleAdornerKeydown(input.onContainerAdornerClick)}
+          ${adornerRef()}>
           <span class="adorner-with-icon">
             <devtools-icon name="container"></devtools-icon>
             <span>${input.containerType}</span>
@@ -430,18 +440,13 @@ export const DEFAULT_VIEW = (input, output, target) => {
           role=button
           toggleable=true
           tabindex=0
-          .data=${{ name: flexAdornerConfig.name, jslogContext: flexAdornerConfig.name }}
+          .name=${flexAdornerConfig.name}
           jslog=${VisualLogging.adorner(flexAdornerConfig.name).track({ click: true })}
           active=${input.flexAdornerActive}
           aria-label=${input.flexAdornerActive ? i18nString(UIStrings.disableFlexMode) : i18nString(UIStrings.enableFlexMode)}
           @click=${input.onFlexAdornerClick}
-          @keydown=${(event) => {
-        if (event.code === 'Enter' || event.code === 'Space') {
-            input.onFlexAdornerClick(event);
-            event.stopPropagation();
-        }
-    }}
-          ${adornerRef(input)}>
+          @keydown=${handleAdornerKeydown(input.onFlexAdornerClick)}
+          ${adornerRef()}>
           <span>${flexAdornerConfig.name}</span>
         </devtools-adorner>` : nothing}
         ${input.showGridAdorner ? html `<devtools-adorner
@@ -449,21 +454,13 @@ export const DEFAULT_VIEW = (input, output, target) => {
           role=button
           toggleable=true
           tabindex=0
-          .data=${{
-        name: input.isSubgrid ? subgridAdornerConfig.name : gridAdornerConfig.name,
-        jslogContext: input.isSubgrid ? subgridAdornerConfig.name : gridAdornerConfig.name,
-    }}
+          .name=${input.isSubgrid ? subgridAdornerConfig.name : gridAdornerConfig.name}
           jslog=${VisualLogging.adorner(input.isSubgrid ? subgridAdornerConfig.name : gridAdornerConfig.name).track({ click: true })}
           active=${input.gridAdornerActive}
           aria-label=${input.gridAdornerActive ? i18nString(UIStrings.disableGridMode) : i18nString(UIStrings.enableGridMode)}
           @click=${input.onGridAdornerClick}
-          @keydown=${(event) => {
-        if (event.code === 'Enter' || event.code === 'Space') {
-            input.onGridAdornerClick(event);
-            event.stopPropagation();
-        }
-    }}
-          ${adornerRef(input)}>
+          @keydown=${handleAdornerKeydown(input.onGridAdornerClick)}
+          ${adornerRef()}>
           <span>${input.isSubgrid ? subgridAdornerConfig.name : gridAdornerConfig.name}</span>
         </devtools-adorner>` : nothing}
         ${input.showGridLanesAdorner ? html `<devtools-adorner
@@ -471,35 +468,25 @@ export const DEFAULT_VIEW = (input, output, target) => {
           role=button
           toggleable=true
           tabindex=0
-          .data=${{ name: gridLanesAdornerConfig.name, jslogContext: gridLanesAdornerConfig.name }}
+          .name=${gridLanesAdornerConfig.name}
           jslog=${VisualLogging.adorner(gridLanesAdornerConfig.name).track({ click: true })}
           active=${input.gridAdornerActive}
           aria-label=${input.gridAdornerActive ? i18nString(UIStrings.disableGridLanesMode) : i18nString(UIStrings.enableGridLanesMode)}
           @click=${input.onGridAdornerClick}
-          @keydown=${(event) => {
-        if (event.code === 'Enter' || event.code === 'Space') {
-            input.onGridAdornerClick(event);
-            event.stopPropagation();
-        }
-    }}
-          ${adornerRef(input)}>
+          @keydown=${handleAdornerKeydown(input.onGridAdornerClick)}
+          ${adornerRef()}>
           <span>${gridLanesAdornerConfig.name}</span>
         </devtools-adorner>` : nothing}
         ${input.showMediaAdorner ? html `<devtools-adorner
           class=clickable
           role=button
           tabindex=0
-          .data=${{ name: mediaAdornerConfig.name, jslogContext: mediaAdornerConfig.name }}
+          .name=${mediaAdornerConfig.name}
           jslog=${VisualLogging.adorner(mediaAdornerConfig.name).track({ click: true })}
           aria-label=${i18nString(UIStrings.openMediaPanel)}
           @click=${input.onMediaAdornerClick}
-          @keydown=${(event) => {
-        if (event.code === 'Enter' || event.code === 'Space') {
-            input.onMediaAdornerClick(event);
-            event.stopPropagation();
-        }
-    }}
-          ${adornerRef(input)}>
+          @keydown=${handleAdornerKeydown(input.onMediaAdornerClick)}
+          ${adornerRef()}>
           <span class="adorner-with-icon">
             ${mediaAdornerConfig.name}<devtools-icon name="select-element"></devtools-icon>
           </span>
@@ -509,48 +496,74 @@ export const DEFAULT_VIEW = (input, output, target) => {
           role=button
           toggleable=true
           tabindex=0
-          .data=${{ name: popoverAdornerConfig.name, jslogContext: popoverAdornerConfig.name }}
+          .name=${popoverAdornerConfig.name}
           jslog=${VisualLogging.adorner(popoverAdornerConfig.name).track({ click: true })}
           active=${input.popoverAdornerActive}
           aria-label=${input.popoverAdornerActive ? i18nString(UIStrings.stopForceOpenPopover) : i18nString(UIStrings.forceOpenPopover)}
           @click=${input.onPopoverAdornerClick}
-          @keydown=${(event) => {
-        if (event.code === 'Enter' || event.code === 'Space') {
-            input.onPopoverAdornerClick(event);
-            event.stopPropagation();
-        }
-    }}
-          ${adornerRef(input)}>
+          @keydown=${handleAdornerKeydown(input.onPopoverAdornerClick)}
+          ${adornerRef()}>
           <span>${popoverAdornerConfig.name}</span>
         </devtools-adorner>` : nothing}
         ${input.showTopLayerAdorner ? html `<devtools-adorner
           class=clickable
           role=button
           tabindex=0
-          .data=${{ name: topLayerAdornerConfig.name, jslogContext: topLayerAdornerConfig.name }}
+          .name=${topLayerAdornerConfig.name}
           jslog=${VisualLogging.adorner(topLayerAdornerConfig.name).track({ click: true })}
           aria-label=${i18nString(UIStrings.reveal)}
           @click=${input.onTopLayerAdornerClick}
-          @keydown=${(event) => {
-        if (event.code === 'Enter' || event.code === 'Space') {
-            input.onTopLayerAdornerClick(event);
-            event.stopPropagation();
-        }
-    }}
-          ${adornerRef(input)}>
+          @keydown=${handleAdornerKeydown(input.onTopLayerAdornerClick)}
+          ${adornerRef()}>
           <span class="adorner-with-icon">
             ${`top-layer (${input.topLayerIndex})`}<devtools-icon name="select-element"></devtools-icon>
           </span>
         </devtools-adorner>` : nothing}
-        ${repeat(Array.from((input.adorners ?? new Set()).values()).sort(adornerComparator), adorner => {
-        return adorner;
-    })}
+        ${input.showStartingStyleAdorner ? html `<devtools-adorner
+          class="starting-style"
+          .name=${startingStyleAdornerConfig.name}
+          jslog=${VisualLogging.adorner(startingStyleAdornerConfig.name).track({ click: true })}
+          active=${input.startingStyleAdornerActive}
+          toggleable=true
+          aria-label=${input.startingStyleAdornerActive ? i18nString(UIStrings.disableStartingStyle) : i18nString(UIStrings.enableStartingStyle)}
+          @click=${input.onStartingStyleAdornerClick}
+          @keydown=${handleAdornerKeydown(input.onStartingStyleAdornerClick)}
+          ${adornerRef()}>
+          <span>${startingStyleAdornerConfig.name}</span>
+        </devtools-adorner>` : nothing}
         ${input.showScrollAdorner ? html `<devtools-adorner
           class="scroll"
-          .data=${{ name: scrollAdornerConfig.name, jslogContext: scrollAdornerConfig.name }}
+          .name=${scrollAdornerConfig.name}
+          jslog=${VisualLogging.adorner(scrollAdornerConfig.name).track({ click: true })}
           aria-label=${i18nString(UIStrings.elementHasScrollableOverflow)}
-          ${adornerRef(input)}>
+          ${adornerRef()}>
           <span>${scrollAdornerConfig.name}</span>
+        </devtools-adorner>` : nothing}
+        ${input.showSlotAdorner ? html `<devtools-adorner
+          class=clickable
+          role=button
+          tabindex=0
+          .name=${slotAdornerConfig.name}
+          jslog=${VisualLogging.adorner(slotAdornerConfig.name).track({ click: true })}
+          @click=${input.onSlotAdornerClick}
+          @mousedown=${(e) => e.stopPropagation()}
+          ${adornerRef()}>
+          <span class="adorner-with-icon">
+            <devtools-icon name="select-element"></devtools-icon>
+            <span>${slotAdornerConfig.name}</span>
+          </span>
+        </devtools-adorner>` : nothing}
+        ${input.showScrollSnapAdorner ? html `<devtools-adorner
+          class="scroll-snap"
+          .name=${scrollSnapAdornerConfig.name}
+          jslog=${VisualLogging.adorner(scrollSnapAdornerConfig.name).track({ click: true })}
+          active=${input.scrollSnapAdornerActive}
+          toggleable=true
+          aria-label=${input.scrollSnapAdornerActive ? i18nString(UIStrings.disableScrollSnap) : i18nString(UIStrings.enableScrollSnap)}
+          @click=${input.onScrollSnapAdornerClick}
+          @keydown=${handleAdornerKeydown(input.onScrollSnapAdornerClick)}
+          ${adornerRef()}>
+          <span>${scrollSnapAdornerConfig.name}</span>
         </devtools-adorner>` : nothing}
       </div>` : nothing}
     </div>
@@ -580,12 +593,13 @@ export class ElementsTreeElement extends UI.TreeOutline.TreeElement {
     #highlights = [];
     tagTypeContext;
     #adornersThrottler = new Common.Throttler.Throttler(100);
-    #adorners = new Set();
     #nodeInfo;
     #containerAdornerActive = false;
     #flexAdornerActive = false;
     #gridAdornerActive = false;
     #popoverAdornerActive = false;
+    #scrollSnapAdornerActive = false;
+    #startingStyleAdornerActive = false;
     #layout = null;
     constructor(node, isClosingTag) {
         // The title will be updated in onattach.
@@ -611,7 +625,6 @@ export class ElementsTreeElement extends UI.TreeOutline.TreeElement {
                 tagType: "OPENING_TAG" /* TagType.OPENING */,
                 canAddAttributes: this.nodeInternal.nodeType() === Node.ELEMENT_NODE,
             };
-            void this.updateStyleAdorners();
             void this.#updateAdorners();
         }
         this.expandAllButtonElement = null;
@@ -675,13 +688,9 @@ export class ElementsTreeElement extends UI.TreeOutline.TreeElement {
             node.domModel().cssModel().forcePseudoState(node, pseudoState, enabled);
         }
     }
-    get adorners() {
-        return Array.from(this.#adorners);
-    }
     performUpdate() {
         DEFAULT_VIEW({
             containerAdornerActive: this.#containerAdornerActive,
-            adorners: !this.isClosingTag() ? this.#adorners : undefined,
             showAdAdorner: this.nodeInternal.isAdFrameNode(),
             showContainerAdorner: Boolean(this.#layout?.containerType) && !this.isClosingTag(),
             containerType: this.#layout?.containerType,
@@ -700,21 +709,31 @@ export class ElementsTreeElement extends UI.TreeOutline.TreeElement {
             showScrollAdorner: ((this.node().nodeName() === 'HTML' && this.node().ownerDocument?.isScrollable()) ||
                 (this.node().nodeName() !== '#document' && this.node().isScrollable())) &&
                 !this.isClosingTag(),
+            showScrollSnapAdorner: Boolean(this.#layout?.hasScroll) && !this.isClosingTag(),
+            scrollSnapAdornerActive: this.#scrollSnapAdornerActive,
+            showSlotAdorner: Boolean(this.nodeInternal.assignedSlot) && !this.isClosingTag(),
+            showStartingStyleAdorner: Boolean(Root.Runtime.hostConfig.devToolsStartingStyleDebugging?.enabled) &&
+                this.nodeInternal.affectedByStartingStyles() && !this.isClosingTag(),
+            startingStyleAdornerActive: this.#startingStyleAdornerActive,
             nodeInfo: this.#nodeInfo,
+            onStartingStyleAdornerClick: (event) => this.#onStartingStyleAdornerClick(event),
+            onSlotAdornerClick: () => {
+                if (this.nodeInternal.assignedSlot) {
+                    const deferredNode = this.nodeInternal.assignedSlot.deferredNode;
+                    deferredNode.resolve(node => {
+                        void Common.Revealer.reveal(node);
+                    });
+                }
+            },
             topLayerIndex: this.node().topLayerIndex(),
             onViewSourceAdornerClick: this.revealHTMLInSources.bind(this),
             onGutterClick: this.showContextMenu.bind(this),
-            onAdornerAdded: adorner => {
-                ElementsPanel.instance().registerAdorner(adorner);
-            },
-            onAdornerRemoved: adorner => {
-                ElementsPanel.instance().deregisterAdorner(adorner);
-            },
             onContainerAdornerClick: (event) => this.#onContainerAdornerClick(event),
             onFlexAdornerClick: (event) => this.#onFlexAdornerClick(event),
             onGridAdornerClick: (event) => this.#onGridAdornerClick(event),
             onMediaAdornerClick: (event) => this.#onMediaAdornerClick(event),
             onPopoverAdornerClick: (event) => this.#onPopoverAdornerClick(event),
+            onScrollSnapAdornerClick: (event) => this.#onScrollSnapAdornerClick(event),
             onTopLayerAdornerClick: () => {
                 if (!this.treeOutline) {
                     return;
@@ -914,23 +933,6 @@ export class ElementsTreeElement extends UI.TreeOutline.TreeElement {
     setExpandedChildrenLimit(expandedChildrenLimit) {
         this.#expandedChildrenLimit = expandedChildrenLimit;
     }
-    createSlotLink(nodeShortcut) {
-        if (!isOpeningTag(this.tagTypeContext)) {
-            return;
-        }
-        if (nodeShortcut) {
-            const config = ElementsComponents.AdornerManager.getRegisteredAdorner(ElementsComponents.AdornerManager.RegisteredAdorners.SLOT);
-            const adorner = this.adornSlot(config);
-            this.#adorners.add(adorner);
-            const deferredNode = nodeShortcut.deferredNode;
-            adorner.addEventListener('click', () => {
-                deferredNode.resolve(node => {
-                    void Common.Revealer.reveal(node);
-                });
-            });
-            adorner.addEventListener('mousedown', e => e.consume(), false);
-        }
-    }
     createSelection() {
         const contentElement = this.contentElement;
         if (!contentElement) {
@@ -977,10 +979,10 @@ export class ElementsTreeElement extends UI.TreeOutline.TreeElement {
             this.treeOutline.treeElementByNode.set(this.nodeInternal, this);
             this.nodeInternal.addEventListener(SDK.DOMModel.DOMNodeEvents.TOP_LAYER_INDEX_CHANGED, this.performUpdate, this);
             this.nodeInternal.addEventListener(SDK.DOMModel.DOMNodeEvents.SCROLLABLE_FLAG_UPDATED, this.#onScrollableFlagUpdated, this);
-            const overlayModel = this.nodeInternal.domModel().overlayModel();
-            overlayModel.addEventListener("PersistentContainerQueryOverlayStateChanged" /* SDK.OverlayModel.Events.PERSISTENT_CONTAINER_QUERY_OVERLAY_STATE_CHANGED */, this.#onPersistentContainerQueryOverlayStateChanged, this);
-            overlayModel.addEventListener("PersistentFlexContainerOverlayStateChanged" /* SDK.OverlayModel.Events.PERSISTENT_FLEX_CONTAINER_OVERLAY_STATE_CHANGED */, this.#onPersistentFlexContainerOverlayStateChanged, this);
-            overlayModel.addEventListener("PersistentGridOverlayStateChanged" /* SDK.OverlayModel.Events.PERSISTENT_GRID_OVERLAY_STATE_CHANGED */, this.#onPersistentGridOverlayStateChanged, this);
+            this.nodeInternal.addEventListener(SDK.DOMModel.DOMNodeEvents.CONTAINER_QUERY_OVERLAY_STATE_CHANGED, this.#onPersistentContainerQueryOverlayStateChanged, this);
+            this.nodeInternal.addEventListener(SDK.DOMModel.DOMNodeEvents.FLEX_CONTAINER_OVERLAY_STATE_CHANGED, this.#onPersistentFlexContainerOverlayStateChanged, this);
+            this.nodeInternal.addEventListener(SDK.DOMModel.DOMNodeEvents.GRID_OVERLAY_STATE_CHANGED, this.#onPersistentGridOverlayStateChanged, this);
+            this.nodeInternal.addEventListener(SDK.DOMModel.DOMNodeEvents.SCROLL_SNAP_OVERLAY_STATE_CHANGED, this.#onPersistentScrollSnapOverlayStateChanged, this);
         }
     }
     onunbind() {
@@ -992,37 +994,44 @@ export class ElementsTreeElement extends UI.TreeOutline.TreeElement {
         }
         this.nodeInternal.removeEventListener(SDK.DOMModel.DOMNodeEvents.TOP_LAYER_INDEX_CHANGED, this.performUpdate, this);
         this.nodeInternal.removeEventListener(SDK.DOMModel.DOMNodeEvents.SCROLLABLE_FLAG_UPDATED, this.#onScrollableFlagUpdated, this);
-        const overlayModel = this.nodeInternal.domModel().overlayModel();
-        overlayModel.removeEventListener("PersistentContainerQueryOverlayStateChanged" /* SDK.OverlayModel.Events.PERSISTENT_CONTAINER_QUERY_OVERLAY_STATE_CHANGED */, this.#onPersistentContainerQueryOverlayStateChanged, this);
-        overlayModel.removeEventListener("PersistentFlexContainerOverlayStateChanged" /* SDK.OverlayModel.Events.PERSISTENT_FLEX_CONTAINER_OVERLAY_STATE_CHANGED */, this.#onPersistentFlexContainerOverlayStateChanged, this);
-        overlayModel.removeEventListener("PersistentGridOverlayStateChanged" /* SDK.OverlayModel.Events.PERSISTENT_GRID_OVERLAY_STATE_CHANGED */, this.#onPersistentGridOverlayStateChanged, this);
+        this.nodeInternal.removeEventListener(SDK.DOMModel.DOMNodeEvents.CONTAINER_QUERY_OVERLAY_STATE_CHANGED, this.#onPersistentContainerQueryOverlayStateChanged, this);
+        this.nodeInternal.removeEventListener(SDK.DOMModel.DOMNodeEvents.FLEX_CONTAINER_OVERLAY_STATE_CHANGED, this.#onPersistentFlexContainerOverlayStateChanged, this);
+        this.nodeInternal.removeEventListener(SDK.DOMModel.DOMNodeEvents.GRID_OVERLAY_STATE_CHANGED, this.#onPersistentGridOverlayStateChanged, this);
+        this.nodeInternal.removeEventListener(SDK.DOMModel.DOMNodeEvents.SCROLL_SNAP_OVERLAY_STATE_CHANGED, this.#onPersistentScrollSnapOverlayStateChanged, this);
     }
     #onScrollableFlagUpdated() {
         void this.#updateAdorners();
     }
     #onPersistentContainerQueryOverlayStateChanged(event) {
-        const { nodeId: eventNodeId, enabled } = event.data;
-        if (eventNodeId !== this.nodeInternal.id) {
-            return;
-        }
-        this.#containerAdornerActive = enabled;
+        this.#containerAdornerActive = event.data.enabled;
         this.performUpdate();
     }
     #onPersistentFlexContainerOverlayStateChanged(event) {
-        const { nodeId: eventNodeId, enabled } = event.data;
-        if (eventNodeId !== this.nodeInternal.id) {
-            return;
-        }
-        this.#flexAdornerActive = enabled;
+        this.#flexAdornerActive = event.data.enabled;
         this.performUpdate();
     }
     #onPersistentGridOverlayStateChanged(event) {
-        const { nodeId: eventNodeId, enabled } = event.data;
-        if (eventNodeId !== this.nodeInternal.id) {
+        this.#gridAdornerActive = event.data.enabled;
+        this.performUpdate();
+    }
+    #onPersistentScrollSnapOverlayStateChanged(event) {
+        this.#scrollSnapAdornerActive = event.data.enabled;
+        this.performUpdate();
+    }
+    #onScrollSnapAdornerClick(event) {
+        event.stopPropagation();
+        const node = this.node();
+        const nodeId = node.id;
+        if (!nodeId) {
             return;
         }
-        this.#gridAdornerActive = enabled;
-        this.performUpdate();
+        const model = node.domModel().overlayModel();
+        if (this.#scrollSnapAdornerActive) {
+            model.hideScrollSnapInPersistentOverlay(nodeId);
+        }
+        else {
+            model.highlightScrollSnapInPersistentOverlay(nodeId);
+        }
     }
     onattach() {
         if (this.#hovered) {
@@ -2451,71 +2460,12 @@ export class ElementsTreeElement extends UI.TreeOutline.TreeElement {
             return action.execute();
         });
     }
-    // TODO: add unit tests for adorner-related methods after component and TypeScript works are done
-    adorn({ name }, content) {
-        let adornerContent = content;
-        if (!adornerContent) {
-            adornerContent = document.createElement('span');
-            adornerContent.textContent = name;
-        }
-        const adorner = new Adorners.Adorner.Adorner();
-        adorner.data = {
-            name,
-            content: adornerContent,
-            jslogContext: name,
-        };
-        if (isOpeningTag(this.tagTypeContext)) {
-            this.#adorners.add(adorner);
-            ElementsPanel.instance().registerAdorner(adorner);
-            this.updateAdorners();
-        }
-        return adorner;
-    }
-    adornSlot({ name }) {
-        const linkIcon = createIcon('select-element');
-        const slotText = document.createElement('span');
-        slotText.textContent = name;
-        const adornerContent = document.createElement('span');
-        adornerContent.append(linkIcon);
-        adornerContent.append(slotText);
-        adornerContent.classList.add('adorner-with-icon');
-        const adorner = new Adorners.Adorner.Adorner();
-        adorner.data = {
-            name,
-            content: adornerContent,
-            jslogContext: 'slot',
-        };
-        this.#adorners.add(adorner);
-        ElementsPanel.instance().registerAdorner(adorner);
-        this.updateAdorners();
-        return adorner;
-    }
-    removeAdorner(adornerToRemove) {
-        ElementsPanel.instance().deregisterAdorner(adornerToRemove);
-        adornerToRemove.remove();
-        this.#adorners.delete(adornerToRemove);
-        this.updateAdorners();
-    }
-    /**
-     * @param adornerType optional type of adorner to remove. If not provided, remove all adorners.
-     */
-    removeAdornersByType(adornerType) {
-        if (!isOpeningTag(this.tagTypeContext)) {
-            return;
-        }
-        for (const adorner of this.#adorners) {
-            if (adorner.name === adornerType || !adornerType) {
-                this.removeAdorner(adorner);
-            }
-        }
-    }
     updateAdorners() {
         // TODO: remove adornersThrottler in favour of throttled updated (requestUpdate/performUpdate).
         void this.#adornersThrottler.schedule(this.#updateAdorners.bind(this));
     }
     async #updateAdorners() {
         if (this.isClosingTag()) {
-            this.performUpdate();
             return;
         }
         const node = this.node();
@@ -2528,38 +2478,6 @@ export class ElementsTreeElement extends UI.TreeOutline.TreeElement {
             this.#layout = null;
         }
         this.performUpdate();
-    }
-    // TODO: remove in favour of updateAdorners.
-    async updateStyleAdorners() {
-        if (!isOpeningTag(this.tagTypeContext)) {
-            return;
-        }
-        const node = this.node();
-        const nodeId = node.id;
-        if (node.nodeType() === Node.COMMENT_NODE || node.nodeType() === Node.DOCUMENT_FRAGMENT_NODE ||
-            node.nodeType() === Node.TEXT_NODE || nodeId === undefined) {
-            return;
-        }
-        const layout = await node.domModel().cssModel().getLayoutPropertiesFromComputedStyle(nodeId);
-        // TODO: move this to the template.
-        this.removeAdornersByType(ElementsComponents.AdornerManager.RegisteredAdorners.SUBGRID);
-        this.removeAdornersByType(ElementsComponents.AdornerManager.RegisteredAdorners.GRID);
-        this.removeAdornersByType(ElementsComponents.AdornerManager.RegisteredAdorners.GRID_LANES);
-        this.removeAdornersByType(ElementsComponents.AdornerManager.RegisteredAdorners.FLEX);
-        this.removeAdornersByType(ElementsComponents.AdornerManager.RegisteredAdorners.SCROLL_SNAP);
-        this.removeAdornersByType(ElementsComponents.AdornerManager.RegisteredAdorners.MEDIA);
-        this.removeAdornersByType(ElementsComponents.AdornerManager.RegisteredAdorners.STARTING_STYLE);
-        if (layout) {
-            if (layout.hasScroll) {
-                this.pushScrollSnapAdorner();
-            }
-        }
-        if (Root.Runtime.hostConfig.devToolsStartingStyleDebugging?.enabled) {
-            const affectedByStartingStyles = node.affectedByStartingStyles();
-            if (affectedByStartingStyles) {
-                this.pushStartingStyleAdorner();
-            }
-        }
     }
     async #onPopoverAdornerClick(event) {
         event.stopPropagation();
@@ -2575,67 +2493,22 @@ export class ElementsTreeElement extends UI.TreeOutline.TreeElement {
         }
         this.performUpdate();
     }
-    pushScrollSnapAdorner() {
+    #onStartingStyleAdornerClick(event) {
+        event.stopPropagation();
         const node = this.node();
         const nodeId = node.id;
         if (!nodeId) {
             return;
         }
-        const config = ElementsComponents.AdornerManager.getRegisteredAdorner(ElementsComponents.AdornerManager.RegisteredAdorners.SCROLL_SNAP);
-        const adorner = this.adorn(config);
-        adorner.classList.add('scroll-snap');
-        const onClick = (() => {
-            const model = node.domModel().overlayModel();
-            if (adorner.isActive()) {
-                model.highlightScrollSnapInPersistentOverlay(nodeId);
-            }
-            else {
-                model.hideScrollSnapInPersistentOverlay(nodeId);
-            }
-        });
-        adorner.addInteraction(onClick, {
-            isToggle: true,
-            shouldPropagateOnKeydown: false,
-            ariaLabelDefault: i18nString(UIStrings.enableScrollSnap),
-            ariaLabelActive: i18nString(UIStrings.disableScrollSnap),
-        });
-        node.domModel().overlayModel().addEventListener("PersistentScrollSnapOverlayStateChanged" /* SDK.OverlayModel.Events.PERSISTENT_SCROLL_SNAP_OVERLAY_STATE_CHANGED */, event => {
-            const { nodeId: eventNodeId, enabled } = event.data;
-            if (eventNodeId !== nodeId) {
-                return;
-            }
-            adorner.toggle(enabled);
-        });
-        this.#adorners.add(adorner);
-        if (node.domModel().overlayModel().isHighlightedScrollSnapInPersistentOverlay(nodeId)) {
-            adorner.toggle(true);
+        const model = node.domModel().cssModel();
+        if (this.#startingStyleAdornerActive) {
+            model.forceStartingStyle(node, false);
         }
-    }
-    pushStartingStyleAdorner() {
-        const node = this.node();
-        const nodeId = node.id;
-        if (!nodeId) {
-            return;
+        else {
+            model.forceStartingStyle(node, true);
         }
-        const config = ElementsComponents.AdornerManager.getRegisteredAdorner(ElementsComponents.AdornerManager.RegisteredAdorners.STARTING_STYLE);
-        const adorner = this.adorn(config);
-        adorner.classList.add('starting-style');
-        const onClick = (() => {
-            const model = node.domModel().cssModel();
-            if (adorner.isActive()) {
-                model.forceStartingStyle(node, true);
-            }
-            else {
-                model.forceStartingStyle(node, false);
-            }
-        });
-        adorner.addInteraction(onClick, {
-            isToggle: true,
-            shouldPropagateOnKeydown: false,
-            ariaLabelDefault: i18nString(UIStrings.enableStartingStyle),
-            ariaLabelActive: i18nString(UIStrings.disableStartingStyle),
-        });
-        this.#adorners.add(adorner);
+        this.#startingStyleAdornerActive = !this.#startingStyleAdornerActive;
+        this.performUpdate();
     }
 }
 export const InitialChildrenLimit = 500;
