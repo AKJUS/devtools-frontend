@@ -374,6 +374,7 @@ __export(CompatibilityTracksAppender_exports, {
   entryIsVisibleInTimeline: () => entryIsVisibleInTimeline
 });
 import * as Common17 from "./../../core/common/common.js";
+import * as Host3 from "./../../core/host/host.js";
 import * as Platform16 from "./../../core/platform/platform.js";
 import * as Root7 from "./../../core/root/root.js";
 import * as Trace35 from "./../../models/trace/trace.js";
@@ -3646,6 +3647,7 @@ var UIStrings10 = {
 var str_10 = i18n19.i18n.registerUIStrings("panels/timeline/TimelineTreeView.ts", UIStrings10);
 var i18nString10 = i18n19.i18n.getLocalizedString.bind(void 0, str_10);
 var TimelineTreeView = class extends Common5.ObjectWrapper.eventMixin(UI2.Widget.VBox) {
+  /** This is sorted by ts. */
   #selectedEvents;
   searchResults;
   linkifier;
@@ -4669,12 +4671,11 @@ var ThirdPartyTreeViewWidget = class extends TimelineTreeView {
         eventGroupIdCallback: this.groupingFunction.bind(this)
       });
     }
-    const relatedEvents = this.selectedEvents().sort(Trace14.Helpers.Trace.eventTimeComparator);
     const filter = new Trace14.Extras.TraceFilter.VisibleEventsFilter(Trace14.Styles.visibleTypes().concat([
       "SyntheticNetworkRequest"
       /* Trace.Types.Events.Name.SYNTHETIC_NETWORK_REQUEST */
     ]));
-    const node = new Trace14.Extras.TraceTree.BottomUpRootNode(relatedEvents, {
+    const node = new Trace14.Extras.TraceTree.BottomUpRootNode(this.selectedEvents(), {
       textFilter: this.textFilter(),
       filters: [filter],
       startTime: this.startTime,
@@ -15530,6 +15531,7 @@ var TimelineFlameChartView = class extends Common15.ObjectWrapper.eventMixin(UI1
   onMainEntrySelected;
   onNetworkEntrySelected;
   #boundRefreshAfterIgnoreList;
+  /** This is sorted by ts. */
   #selectedEvents;
   // TODO(crbug.com/1172300) Ignored during the jsdoc to ts migration
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -17320,6 +17322,10 @@ var TimelineFlameChartDataProvider = class extends Common16.ObjectWrapper.Object
     }
     return this.compatibilityTracksAppender;
   }
+  #insertEventToEntryData(event) {
+    this.entryData.push(event);
+    return this.entryData.length - 1;
+  }
   /**
    * Returns the instance of the timeline flame chart data, without
    * adding data to it. In case the timeline data hasn't been instanced
@@ -17395,7 +17401,7 @@ var TimelineFlameChartDataProvider = class extends Common16.ObjectWrapper.Object
     this.entryData = [];
     this.entryTypeByLevel = [];
     this.entryIndexToTitle = [];
-    this.#eventIndexByEvent = /* @__PURE__ */ new Map();
+    this.#eventIndexByEvent = /* @__PURE__ */ new WeakMap();
     if (this.#timelineData) {
       this.compatibilityTracksAppender?.setFlameChartDataAndEntryData(this.#timelineData, this.entryData, this.entryTypeByLevel);
       this.compatibilityTracksAppender?.threadAppenders().forEach((threadAppender) => threadAppender.setHeaderAppended(false));
@@ -17413,7 +17419,7 @@ var TimelineFlameChartDataProvider = class extends Common16.ObjectWrapper.Object
     this.entryData = [];
     this.entryTypeByLevel = [];
     this.entryIndexToTitle = [];
-    this.#eventIndexByEvent = /* @__PURE__ */ new Map();
+    this.#eventIndexByEvent = /* @__PURE__ */ new WeakMap();
     this.#minimumBoundary = 0;
     this.timeSpan = 0;
     this.compatibilityTracksAppender?.reset();
@@ -17552,6 +17558,9 @@ var TimelineFlameChartDataProvider = class extends Common16.ObjectWrapper.Object
    * because then when it comes to drawing we can decorate them differently.
    **/
   #appendFramesAndScreenshotsTrack() {
+    if (this.entryData.length) {
+      throw new Error("expected this.entryData to be empty");
+    }
     if (!this.parsedTrace) {
       return;
     }
@@ -17585,20 +17594,18 @@ var TimelineFlameChartDataProvider = class extends Common16.ObjectWrapper.Object
       /* selectable */
     );
     this.entryTypeByLevel[this.currentLevel] = "Screenshot";
-    let prevTimestamp = void 0;
-    for (const filmStripFrame of filmStrip.frames) {
-      const screenshotTimeInMilliSeconds = Trace33.Helpers.Timing.microToMilli(filmStripFrame.screenshotEvent.ts);
-      this.entryData.push(filmStripFrame.screenshotEvent);
-      this.#timelineData.entryLevels.push(this.currentLevel);
-      this.#timelineData.entryStartTimes.push(screenshotTimeInMilliSeconds);
-      if (prevTimestamp) {
-        this.#timelineData.entryTotalTimes.push(screenshotTimeInMilliSeconds - prevTimestamp);
-      }
-      prevTimestamp = screenshotTimeInMilliSeconds;
-    }
-    if (filmStrip.frames.length && prevTimestamp !== void 0) {
-      const maxRecordTimeMillis = Trace33.Helpers.Timing.traceWindowMilliSeconds(this.parsedTrace.data.Meta.traceBounds).max;
-      this.#timelineData.entryTotalTimes.push(maxRecordTimeMillis - prevTimestamp);
+    const traceEnd = Trace33.Helpers.Timing.traceWindowMilliSeconds(this.parsedTrace.data.Meta.traceBounds).max;
+    for (let i = 0; i < filmStrip.frames.length; ++i) {
+      const currentFrame = filmStrip.frames[i];
+      const nextFrame = filmStrip.frames[i + 1];
+      const startTimeMillis = Trace33.Helpers.Timing.microToMilli(currentFrame.screenshotEvent.ts);
+      const endTimeMillis = nextFrame ? Trace33.Helpers.Timing.microToMilli(nextFrame.screenshotEvent.ts) : traceEnd;
+      const durationMillis = endTimeMillis - startTimeMillis;
+      const index = this.#insertEventToEntryData(currentFrame.screenshotEvent);
+      this.#timelineData.entryLevels.splice(index, 0, this.currentLevel);
+      this.#timelineData.entryStartTimes.splice(index, 0, startTimeMillis);
+      this.#timelineData.entryTotalTimes.splice(index, 0, durationMillis);
+      this.entryIndexToTitle.splice(index, 0, "");
     }
     ++this.currentLevel;
   }
@@ -17873,16 +17880,21 @@ var TimelineFlameChartDataProvider = class extends Common16.ObjectWrapper.Object
     return group;
   }
   #appendFrame(frame) {
-    const index = this.entryData.length;
-    this.entryData.push(frame);
+    const index = this.#insertEventToEntryData(frame);
     const durationMilliseconds = Trace33.Helpers.Timing.microToMilli(frame.duration);
-    this.entryIndexToTitle[index] = i18n54.TimeUtilities.millisToString(durationMilliseconds, true);
+    this.entryIndexToTitle.splice(index, 0, i18n54.TimeUtilities.millisToString(durationMilliseconds, true));
     if (!this.#timelineData) {
       return;
     }
-    this.#timelineData.entryLevels[index] = this.currentLevel;
-    this.#timelineData.entryTotalTimes[index] = durationMilliseconds;
-    this.#timelineData.entryStartTimes[index] = Trace33.Helpers.Timing.microToMilli(frame.startTime);
+    if (Array.isArray(this.#timelineData.entryLevels) && Array.isArray(this.#timelineData.entryTotalTimes) && Array.isArray(this.#timelineData.entryStartTimes)) {
+      this.#timelineData.entryLevels.splice(index, 0, this.currentLevel);
+      this.#timelineData.entryTotalTimes.splice(index, 0, durationMilliseconds);
+      this.#timelineData.entryStartTimes.splice(index, 0, Trace33.Helpers.Timing.microToMilli(frame.startTime));
+    } else {
+      this.#timelineData.entryLevels[index] = this.currentLevel;
+      this.#timelineData.entryTotalTimes[index] = durationMilliseconds;
+      this.#timelineData.entryStartTimes[index] = Trace33.Helpers.Timing.microToMilli(frame.startTime);
+    }
   }
   createSelection(entryIndex) {
     const entry = this.entryData[entryIndex];
@@ -18601,6 +18613,9 @@ var CompatibilityTracksAppender = class {
    * trace events (the first available level to append next track).
    */
   appendEventsAtLevel(events, trackStartLevel, appender, eventAppendedCallback) {
+    if (Host3.InspectorFrontendHost.isUnderTest()) {
+      Platform16.ArrayUtilities.assertArrayIsSorted(events, (a, b) => a.ts - b.ts);
+    }
     const lastTimestampByLevel = [];
     for (let i = 0; i < events.length; ++i) {
       const event = events[i];

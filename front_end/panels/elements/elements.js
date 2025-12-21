@@ -6436,9 +6436,7 @@ var StylePropertiesSection = class _StylePropertiesSection {
           ancestorRuleElement = this.createNestingElement(rule.nestingSelectors?.[nestingIndex++]);
           break;
         case "StartingStyleRule":
-          if (Root2.Runtime.hostConfig.devToolsStartingStyleDebugging?.enabled) {
-            ancestorRuleElement = this.createStartingStyleElement();
-          }
+          ancestorRuleElement = this.createStartingStyleElement();
           break;
       }
       if (ancestorRuleElement) {
@@ -10867,7 +10865,6 @@ __export(ElementsTreeElement_exports, {
   ElementsTreeElement: () => ElementsTreeElement,
   ForbiddenClosingTagElements: () => ForbiddenClosingTagElements,
   InitialChildrenLimit: () => InitialChildrenLimit,
-  adornerComparator: () => adornerComparator,
   adornerRef: () => adornerRef,
   convertUnicodeCharsToHTMLEntities: () => convertUnicodeCharsToHTMLEntities,
   isOpeningTag: () => isOpeningTag
@@ -11542,20 +11539,6 @@ function handleAdornerKeydown(cb) {
   };
 }
 var DEFAULT_VIEW3 = (input, output, target) => {
-  const adAdornerConfig = ElementsComponents5.AdornerManager.getRegisteredAdorner(ElementsComponents5.AdornerManager.RegisteredAdorners.AD);
-  const slotAdornerConfig = ElementsComponents5.AdornerManager.getRegisteredAdorner(ElementsComponents5.AdornerManager.RegisteredAdorners.SLOT);
-  const viewSourceAdornerConfig = ElementsComponents5.AdornerManager.getRegisteredAdorner(ElementsComponents5.AdornerManager.RegisteredAdorners.VIEW_SOURCE);
-  const containerAdornerConfig = ElementsComponents5.AdornerManager.getRegisteredAdorner(ElementsComponents5.AdornerManager.RegisteredAdorners.CONTAINER);
-  const flexAdornerConfig = ElementsComponents5.AdornerManager.getRegisteredAdorner(ElementsComponents5.AdornerManager.RegisteredAdorners.FLEX);
-  const gridAdornerConfig = ElementsComponents5.AdornerManager.getRegisteredAdorner(ElementsComponents5.AdornerManager.RegisteredAdorners.GRID);
-  const subgridAdornerConfig = ElementsComponents5.AdornerManager.getRegisteredAdorner(ElementsComponents5.AdornerManager.RegisteredAdorners.SUBGRID);
-  const gridLanesAdornerConfig = ElementsComponents5.AdornerManager.getRegisteredAdorner(ElementsComponents5.AdornerManager.RegisteredAdorners.GRID_LANES);
-  const mediaAdornerConfig = ElementsComponents5.AdornerManager.getRegisteredAdorner(ElementsComponents5.AdornerManager.RegisteredAdorners.MEDIA);
-  const popoverAdornerConfig = ElementsComponents5.AdornerManager.getRegisteredAdorner(ElementsComponents5.AdornerManager.RegisteredAdorners.POPOVER);
-  const topLayerAdornerConfig = ElementsComponents5.AdornerManager.getRegisteredAdorner(ElementsComponents5.AdornerManager.RegisteredAdorners.TOP_LAYER);
-  const scrollAdornerConfig = ElementsComponents5.AdornerManager.getRegisteredAdorner(ElementsComponents5.AdornerManager.RegisteredAdorners.SCROLL);
-  const scrollSnapAdornerConfig = ElementsComponents5.AdornerManager.getRegisteredAdorner(ElementsComponents5.AdornerManager.RegisteredAdorners.SCROLL_SNAP);
-  const startingStyleAdornerConfig = ElementsComponents5.AdornerManager.getRegisteredAdorner(ElementsComponents5.AdornerManager.RegisteredAdorners.STARTING_STYLE);
   const hasAdorners = input.showAdAdorner || input.showContainerAdorner || input.showFlexAdorner || input.showGridAdorner || input.showGridLanesAdorner || input.showMediaAdorner || input.showPopoverAdorner || input.showTopLayerAdorner || input.showViewSourceAdorner || input.showScrollAdorner || input.showScrollSnapAdorner || input.showSlotAdorner || input.showStartingStyleAdorner;
   render5(html8`
     <div ${ref2((el) => {
@@ -11573,26 +11556,26 @@ var DEFAULT_VIEW3 = (input, output, target) => {
       ${hasAdorners ? html8`<div class="adorner-container ${!hasAdorners ? "hidden" : ""}">
         ${input.showAdAdorner ? html8`<devtools-adorner
           aria-label=${i18nString11(UIStrings12.thisFrameWasIdentifiedAsAnAd)}
-          .name=${adAdornerConfig.name}
-          jslog=${VisualLogging8.adorner(adAdornerConfig.name)}
+          .name=${ElementsComponents5.AdornerManager.RegisteredAdorners.AD}
+          jslog=${VisualLogging8.adorner(ElementsComponents5.AdornerManager.RegisteredAdorners.AD)}
           ${adornerRef()}>
-          <span>${adAdornerConfig.name}</span>
+          <span>${ElementsComponents5.AdornerManager.RegisteredAdorners.AD}</span>
         </devtools-adorner>` : nothing2}
         ${input.showViewSourceAdorner ? html8`<devtools-adorner
-          .name=${viewSourceAdornerConfig.name}
-          jslog=${VisualLogging8.adorner(viewSourceAdornerConfig.name)}
+          .name=${ElementsComponents5.AdornerManager.RegisteredAdorners.VIEW_SOURCE}
+          jslog=${VisualLogging8.adorner(ElementsComponents5.AdornerManager.RegisteredAdorners.VIEW_SOURCE)}
           aria-label=${i18nString11(UIStrings12.viewSourceCode)}
           @click=${input.onViewSourceAdornerClick}
           ${adornerRef()}>
-          <span>${viewSourceAdornerConfig.name}</span>
+          <span>${ElementsComponents5.AdornerManager.RegisteredAdorners.VIEW_SOURCE}</span>
         </devtools-adorner>` : nothing2}
         ${input.showContainerAdorner ? html8`<devtools-adorner
           class=clickable
           role=button
           toggleable=true
           tabindex=0
-          .name=${containerAdornerConfig.name}
-          jslog=${VisualLogging8.adorner(containerAdornerConfig.name).track({ click: true })}
+          .name=${ElementsComponents5.AdornerManager.RegisteredAdorners.CONTAINER}
+          jslog=${VisualLogging8.adorner(ElementsComponents5.AdornerManager.RegisteredAdorners.CONTAINER).track({ click: true })}
           active=${input.containerAdornerActive}
           aria-label=${input.containerAdornerActive ? i18nString11(UIStrings12.enableContainer) : i18nString11(UIStrings12.disableContainer)}
           @click=${input.onContainerAdornerClick}
@@ -11608,55 +11591,55 @@ var DEFAULT_VIEW3 = (input, output, target) => {
           role=button
           toggleable=true
           tabindex=0
-          .name=${flexAdornerConfig.name}
-          jslog=${VisualLogging8.adorner(flexAdornerConfig.name).track({ click: true })}
+          .name=${ElementsComponents5.AdornerManager.RegisteredAdorners.FLEX}
+          jslog=${VisualLogging8.adorner(ElementsComponents5.AdornerManager.RegisteredAdorners.FLEX).track({ click: true })}
           active=${input.flexAdornerActive}
           aria-label=${input.flexAdornerActive ? i18nString11(UIStrings12.disableFlexMode) : i18nString11(UIStrings12.enableFlexMode)}
           @click=${input.onFlexAdornerClick}
           @keydown=${handleAdornerKeydown(input.onFlexAdornerClick)}
           ${adornerRef()}>
-          <span>${flexAdornerConfig.name}</span>
+          <span>${ElementsComponents5.AdornerManager.RegisteredAdorners.FLEX}</span>
         </devtools-adorner>` : nothing2}
         ${input.showGridAdorner ? html8`<devtools-adorner
           class=clickable
           role=button
           toggleable=true
           tabindex=0
-          .name=${input.isSubgrid ? subgridAdornerConfig.name : gridAdornerConfig.name}
-          jslog=${VisualLogging8.adorner(input.isSubgrid ? subgridAdornerConfig.name : gridAdornerConfig.name).track({ click: true })}
+          .name=${input.isSubgrid ? ElementsComponents5.AdornerManager.RegisteredAdorners.SUBGRID : ElementsComponents5.AdornerManager.RegisteredAdorners.GRID}
+          jslog=${VisualLogging8.adorner(input.isSubgrid ? ElementsComponents5.AdornerManager.RegisteredAdorners.SUBGRID : ElementsComponents5.AdornerManager.RegisteredAdorners.GRID).track({ click: true })}
           active=${input.gridAdornerActive}
           aria-label=${input.gridAdornerActive ? i18nString11(UIStrings12.disableGridMode) : i18nString11(UIStrings12.enableGridMode)}
           @click=${input.onGridAdornerClick}
           @keydown=${handleAdornerKeydown(input.onGridAdornerClick)}
           ${adornerRef()}>
-          <span>${input.isSubgrid ? subgridAdornerConfig.name : gridAdornerConfig.name}</span>
+          <span>${input.isSubgrid ? ElementsComponents5.AdornerManager.RegisteredAdorners.SUBGRID : ElementsComponents5.AdornerManager.RegisteredAdorners.GRID}</span>
         </devtools-adorner>` : nothing2}
         ${input.showGridLanesAdorner ? html8`<devtools-adorner
           class=clickable
           role=button
           toggleable=true
           tabindex=0
-          .name=${gridLanesAdornerConfig.name}
-          jslog=${VisualLogging8.adorner(gridLanesAdornerConfig.name).track({ click: true })}
+          .name=${ElementsComponents5.AdornerManager.RegisteredAdorners.GRID_LANES}
+          jslog=${VisualLogging8.adorner(ElementsComponents5.AdornerManager.RegisteredAdorners.GRID_LANES).track({ click: true })}
           active=${input.gridAdornerActive}
           aria-label=${input.gridAdornerActive ? i18nString11(UIStrings12.disableGridLanesMode) : i18nString11(UIStrings12.enableGridLanesMode)}
           @click=${input.onGridAdornerClick}
           @keydown=${handleAdornerKeydown(input.onGridAdornerClick)}
           ${adornerRef()}>
-          <span>${gridLanesAdornerConfig.name}</span>
+          <span>${ElementsComponents5.AdornerManager.RegisteredAdorners.GRID_LANES}</span>
         </devtools-adorner>` : nothing2}
         ${input.showMediaAdorner ? html8`<devtools-adorner
           class=clickable
           role=button
           tabindex=0
-          .name=${mediaAdornerConfig.name}
-          jslog=${VisualLogging8.adorner(mediaAdornerConfig.name).track({ click: true })}
+          .name=${ElementsComponents5.AdornerManager.RegisteredAdorners.MEDIA}
+          jslog=${VisualLogging8.adorner(ElementsComponents5.AdornerManager.RegisteredAdorners.MEDIA).track({ click: true })}
           aria-label=${i18nString11(UIStrings12.openMediaPanel)}
           @click=${input.onMediaAdornerClick}
           @keydown=${handleAdornerKeydown(input.onMediaAdornerClick)}
           ${adornerRef()}>
           <span class="adorner-with-icon">
-            ${mediaAdornerConfig.name}<devtools-icon name="select-element"></devtools-icon>
+            ${ElementsComponents5.AdornerManager.RegisteredAdorners.MEDIA}<devtools-icon name="select-element"></devtools-icon>
           </span>
         </devtools-adorner>` : nothing2}
         ${input.showPopoverAdorner ? html8`<devtools-adorner
@@ -11664,21 +11647,21 @@ var DEFAULT_VIEW3 = (input, output, target) => {
           role=button
           toggleable=true
           tabindex=0
-          .name=${popoverAdornerConfig.name}
-          jslog=${VisualLogging8.adorner(popoverAdornerConfig.name).track({ click: true })}
+          .name=${ElementsComponents5.AdornerManager.RegisteredAdorners.POPOVER}
+          jslog=${VisualLogging8.adorner(ElementsComponents5.AdornerManager.RegisteredAdorners.POPOVER).track({ click: true })}
           active=${input.popoverAdornerActive}
           aria-label=${input.popoverAdornerActive ? i18nString11(UIStrings12.stopForceOpenPopover) : i18nString11(UIStrings12.forceOpenPopover)}
           @click=${input.onPopoverAdornerClick}
           @keydown=${handleAdornerKeydown(input.onPopoverAdornerClick)}
           ${adornerRef()}>
-          <span>${popoverAdornerConfig.name}</span>
+          <span>${ElementsComponents5.AdornerManager.RegisteredAdorners.POPOVER}</span>
         </devtools-adorner>` : nothing2}
         ${input.showTopLayerAdorner ? html8`<devtools-adorner
           class=clickable
           role=button
           tabindex=0
-          .name=${topLayerAdornerConfig.name}
-          jslog=${VisualLogging8.adorner(topLayerAdornerConfig.name).track({ click: true })}
+          .name=${ElementsComponents5.AdornerManager.RegisteredAdorners.TOP_LAYER}
+          jslog=${VisualLogging8.adorner(ElementsComponents5.AdornerManager.RegisteredAdorners.TOP_LAYER).track({ click: true })}
           aria-label=${i18nString11(UIStrings12.reveal)}
           @click=${input.onTopLayerAdornerClick}
           @keydown=${handleAdornerKeydown(input.onTopLayerAdornerClick)}
@@ -11689,49 +11672,49 @@ var DEFAULT_VIEW3 = (input, output, target) => {
         </devtools-adorner>` : nothing2}
         ${input.showStartingStyleAdorner ? html8`<devtools-adorner
           class="starting-style"
-          .name=${startingStyleAdornerConfig.name}
-          jslog=${VisualLogging8.adorner(startingStyleAdornerConfig.name).track({ click: true })}
+          .name=${ElementsComponents5.AdornerManager.RegisteredAdorners.STARTING_STYLE}
+          jslog=${VisualLogging8.adorner(ElementsComponents5.AdornerManager.RegisteredAdorners.STARTING_STYLE).track({ click: true })}
           active=${input.startingStyleAdornerActive}
           toggleable=true
           aria-label=${input.startingStyleAdornerActive ? i18nString11(UIStrings12.disableStartingStyle) : i18nString11(UIStrings12.enableStartingStyle)}
           @click=${input.onStartingStyleAdornerClick}
           @keydown=${handleAdornerKeydown(input.onStartingStyleAdornerClick)}
           ${adornerRef()}>
-          <span>${startingStyleAdornerConfig.name}</span>
+          <span>${ElementsComponents5.AdornerManager.RegisteredAdorners.STARTING_STYLE}</span>
         </devtools-adorner>` : nothing2}
         ${input.showScrollAdorner ? html8`<devtools-adorner
           class="scroll"
-          .name=${scrollAdornerConfig.name}
-          jslog=${VisualLogging8.adorner(scrollAdornerConfig.name).track({ click: true })}
+          .name=${ElementsComponents5.AdornerManager.RegisteredAdorners.SCROLL}
+          jslog=${VisualLogging8.adorner(ElementsComponents5.AdornerManager.RegisteredAdorners.SCROLL).track({ click: true })}
           aria-label=${i18nString11(UIStrings12.elementHasScrollableOverflow)}
           ${adornerRef()}>
-          <span>${scrollAdornerConfig.name}</span>
+          <span>${ElementsComponents5.AdornerManager.RegisteredAdorners.SCROLL}</span>
         </devtools-adorner>` : nothing2}
         ${input.showSlotAdorner ? html8`<devtools-adorner
           class=clickable
           role=button
           tabindex=0
-          .name=${slotAdornerConfig.name}
-          jslog=${VisualLogging8.adorner(slotAdornerConfig.name).track({ click: true })}
+          .name=${ElementsComponents5.AdornerManager.RegisteredAdorners.SLOT}
+          jslog=${VisualLogging8.adorner(ElementsComponents5.AdornerManager.RegisteredAdorners.SLOT).track({ click: true })}
           @click=${input.onSlotAdornerClick}
           @mousedown=${(e) => e.stopPropagation()}
           ${adornerRef()}>
           <span class="adorner-with-icon">
             <devtools-icon name="select-element"></devtools-icon>
-            <span>${slotAdornerConfig.name}</span>
+            <span>${ElementsComponents5.AdornerManager.RegisteredAdorners.SLOT}</span>
           </span>
         </devtools-adorner>` : nothing2}
         ${input.showScrollSnapAdorner ? html8`<devtools-adorner
           class="scroll-snap"
-          .name=${scrollSnapAdornerConfig.name}
-          jslog=${VisualLogging8.adorner(scrollSnapAdornerConfig.name).track({ click: true })}
+          .name=${ElementsComponents5.AdornerManager.RegisteredAdorners.SCROLL_SNAP}
+          jslog=${VisualLogging8.adorner(ElementsComponents5.AdornerManager.RegisteredAdorners.SCROLL_SNAP).track({ click: true })}
           active=${input.scrollSnapAdornerActive}
           toggleable=true
           aria-label=${input.scrollSnapAdornerActive ? i18nString11(UIStrings12.disableScrollSnap) : i18nString11(UIStrings12.enableScrollSnap)}
           @click=${input.onScrollSnapAdornerClick}
           @keydown=${handleAdornerKeydown(input.onScrollSnapAdornerClick)}
           ${adornerRef()}>
-          <span>${scrollSnapAdornerConfig.name}</span>
+          <span>${ElementsComponents5.AdornerManager.RegisteredAdorners.SCROLL_SNAP}</span>
         </devtools-adorner>` : nothing2}
       </div>` : nothing2}
     </div>
@@ -11876,7 +11859,7 @@ var ElementsTreeElement = class _ElementsTreeElement extends UI16.TreeOutline.Tr
       showScrollSnapAdorner: Boolean(this.#layout?.hasScroll) && !this.isClosingTag(),
       scrollSnapAdornerActive: this.#scrollSnapAdornerActive,
       showSlotAdorner: Boolean(this.nodeInternal.assignedSlot) && !this.isClosingTag(),
-      showStartingStyleAdorner: Boolean(Root6.Runtime.hostConfig.devToolsStartingStyleDebugging?.enabled) && this.nodeInternal.affectedByStartingStyles() && !this.isClosingTag(),
+      showStartingStyleAdorner: this.nodeInternal.affectedByStartingStyles() && !this.isClosingTag(),
       startingStyleAdornerActive: this.#startingStyleAdornerActive,
       nodeInfo: this.#nodeInfo,
       onStartingStyleAdornerClick: (event) => this.#onStartingStyleAdornerClick(event),
@@ -13603,13 +13586,6 @@ var ForbiddenClosingTagElements = /* @__PURE__ */ new Set([
   "wbr"
 ]);
 var EditTagBlocklist = /* @__PURE__ */ new Set(["html", "head", "body"]);
-function adornerComparator(adornerA, adornerB) {
-  const compareCategories = ElementsComponents5.AdornerManager.compareAdornerNamesByCategory(adornerB.name, adornerB.name);
-  if (compareCategories === 0) {
-    return adornerA.name.localeCompare(adornerB.name);
-  }
-  return compareCategories;
-}
 function convertUnicodeCharsToHTMLEntities(text) {
   let result = "";
   let lastIndexAfterEntity = 0;
@@ -14032,12 +14008,11 @@ var UIStrings13 = {
 var str_13 = i18n25.i18n.registerUIStrings("panels/elements/ShortcutTreeElement.ts", UIStrings13);
 var i18nString12 = i18n25.i18n.getLocalizedString.bind(void 0, str_13);
 var DEFAULT_VIEW4 = (input, _output, target) => {
-  const revealAdornerConfig = ElementsComponents6.AdornerManager.getRegisteredAdorner(ElementsComponents6.AdornerManager.RegisteredAdorners.REVEAL);
   render6(html9`
     <div class="selection fill"></div>
     <span class="elements-tree-shortcut-title">\u21AA ${input.title}</span>
     <devtools-adorner
-      .name=${revealAdornerConfig.name}
+      .name=${ElementsComponents6.AdornerManager.RegisteredAdorners.REVEAL}
       class="adorner-reveal"
       jslog=${VisualElements.adorner("reveal")}
       aria-label=${i18nString12(UIStrings13.reveal)}
@@ -14046,7 +14021,7 @@ var DEFAULT_VIEW4 = (input, _output, target) => {
       ${adornerRef()}>
       <span class="adorner-with-icon">
         <devtools-icon name="select-element"></devtools-icon>
-        <span>${revealAdornerConfig.name}</span>
+        <span>${ElementsComponents6.AdornerManager.RegisteredAdorners.REVEAL}</span>
       </span>
     </devtools-adorner>
   `, target);

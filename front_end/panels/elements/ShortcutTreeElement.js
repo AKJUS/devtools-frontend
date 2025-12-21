@@ -48,13 +48,12 @@ const UIStrings = {
 const str_ = i18n.i18n.registerUIStrings('panels/elements/ShortcutTreeElement.ts', UIStrings);
 const i18nString = i18n.i18n.getLocalizedString.bind(undefined, str_);
 export const DEFAULT_VIEW = (input, _output, target) => {
-    const revealAdornerConfig = ElementsComponents.AdornerManager.getRegisteredAdorner(ElementsComponents.AdornerManager.RegisteredAdorners.REVEAL);
     // clang-format off
     render(html `
     <div class="selection fill"></div>
     <span class="elements-tree-shortcut-title">\u21AA ${input.title}</span>
     <devtools-adorner
-      .name=${revealAdornerConfig.name}
+      .name=${ElementsComponents.AdornerManager.RegisteredAdorners.REVEAL}
       class="adorner-reveal"
       jslog=${VisualElements.adorner('reveal')}
       aria-label=${i18nString(UIStrings.reveal)}
@@ -63,7 +62,7 @@ export const DEFAULT_VIEW = (input, _output, target) => {
       ${adornerRef()}>
       <span class="adorner-with-icon">
         <devtools-icon name="select-element"></devtools-icon>
-        <span>${revealAdornerConfig.name}</span>
+        <span>${ElementsComponents.AdornerManager.RegisteredAdorners.REVEAL}</span>
       </span>
     </devtools-adorner>
   `, target);

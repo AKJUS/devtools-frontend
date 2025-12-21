@@ -4,7 +4,6 @@ import type * as Elements from '../../models/elements/elements.js';
 import type * as IssuesManager from '../../models/issues_manager/issues_manager.js';
 import * as TextUtils from '../../models/text_utils/text_utils.js';
 import type { DirectiveResult } from '../../third_party/lit/lib/directive.js';
-import type * as Adorners from '../../ui/components/adorners/adorners.js';
 import * as TextEditor from '../../ui/components/text_editor/text_editor.js';
 import * as UI from '../../ui/legacy/legacy.js';
 import * as Lit from '../../ui/lit/lit.js';
@@ -168,7 +167,6 @@ export declare const InitialChildrenLimit = 500;
 export declare const ForbiddenClosingTagElements: Set<string>;
 /** These tags we do not allow editing their tag name. **/
 export declare const EditTagBlocklist: Set<string>;
-export declare function adornerComparator(adornerA: Adorners.Adorner.Adorner, adornerB: Adorners.Adorner.Adorner): number;
 export declare function convertUnicodeCharsToHTMLEntities(text: string): {
     text: string;
     entityRanges: TextUtils.TextRange.SourceRange[];
