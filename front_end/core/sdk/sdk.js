@@ -11761,9 +11761,9 @@ var RequestConditions = class extends Common5.ObjectWrapper.ObjectWrapper {
             matchedNetworkConditions.push({ ruleIds, urlPattern, conditions });
           }
         }
-        if (globalConditions) {
-          matchedNetworkConditions.push({ conditions: globalConditions });
-        }
+      }
+      if (globalConditions) {
+        matchedNetworkConditions.push({ conditions: globalConditions });
       }
       const promises = [];
       for (const agent of agents) {

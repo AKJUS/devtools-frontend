@@ -1491,7 +1491,7 @@ export const NativeFunctions = [
     {
         name: "item",
         signatures: [["index"]],
-        receivers: ["CSSRuleList", "CSSStyleDeclaration", "DOMRectList", "DOMStringList", "DOMTokenList", "FileList", "HTMLCollectionBase", "HTMLCollectionOf", "HTMLSelectElement", "MediaList", "MimeTypeArray", "NamedNodeMap", "NodeList", "NodeListOf", "Plugin", "PluginArray", "SpeechRecognitionResult", "SpeechRecognitionResultList", "StyleSheetList", "TouchList", "HTMLCollection", "SpeechGrammarList"]
+        receivers: ["CSSRuleList", "CSSStyleDeclaration", "DOMRectList", "DOMStringList", "DOMTokenList", "FileList", "HTMLCollectionBase", "HTMLCollectionOf", "HTMLSelectElement", "MediaList", "MimeTypeArray", "NamedNodeMap", "NodeList", "NodeListOf", "Plugin", "PluginArray", "SpeechRecognitionResult", "SpeechRecognitionResultList", "StyleSheetList", "TouchList", "TimelineTriggerRangeList", "HTMLCollection", "SpeechGrammarList"]
     },
     {
         name: "item",
