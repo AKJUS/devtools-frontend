@@ -1445,9 +1445,6 @@
   "generated/Deprecation.ts | XMLHttpRequestSynchronousInNonWorkerOutsideBeforeUnload": {
     "message": "Synchronous XMLHttpRequest on the main thread is deprecated because of its detrimental effects to the end user's experience. For more help, check https://xhr.spec.whatwg.org/."
   },
-  "generated/Deprecation.ts | XMLNoExternalEntities": {
-    "message": "Externally loaded entities in XML parsing have been deprecated and will be removed from this browser soon."
-  },
   "generated/Deprecation.ts | XSLT": {
     "message": "XSLTProcessor and XSLT Processing Instructions have been deprecated by all browsers. These features will be removed from this browser soon."
   },
