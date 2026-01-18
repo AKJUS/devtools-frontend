@@ -536,6 +536,7 @@ var generatedProperties = [
       "float",
       "flood-color",
       "flood-opacity",
+      "flow-tolerance",
       "font-display",
       "font-family",
       "font-feature-settings",
@@ -594,7 +595,6 @@ var generatedProperties = [
       "interest-delay-start",
       "interpolate-size",
       "isolation",
-      "item-tolerance",
       "justify-content",
       "justify-items",
       "justify-self",
@@ -2371,6 +2371,13 @@ var generatedProperties = [
     "name": "flood-opacity"
   },
   {
+    "keywords": [
+      "normal",
+      "infinite"
+    ],
+    "name": "flow-tolerance"
+  },
+  {
     "inherited": true,
     "longhands": [
       "font-style",
@@ -2942,13 +2949,6 @@ var generatedProperties = [
       "isolate"
     ],
     "name": "isolation"
-  },
-  {
-    "keywords": [
-      "normal",
-      "infinite"
-    ],
-    "name": "item-tolerance"
   },
   {
     "name": "justify-content"
@@ -5897,6 +5897,12 @@ var generatedPropertyValues = {
       "currentcolor"
     ]
   },
+  "flow-tolerance": {
+    "values": [
+      "normal",
+      "infinite"
+    ]
+  },
   "font-feature-settings": {
     "values": [
       "normal"
@@ -6216,12 +6222,6 @@ var generatedPropertyValues = {
     "values": [
       "auto",
       "isolate"
-    ]
-  },
-  "item-tolerance": {
-    "values": [
-      "normal",
-      "infinite"
     ]
   },
   "left": {
@@ -25351,7 +25351,7 @@ var DOMNode = class _DOMNode extends Common21.ObjectWrapper.ObjectWrapper {
     }
   }
   toAdoptedStyleSheets(ids) {
-    return ids.map((id) => new AdoptedStyleSheet(id, this.#domModel.cssModel()));
+    return ids.map((id) => new AdoptedStyleSheet(id, this));
   }
   setAdoptedStyleSheets(ids) {
     this.#adoptedStyleSheets = this.toAdoptedStyleSheets(ids);
@@ -25679,10 +25679,13 @@ var DOMDocument = class extends DOMNode {
 };
 var AdoptedStyleSheet = class {
   id;
-  cssModel;
-  constructor(id, cssModel) {
+  parent;
+  constructor(id, parent) {
     this.id = id;
-    this.cssModel = cssModel;
+    this.parent = parent;
+  }
+  get cssModel() {
+    return this.parent.domModel().cssModel();
   }
 };
 var DOMModel = class _DOMModel extends SDKModel {

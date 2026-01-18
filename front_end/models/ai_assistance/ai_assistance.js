@@ -1554,7 +1554,8 @@ var PatchAgent = class extends AiAgent {
         type: 6,
         description: "",
         nullable: true,
-        properties: {}
+        properties: {},
+        required: []
       },
       handler: async () => {
         const files = this.#project.getFiles();
@@ -1594,9 +1595,10 @@ var PatchAgent = class extends AiAgent {
           isRegex: {
             type: 4,
             description: "Whether the query is a regular expression or not",
-            nullable: true
+            nullable: false
           }
-        }
+        },
+        required: ["query"]
       },
       handler: async (args, options) => {
         return {
@@ -1624,7 +1626,8 @@ var PatchAgent = class extends AiAgent {
               description: "File name"
             }
           }
-        }
+        },
+        required: ["files"]
       },
       handler: async (args, options) => {
         debugLog("updateFiles", args.files);
@@ -4716,7 +4719,8 @@ ${result}`,
             description: 'The name of the insight. Only use the insight names given in the "Available insights" list.',
             nullable: false
           }
-        }
+        },
+        required: ["insightSetId", "insightName"]
       },
       displayInfoFromArgs: (params) => {
         return {
@@ -4754,7 +4758,8 @@ ${result}`,
             description: "The key for the event.",
             nullable: false
           }
-        }
+        },
+        required: ["eventKey"]
       },
       displayInfoFromArgs: (params) => {
         return { title: lockedString3("Looking at trace event\u2026"), action: `getEventByKey('${params.eventKey}')` };
@@ -4799,7 +4804,8 @@ ${result}`,
             description: "The maximum time of the bounds, in microseconds",
             nullable: false
           }
-        }
+        },
+        required: ["min", "max"]
       },
       displayInfoFromArgs: (args) => {
         return {
@@ -4847,7 +4853,8 @@ ${result}`,
             description: "The maximum time of the bounds, in microseconds",
             nullable: false
           }
-        }
+        },
+        required: ["min", "max"]
       },
       displayInfoFromArgs: (args) => {
         return {
@@ -4889,7 +4896,8 @@ ${result}`,
             description: "The key for the event.",
             nullable: false
           }
-        }
+        },
+        required: ["eventKey"]
       },
       displayInfoFromArgs: (args) => {
         return { title: lockedString3("Looking at call tree\u2026"), action: `getDetailedCallTree('${args.eventKey}')` };
@@ -4932,7 +4940,8 @@ ${result}`,
               description: "The message the annotation should show to the user.",
               nullable: false
             }
-          }
+          },
+          required: ["elementId", "annotationMessage"]
         },
         handler: async (params) => {
           return await this.addElementAnnotation(params.elementId, params.annotationMessage);
@@ -4955,7 +4964,8 @@ ${result}`,
               description: "The message the annotation should show to the user.",
               nullable: false
             }
-          }
+          },
+          required: ["eventKey", "annotationMessage"]
         },
         handler: async (params) => {
           return await this.addNetworkRequestAnnotation(params.eventKey, params.annotationMessage);
@@ -4984,7 +4994,8 @@ ${result}`,
             description: "The column number where the function is defined.",
             nullable: false
           }
-        }
+        },
+        required: ["scriptUrl", "line", "column"]
       },
       displayInfoFromArgs: (args) => {
         return {
@@ -5032,7 +5043,8 @@ ${result}`,
             description: "The url for the resource.",
             nullable: false
           }
-        }
+        },
+        required: ["url"]
       },
       displayInfoFromArgs: (args) => {
         return { title: lockedString3("Looking at resource content\u2026"), action: `getResourceContent('${args.url}')` };
@@ -5075,7 +5087,8 @@ ${result}`,
               description: "The key for the event.",
               nullable: false
             }
-          }
+          },
+          required: ["eventKey"]
         },
         displayInfoFromArgs: (params) => {
           return { title: lockedString3("Selecting event\u2026"), action: `selectEventByKey('${params.eventKey}')` };
@@ -5125,7 +5138,8 @@ ${result}`,
               description: "The end time for the flame chart widget. Include for flame chart widgets.",
               nullable: true
             }
-          }
+          },
+          required: ["type"]
         },
         handler: async (params) => {
           switch (params.type) {
@@ -5583,40 +5597,50 @@ function freestylerBindingFunc(bindingName) {
 }
 var freestylerBinding = `(${String(freestylerBindingFunc)})('${FREESTYLER_BINDING_NAME}')`;
 var PAGE_EXPOSED_FUNCTIONS = ["setElementStyles"];
-function setupSetElementStyles(prefix) {
+var setupSetElementStyles = `function setupSetElementStyles(prefix) {
   const global = globalThis;
   async function setElementStyles(el, styles) {
     let selector = el.tagName.toLowerCase();
     if (el.id) {
-      selector = "#" + el.id;
+      selector = '#' + el.id;
     } else if (el.classList.length) {
       const parts = [];
       for (const cls of el.classList) {
         if (cls.startsWith(prefix)) {
           continue;
         }
-        parts.push("." + cls);
+        parts.push('.' + cls);
       }
       if (parts.length) {
-        selector = parts.join("");
+        selector = parts.join('');
       }
     }
-    const className = el.__freestylerClassName ?? `${prefix}-${global.freestyler.id}`;
+
+    // __freestylerClassName is not exposed to the page due to this being
+    // run in the isolated world.
+    const className = el.__freestylerClassName ?? \`\${prefix}-\${global.freestyler.id}\`;
     el.__freestylerClassName = className;
     el.classList.add(className);
+
+    // Remove inline styles with the same keys so that the edit applies.
     for (const key of Object.keys(styles)) {
+      // if it's kebab case.
       el.style.removeProperty(key);
-      el.style[key] = "";
+      // If it's camel case.
+      el.style[key] = '';
     }
+
     const bindingError = new Error();
+
     const result = await global.freestyler({
-      method: "setElementStyles",
+      method: 'setElementStyles',
       selector,
       className,
       styles,
       element: el,
-      error: bindingError
+      error: bindingError,
     });
+
     const rootNode = el.getRootNode();
     if (rootNode instanceof ShadowRoot) {
       const stylesheets = rootNode.adoptedStyleSheets;
@@ -5629,7 +5653,8 @@ function setupSetElementStyles(prefix) {
           if (!(rule instanceof CSSStyleRule)) {
             continue;
           }
-          hasAiStyleChange = rule.selectorText.startsWith(`.${prefix}`);
+
+          hasAiStyleChange = rule.selectorText.startsWith(\`.\${prefix}\`);
           if (hasAiStyleChange) {
             stylesheet = sheet;
             break;
@@ -5642,9 +5667,10 @@ function setupSetElementStyles(prefix) {
       }
     }
   }
+
   global.setElementStyles = setElementStyles;
-}
-var injectedFunctions = `(${String(setupSetElementStyles)})('${AI_ASSISTANCE_CSS_CLASS_NAME}')`;
+}`;
+var injectedFunctions = `(${setupSetElementStyles})('${AI_ASSISTANCE_CSS_CLASS_NAME}')`;
 
 // gen/front_end/models/ai_assistance/EvaluateAction.js
 function formatError(message) {
@@ -6306,7 +6332,8 @@ var StylingAgent = class _StylingAgent extends AiAgent {
               description: "A CSS style property name to retrieve. For example, 'background-color'."
             }
           }
-        }
+        },
+        required: ["explanation", "elements", "styleProperties"]
       },
       displayInfoFromArgs: (params) => {
         return {
@@ -6381,7 +6408,8 @@ const data = {
             type: 1,
             description: 'Provide a summary of what the code does. For example, "Checking related element styles".'
           }
-        }
+        },
+        required: ["code", "thought", "title"]
       },
       displayInfoFromArgs: (params) => {
         return {
@@ -6412,7 +6440,8 @@ const data = {
               description: "The message the annotation should show to the user.",
               nullable: false
             }
-          }
+          },
+          required: ["elementId", "annotationMessage"]
         },
         handler: async (params) => {
           return await this.addElementAnnotation(params.elementId, params.annotationMessage);
