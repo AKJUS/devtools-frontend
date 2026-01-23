@@ -2833,11 +2833,11 @@ var NetworkRequestNode = class _NetworkRequestNode extends NetworkNode {
     UI5.Tooltip.Tooltip.install(element, title || text);
   }
   setTextAndTitleAsLink(element, cellText, titleText, handler) {
-    const link3 = document.createElement("span");
-    link3.classList.add("devtools-link");
-    link3.textContent = cellText;
-    link3.addEventListener("click", handler);
-    element.appendChild(link3);
+    const link2 = document.createElement("span");
+    link2.classList.add("devtools-link");
+    link2.textContent = cellText;
+    link2.addEventListener("click", handler);
+    element.appendChild(link2);
     UI5.Tooltip.Tooltip.install(element, titleText);
   }
   renderCell(c, columnId) {
@@ -3251,9 +3251,9 @@ var NetworkRequestNode = class _NetworkRequestNode extends NetworkNode {
         cell.appendChild(document.createTextNode(i18nString5(UIStrings5.preflight)));
         if (initiator.initiatorRequest) {
           const icon = createIcon("arrow-up-down-circle");
-          const link3 = Components.Linkifier.Linkifier.linkifyRevealable(initiator.initiatorRequest, icon, void 0, i18nString5(UIStrings5.selectTheRequestThatTriggered), "trailing-link-icon", "initator-request");
-          UI5.ARIAUtils.setLabel(link3, i18nString5(UIStrings5.selectTheRequestThatTriggered));
-          cell.appendChild(link3);
+          const link2 = Components.Linkifier.Linkifier.linkifyRevealable(initiator.initiatorRequest, icon, void 0, i18nString5(UIStrings5.selectTheRequestThatTriggered), "trailing-link-icon", "initator-request");
+          UI5.ARIAUtils.setLabel(link2, i18nString5(UIStrings5.selectTheRequestThatTriggered));
+          cell.appendChild(link2);
         }
         break;
       }
@@ -3551,8 +3551,8 @@ var DEFAULT_VIEW2 = (input, _output, target) => {
       ` : Lit.nothing}
 
       <div class="cookies-panel-item site-has-cookies-in-other-partition ${input.siteHasCookieInOtherPartition ? "" : "hidden"}">
-        ${uiI18n2.getFormatLocalizedString(str_6, UIStrings6.siteHasCookieInOtherPartition, {
-    PH1: UI6.XLink.XLink.create("https://developer.chrome.com/en/docs/privacy-sandbox/chips/", i18nString6(UIStrings6.learnMore), void 0, void 0, "learn-more")
+        ${uiI18n2.getFormatLocalizedStringTemplate(str_6, UIStrings6.siteHasCookieInOtherPartition, {
+    PH1: html2`<devtools-link href="https://developer.chrome.com/en/docs/privacy-sandbox/chips/" .jslogContext=${"learn-more"}>${i18nString6(UIStrings6.learnMore)}</devtools-link>`
   })}
       </div>
 
@@ -5367,6 +5367,7 @@ __export(RequestTimingView_exports, {
   DEFAULT_VIEW: () => DEFAULT_VIEW6,
   RequestTimingView: () => RequestTimingView
 });
+import "./../../ui/kit/kit.js";
 import * as Common8 from "./../../core/common/common.js";
 import * as Host7 from "./../../core/host/host.js";
 import * as i18n23 from "./../../core/i18n/i18n.js";
@@ -6095,12 +6096,12 @@ var DEFAULT_VIEW6 = (input, output, target) => {
           </tr>` : nothing6}
        <tr class=network-timing-footer>
          <td colspan=1>
-           <x-link
+           <devtools-link
              href="https://developer.chrome.com/docs/devtools/network/reference/#timing-explanation"
              class=devtools-link
-             jslog=${VisualLogging8.link().track({ click: true, keydown: "Enter|Space" }).context("explanation")}>
+             .jslogContext=${"explanation"}>
                ${i18nString12(UIStrings12.explanation)}
-           </x-link>
+           </devtools-link>
          <td></td>
          <td class=${input.wasThrottled ? "throttled" : ""} title=${ifDefined(throttledRequestTitle)}>
            ${input.wasThrottled ? html6` <devtools-icon name=watch @click=${revealThrottled}></devtools-icon>` : nothing6}
@@ -6122,7 +6123,7 @@ var DEFAULT_VIEW6 = (input, output, target) => {
        ${input.serverTimings.length === 0 ? html6`
          <tr>
            <td colspan=3>
-             ${uiI18n3.getFormatLocalizedString(str_12, UIStrings12.duringDevelopmentYouCanUseSToAdd, { PH1: UI13.XLink.XLink.create("https://web.dev/custom-metrics/#server-timing-api", i18nString12(UIStrings12.theServerTimingApi), void 0, void 0, "server-timing-api") })}
+${uiI18n3.getFormatLocalizedStringTemplate(str_12, UIStrings12.duringDevelopmentYouCanUseSToAdd, { PH1: html6`<devtools-link href="https://web.dev/custom-metrics/#server-timing-api" .jslogContext=${"server-timing-api"}>${i18nString12(UIStrings12.theServerTimingApi)}</devtools-link>` })}
            </td>
          </tr>` : nothing6}
    </table>`,

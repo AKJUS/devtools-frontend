@@ -387,6 +387,7 @@ var knownContextValues = /* @__PURE__ */ new Set([
   "ai-code-completion-teaser.fre",
   "ai-code-generation-disclaimer",
   "ai-code-generation-teaser.info-button",
+  "ai-code-generation-teaser.show-disclaimer-info-tooltip",
   "ai-code-generation-upgrade-dialog.continue",
   "ai-code-generation-upgrade-dialog.manage-in-settings",
   "ai-explorer",
@@ -3568,7 +3569,7 @@ var knownContextValues = /* @__PURE__ */ new Set([
   "show-minimal-safe-area-for-maskable-icons",
   "show-more",
   "show-network-requests",
-  "show-option-tp-expose-internals-in-heap-snapshot",
+  "show-option-to-expose-internals-in-heap-snapshot",
   "show-overrides",
   "show-paint-rects",
   "show-paint-rects-true",
@@ -3836,6 +3837,7 @@ var knownContextValues = /* @__PURE__ */ new Set([
   "text-emphasis-color",
   "text-emphasis-position",
   "text-emphasis-style",
+  "text-fit",
   "text-grow",
   "text-indent",
   "text-justify",
@@ -5745,6 +5747,9 @@ async function process() {
     const root = nonDomRoots[i];
     for (const { loggable, config, parent: parent2, size } of getNonDomLoggables(root)) {
       const loggingState = getOrCreateLoggingState(loggable, config, parent2);
+      if (loggingState.impressionLogged) {
+        continue;
+      }
       if (size) {
         loggingState.size = size;
       }

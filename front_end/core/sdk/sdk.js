@@ -792,14 +792,13 @@ var generatedProperties = [
       "text-emphasis-color",
       "text-emphasis-position",
       "text-emphasis-style",
-      "text-grow",
+      "text-fit",
       "text-indent",
       "text-justify",
       "text-orientation",
       "text-overflow",
       "text-rendering",
       "text-shadow",
-      "text-shrink",
       "text-size-adjust",
       "text-spacing-trim",
       "text-transform",
@@ -1856,8 +1855,7 @@ var generatedProperties = [
     "keywords": [
       "all",
       "around",
-      "between",
-      "none"
+      "between"
     ],
     "name": "column-rule-visibility-items"
   },
@@ -3888,8 +3886,7 @@ var generatedProperties = [
     "keywords": [
       "all",
       "around",
-      "between",
-      "none"
+      "between"
     ],
     "name": "row-rule-visibility-items"
   },
@@ -4502,7 +4499,7 @@ var generatedProperties = [
     "name": "text-emphasis-style"
   },
   {
-    "name": "text-grow"
+    "name": "text-fit"
   },
   {
     "inherited": true,
@@ -4550,9 +4547,6 @@ var generatedProperties = [
       "none"
     ],
     "name": "text-shadow"
-  },
-  {
-    "name": "text-shrink"
   },
   {
     "inherited": true,
@@ -5587,8 +5581,7 @@ var generatedPropertyValues = {
     "values": [
       "all",
       "around",
-      "between",
-      "none"
+      "between"
     ]
   },
   "column-rule-width": {
@@ -6711,8 +6704,7 @@ var generatedPropertyValues = {
     "values": [
       "all",
       "around",
-      "between",
-      "none"
+      "between"
     ]
   },
   "row-rule-width": {
@@ -13472,6 +13464,9 @@ var MathFunctionMatch = class extends BaseFunctionMatch {
       case "calc":
       case "sibling-count":
       case "sibling-index":
+      case "round":
+      case "mod":
+      case "rem":
         return true;
     }
     const catchFallback = func;
@@ -13490,6 +13485,9 @@ var MathFunctionMatcher = class _MathFunctionMatcher extends matcherBase(MathFun
       case "calc":
       case "sibling-count":
       case "sibling-index":
+      case "round":
+      case "mod":
+      case "rem":
         return maybeFunc;
     }
     const catchFallback = maybeFunc;
@@ -14452,7 +14450,7 @@ var CSSProperty = class _CSSProperty extends Common7.ObjectWrapper.ObjectWrapper
   #matchers(matchedStyles, computedStyles) {
     const matchers = matchedStyles.propertyMatchers(this.ownerStyle, computedStyles);
     matchers.push(new CSSWideKeywordMatcher(this, matchedStyles));
-    if (Root3.Runtime.experiments.isEnabled("font-editor")) {
+    if (Root3.Runtime.experiments.isEnabled(Root3.Runtime.ExperimentName.FONT_EDITOR)) {
       matchers.push(new FontMatcher());
     }
     return matchers;
@@ -19609,10 +19607,7 @@ var SourceMap = class {
       nameIndex += tokenIter.nextVLQ();
       this.mappings().push(new SourceMapEntry(lineNumber, columnNumber, sourceIndex, sourceURL, sourceLineNumber, sourceColumnNumber, names[nameIndex]));
     }
-    if (Root5.Runtime.experiments.isEnabled(
-      "use-source-map-scopes"
-      /* Root.Runtime.ExperimentName.USE_SOURCE_MAP_SCOPES */
-    )) {
+    if (Root5.Runtime.experiments.isEnabled(Root5.Runtime.ExperimentName.USE_SOURCE_MAP_SCOPES)) {
       if (!this.#scopesInfo) {
         this.#scopesInfo = new SourceMapScopesInfo(this, { scopes: [], ranges: [] });
       }
@@ -22377,10 +22372,7 @@ var DebuggerModel = class _DebuggerModel extends SDKModel {
     const maxScriptsCacheSize = isRemoteFrontend ? 1e7 : 1e8;
     const enablePromise = this.agent.invoke_enable({ maxScriptsCacheSize });
     let instrumentationPromise;
-    if (Root7.Runtime.experiments.isEnabled(
-      "instrumentation-breakpoints"
-      /* Root.Runtime.ExperimentName.INSTRUMENTATION_BREAKPOINTS */
-    )) {
+    if (Root7.Runtime.experiments.isEnabled(Root7.Runtime.ExperimentName.INSTRUMENTATION_BREAKPOINTS)) {
       instrumentationPromise = this.agent.invoke_setInstrumentationBreakpoint({
         instrumentation: "beforeScriptExecution"
       });
@@ -24191,7 +24183,7 @@ var OverlayModel = class _OverlayModel extends SDKModel {
       gridHighlightConfig: {},
       flexContainerHighlightConfig: {},
       flexItemHighlightConfig: {},
-      contrastAlgorithm: Root8.Runtime.experiments.isEnabled("apca") ? "apca" : "aa"
+      contrastAlgorithm: Root8.Runtime.experiments.isEnabled(Root8.Runtime.ExperimentName.APCA) ? "apca" : "aa"
     };
     if (mode === "all" || mode === "content") {
       highlightConfig.contentColor = Common20.Color.PageHighlight.Content.toProtocolRGBA();
@@ -25668,7 +25660,7 @@ var DOMModel = class _DOMModel extends SDKModel {
     if (!target.suspended()) {
       void this.agent.invoke_enable({});
     }
-    if (Root9.Runtime.experiments.isEnabled("capture-node-creation-stacks")) {
+    if (Root9.Runtime.experiments.isEnabled(Root9.Runtime.ExperimentName.CAPTURE_NODE_CREATION_STACKS)) {
       void this.agent.invoke_setNodeStackTracesEnabled({ enable: true });
     }
   }
@@ -27576,7 +27568,7 @@ var CookieModel = class extends SDKModel {
     if (cookie.expires()) {
       expires = Math.floor(Date.parse(`${cookie.expires()}`) / 1e3);
     }
-    const enabled = Root10.Runtime.experiments.isEnabled("experimental-cookie-features");
+    const enabled = Root10.Runtime.experiments.isEnabled(Root10.Runtime.ExperimentName.EXPERIMENTAL_COOKIE_FEATURES);
     const preserveUnset = (scheme) => scheme === "Unset" ? scheme : void 0;
     const protocolCookie = {
       name: cookie.name(),
