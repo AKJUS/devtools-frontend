@@ -10866,6 +10866,7 @@ import * as i18n23 from "./../../core/i18n/i18n.js";
 import * as Platform7 from "./../../core/platform/platform.js";
 import * as Root5 from "./../../core/root/root.js";
 import * as SDK14 from "./../../core/sdk/sdk.js";
+import * as AIAssistance from "./../../models/ai_assistance/ai_assistance.js";
 import * as Badges3 from "./../../models/badges/badges.js";
 import * as TextUtils6 from "./../../models/text_utils/text_utils.js";
 import * as Workspace from "./../../models/workspace/workspace.js";
@@ -12090,7 +12091,7 @@ var ElementsTreeElement = class _ElementsTreeElement extends UI15.TreeOutline.Tr
     const action2 = UI15.ActionRegistry.ActionRegistry.instance().getAction("freestyler.elements-floating-button");
     if (this.contentElement && !this.aiButtonContainer) {
       this.aiButtonContainer = this.contentElement.createChild("span", "ai-button-container");
-      const floatingButton = Buttons2.FloatingButton.create("smart-assistant", action2.title(), "ask-ai");
+      const floatingButton = Buttons2.FloatingButton.create(AIAssistance.AiUtils.getIconName(), action2.title(), "ask-ai");
       floatingButton.addEventListener("click", (ev) => {
         ev.stopPropagation();
         this.select(true, false);
@@ -12103,6 +12104,7 @@ var ElementsTreeElement = class _ElementsTreeElement extends UI15.TreeOutline.Tr
     }
   }
   onbind() {
+    this.performUpdate();
     if (this.treeOutline && !this.isClosingTag()) {
       this.treeOutline.treeElementByNode.set(this.nodeInternal, this);
       this.nodeInternal.addEventListener(SDK14.DOMModel.DOMNodeEvents.TOP_LAYER_INDEX_CHANGED, this.performUpdate, this);
@@ -12117,6 +12119,53 @@ var ElementsTreeElement = class _ElementsTreeElement extends UI15.TreeOutline.Tr
     if (this.editing) {
       this.editing.cancel();
     }
+    DEFAULT_VIEW3({
+      containerAdornerActive: false,
+      showAdAdorner: false,
+      showContainerAdorner: false,
+      containerType: this.#layout?.containerType,
+      showFlexAdorner: false,
+      flexAdornerActive: false,
+      showGridAdorner: false,
+      showGridLanesAdorner: false,
+      showMediaAdorner: false,
+      showPopoverAdorner: false,
+      showTopLayerAdorner: false,
+      gridAdornerActive: false,
+      popoverAdornerActive: false,
+      isSubgrid: false,
+      showViewSourceAdorner: false,
+      showScrollAdorner: false,
+      showScrollSnapAdorner: false,
+      scrollSnapAdornerActive: false,
+      showSlotAdorner: false,
+      showStartingStyleAdorner: false,
+      startingStyleAdornerActive: false,
+      nodeInfo: this.#nodeInfo,
+      onStartingStyleAdornerClick: () => {
+      },
+      onSlotAdornerClick: () => {
+      },
+      topLayerIndex: -1,
+      onViewSourceAdornerClick: () => {
+      },
+      onGutterClick: () => {
+      },
+      onContainerAdornerClick: () => {
+      },
+      onFlexAdornerClick: () => {
+      },
+      onGridAdornerClick: () => {
+      },
+      onMediaAdornerClick: () => {
+      },
+      onPopoverAdornerClick: () => {
+      },
+      onScrollSnapAdornerClick: () => {
+      },
+      onTopLayerAdornerClick: () => {
+      }
+    }, this, this.listItemElement);
     if (this.treeOutline && this.treeOutline.treeElementByNode.get(this.nodeInternal) === this) {
       this.treeOutline.treeElementByNode.delete(this.nodeInternal);
     }
@@ -14154,7 +14203,7 @@ var UIStrings14 = {
 var str_14 = i18n27.i18n.registerUIStrings("panels/elements/ElementsTreeOutline.ts", UIStrings14);
 var i18nString13 = i18n27.i18n.getLocalizedString.bind(void 0, str_14);
 var elementsTreeOutlineByDOMModel = /* @__PURE__ */ new WeakMap();
-var populatedTreeElements = /* @__PURE__ */ new Set();
+var populatedTreeElements = /* @__PURE__ */ new WeakSet();
 var DEFAULT_VIEW5 = (input, output, target) => {
   if (!output.elementsTreeOutline) {
     output.elementsTreeOutline = new ElementsTreeOutline(input.omitRootDOMNode, input.selectEnabled, input.hideGutter);
