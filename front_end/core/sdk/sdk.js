@@ -3989,6 +3989,13 @@ var generatedProperties = [
   },
   {
     "longhands": [
+      "column-rule-visibility-items",
+      "row-rule-visibility-items"
+    ],
+    "name": "rule-visibility-items"
+  },
+  {
+    "longhands": [
       "column-rule-width",
       "row-rule-width"
     ],
@@ -11039,7 +11046,7 @@ var NetworkDispatcher = class {
   }
   requestIntercepted({}) {
   }
-  requestWillBeSentExtraInfo({ requestId, associatedCookies, headers, clientSecurityState, connectTiming, siteHasCookieInOtherPartition, appliedNetworkConditionsId }) {
+  requestWillBeSentExtraInfo({ requestId, associatedCookies, headers, deviceBoundSessionUsages, clientSecurityState, connectTiming, siteHasCookieInOtherPartition, appliedNetworkConditionsId }) {
     const blockedRequestCookies = [];
     const includedRequestCookies = [];
     for (const { blockedReasons, exemptionReason, cookie } of associatedCookies) {
@@ -11053,6 +11060,7 @@ var NetworkDispatcher = class {
       blockedRequestCookies,
       includedRequestCookies,
       requestHeaders: this.headersMapToHeadersArray(headers),
+      deviceBoundSessionUsages,
       clientSecurityState,
       connectTiming,
       siteHasCookieInOtherPartition,
@@ -16348,6 +16356,10 @@ var CSSMatchedStyles = class _CSSMatchedStyles {
     const domCascade = this.#styleToDOMCascade.get(property.ownerStyle);
     return domCascade ? domCascade.propertyState(property) : null;
   }
+  isPropertyOverriddenByAnimation(property) {
+    const domCascade = this.#styleToDOMCascade.get(property.ownerStyle);
+    return domCascade?.isPropertyOverriddenByAnimation(property) ?? false;
+  }
   resetActiveProperties() {
     Platform6.assertNotNullOrUndefined(this.#mainDOMCascade);
     Platform6.assertNotNullOrUndefined(this.#pseudoDOMCascades);
@@ -16398,6 +16410,7 @@ var NodeCascade = class {
   styles;
   #isInherited;
   propertiesState = /* @__PURE__ */ new Map();
+  propertiesOverriddenByAnimation = /* @__PURE__ */ new Set();
   activeProperties = /* @__PURE__ */ new Map();
   #node;
   constructor(matchedStyles, styles, node, isInherited, isHighlightPseudoCascade = false) {
@@ -16409,6 +16422,7 @@ var NodeCascade = class {
   }
   computeActiveProperties() {
     this.propertiesState.clear();
+    this.propertiesOverriddenByAnimation.clear();
     this.activeProperties.clear();
     for (let i = this.styles.length - 1; i >= 0; i--) {
       const style = this.styles[i];
@@ -16506,6 +16520,9 @@ var NodeCascade = class {
         "Overloaded"
         /* PropertyState.OVERLOADED */
       );
+      if (propertyWithHigherSpecificity.ownerStyle.type === Type2.Animation || propertyWithHigherSpecificity.ownerStyle.type === Type2.Transition) {
+        this.propertiesOverriddenByAnimation.add(activeProperty);
+      }
     }
     this.propertiesState.set(
       propertyWithHigherSpecificity,
@@ -16590,6 +16607,7 @@ function* forEach(array, startAfter) {
 }
 var DOMInheritanceCascade = class {
   #propertiesState = /* @__PURE__ */ new Map();
+  #propertiesOverriddenByAnimation = /* @__PURE__ */ new Set();
   #availableCSSVariables = /* @__PURE__ */ new Map();
   #computedCSSVariables = /* @__PURE__ */ new Map();
   #styleToNodeCascade = /* @__PURE__ */ new Map();
@@ -16898,9 +16916,14 @@ var DOMInheritanceCascade = class {
     this.ensureInitialized();
     return this.#propertiesState.get(property) || null;
   }
+  isPropertyOverriddenByAnimation(property) {
+    this.ensureInitialized();
+    return this.#propertiesOverriddenByAnimation.has(property);
+  }
   reset() {
     this.#initialized = false;
     this.#propertiesState.clear();
+    this.#propertiesOverriddenByAnimation.clear();
     this.#availableCSSVariables.clear();
     this.#computedCSSVariables.clear();
   }
@@ -16919,6 +16942,9 @@ var DOMInheritanceCascade = class {
             "Overloaded"
             /* PropertyState.OVERLOADED */
           );
+          if (nodeCascade.propertiesOverriddenByAnimation.has(property)) {
+            this.#propertiesOverriddenByAnimation.add(property);
+          }
           continue;
         }
         const canonicalName = cssMetadata().canonicalPropertyName(property.name);
@@ -16928,6 +16954,10 @@ var DOMInheritanceCascade = class {
             "Overloaded"
             /* PropertyState.OVERLOADED */
           );
+          const activeProperty = activeProperties.get(canonicalName);
+          if (activeProperty && (activeProperty.ownerStyle.type === Type2.Animation || activeProperty.ownerStyle.type === Type2.Transition)) {
+            this.#propertiesOverriddenByAnimation.add(property);
+          }
           continue;
         }
         activeProperties.set(canonicalName, property);
@@ -18940,7 +18970,8 @@ var SourceMapScopesInfo = class _SourceMapScopesInfo {
     return Boolean(this.#originalScopes[sourceIdx]);
   }
   isEmpty() {
-    return !this.#originalScopes.length && !this.#generatedRanges.length;
+    const noScopes = this.#originalScopes.every((scope) => scope === null);
+    return noScopes && !this.#generatedRanges.length;
   }
   addOriginalScopesAtIndex(sourceIdx, scope) {
     if (!this.#originalScopes[sourceIdx]) {
@@ -28512,6 +28543,7 @@ var NetworkRequest = class _NetworkRequest extends Common27.ObjectWrapper.Object
   #exemptedResponseCookies = [];
   #responseCookiesPartitionKey = null;
   #responseCookiesPartitionKeyOpaque = null;
+  #deviceBoundSessionUsages = [];
   #siteHasCookieInOtherPartition = false;
   localizedFailDescription = null;
   #url;
@@ -29482,6 +29514,7 @@ var NetworkRequest = class _NetworkRequest extends Common27.ObjectWrapper.Object
     this.setRequestHeaders(extraRequestInfo.requestHeaders);
     this.#hasExtraRequestInfo = true;
     this.setRequestHeadersText("");
+    this.#deviceBoundSessionUsages = extraRequestInfo.deviceBoundSessionUsages || [];
     this.#clientSecurityState = extraRequestInfo.clientSecurityState;
     this.#appliedNetworkConditionsId = extraRequestInfo.appliedNetworkConditionsId;
     if (extraRequestInfo.connectTiming) {
@@ -29495,6 +29528,9 @@ var NetworkRequest = class _NetworkRequest extends Common27.ObjectWrapper.Object
   }
   setAppliedNetworkConditions(appliedNetworkConditionsId) {
     this.#appliedNetworkConditionsId = appliedNetworkConditionsId;
+  }
+  getDeviceBoundSessionUsages() {
+    return this.#deviceBoundSessionUsages;
   }
   hasExtraRequestInfo() {
     return this.#hasExtraRequestInfo;
