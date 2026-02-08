@@ -727,11 +727,14 @@ var ContextSelectionAgent_exports = {};
 __export(ContextSelectionAgent_exports, {
   ContextSelectionAgent: () => ContextSelectionAgent
 });
+import * as Common from "./../../core/common/common.js";
 import * as Host2 from "./../../core/host/host.js";
 import * as i18n from "./../../core/i18n/i18n.js";
 import * as Platform from "./../../core/platform/platform.js";
 import * as Root2 from "./../../core/root/root.js";
+import * as SDK from "./../../core/sdk/sdk.js";
 import * as Logs from "./../logs/logs.js";
+import * as Workspace from "./../workspace/workspace.js";
 var lockedString = i18n.i18n.lockedString;
 var preamble = `
 You are a Web Development Assistant integrated into Chrome DevTools. Your tone is educational, supportive, and technically precise.
@@ -775,7 +778,7 @@ var ContextSelectionAgent = class extends AiAgent {
   constructor(opts) {
     super(opts);
     this.declareFunction("listNetworkRequests", {
-      description: `Gives a list of network requests`,
+      description: `Gives a list of network requests including URL, status code, and duration in ms`,
       parameters: {
         type: 6,
         description: "",
@@ -784,15 +787,28 @@ var ContextSelectionAgent = class extends AiAgent {
         properties: {}
       },
       displayInfoFromArgs: () => {
-        return { title: lockedString("Listing network requests\u2026") };
+        return {
+          title: lockedString("Listing network requests\u2026"),
+          action: "listNetworkRequest()"
+        };
       },
       handler: async () => {
-        const requestURls = [];
+        const requests = [];
+        const target = SDK.TargetManager.TargetManager.instance().primaryPageTarget();
+        const inspectedURL = target?.inspectedURL();
+        const mainSecurityOrigin = inspectedURL ? new Common.ParsedURL.ParsedURL(inspectedURL).securityOrigin() : null;
         for (const request of Logs.NetworkLog.NetworkLog.instance().requests()) {
-          requestURls.push(request.url());
+          if (mainSecurityOrigin && request.securityOrigin() !== mainSecurityOrigin) {
+            continue;
+          }
+          requests.push({
+            url: request.url(),
+            statusCode: request.statusCode,
+            duration: request.duration
+          });
         }
         return {
-          result: requestURls
+          result: requests
         };
       }
     });
@@ -812,7 +828,10 @@ var ContextSelectionAgent = class extends AiAgent {
         }
       },
       displayInfoFromArgs: (args) => {
-        return { title: lockedString("Getting network request\u2026"), action: `selectNetworkRequest(${args.url})` };
+        return {
+          title: lockedString("Getting network request\u2026"),
+          action: `selectNetworkRequest(${args.url})`
+        };
       },
       handler: async ({ url }) => {
         const request = Logs.NetworkLog.NetworkLog.instance().requests().find((req) => {
@@ -828,7 +847,84 @@ var ContextSelectionAgent = class extends AiAgent {
         };
       }
     });
+    this.declareFunction("listSourceFiles", {
+      description: `Returns a list of all files in the project.`,
+      parameters: {
+        type: 6,
+        description: "",
+        nullable: true,
+        required: [],
+        properties: {}
+      },
+      displayInfoFromArgs: () => {
+        return {
+          title: lockedString("Listing source requests\u2026"),
+          action: "listSourceFile()"
+        };
+      },
+      handler: async () => {
+        const files = [];
+        for (const file of this.#getUISourceCodes()) {
+          files.push(file.fullDisplayName());
+        }
+        return {
+          result: files
+        };
+      }
+    });
+    this.declareFunction("selectSourceFile", {
+      description: `Returns a list of all files in the project.`,
+      parameters: {
+        type: 6,
+        description: "",
+        nullable: true,
+        required: ["name"],
+        properties: {
+          name: {
+            type: 1,
+            description: "The name of the file",
+            nullable: false
+          }
+        }
+      },
+      displayInfoFromArgs: (args) => {
+        return {
+          title: lockedString("Getting source file"),
+          action: `selectSourceFile(${args.name})`
+        };
+      },
+      handler: async (params) => {
+        for (const file of this.#getUISourceCodes()) {
+          if (file.fullDisplayName() === params.name) {
+            return {
+              context: file
+            };
+          }
+        }
+        return { error: "Unable to find file." };
+      }
+    });
   }
+  #getUISourceCodes = () => {
+    const workspace = Workspace.Workspace.WorkspaceImpl.instance();
+    const projects = workspace.projects().filter((project) => {
+      switch (project.type()) {
+        case Workspace.Workspace.projectTypes.Network:
+        case Workspace.Workspace.projectTypes.FileSystem:
+        case Workspace.Workspace.projectTypes.ConnectableFileSystem:
+          return true;
+        default:
+          return false;
+      }
+    });
+    const uiSourceCodes = [];
+    for (const project of projects) {
+      for (const uiSourceCode of project.uiSourceCodes()) {
+        uiSourceCodes.push(uiSourceCode);
+      }
+    }
+    return uiSourceCodes;
+  };
   async *handleContextDetails() {
   }
   async enhanceQuery(query) {
@@ -1859,12 +1955,12 @@ __export(PerformanceAgent_exports, {
   PerformanceAgent: () => PerformanceAgent,
   PerformanceTraceContext: () => PerformanceTraceContext
 });
-import * as Common2 from "./../../core/common/common.js";
+import * as Common3 from "./../../core/common/common.js";
 import * as Host6 from "./../../core/host/host.js";
 import * as i18n7 from "./../../core/i18n/i18n.js";
 import * as Platform2 from "./../../core/platform/platform.js";
 import * as Root6 from "./../../core/root/root.js";
-import * as SDK from "./../../core/sdk/sdk.js";
+import * as SDK2 from "./../../core/sdk/sdk.js";
 import * as Tracing from "./../../services/tracing/tracing.js";
 import * as Annotations3 from "./../annotations/annotations.js";
 import * as SourceMapScopes from "./../source_map_scopes/source_map_scopes.js";
@@ -1875,7 +1971,7 @@ var PerformanceInsightFormatter_exports = {};
 __export(PerformanceInsightFormatter_exports, {
   PerformanceInsightFormatter: () => PerformanceInsightFormatter
 });
-import * as Common from "./../../core/common/common.js";
+import * as Common2 from "./../../core/common/common.js";
 import * as Trace4 from "./../trace/trace.js";
 
 // gen/front_end/models/ai_assistance/data_formatters/PerformanceTraceFormatter.js
@@ -3452,7 +3548,7 @@ Duplication grouped by Node modules: ${filesFormatted}`;
     for (const font of insight.fonts) {
       let fontName = font.name;
       if (!fontName) {
-        const url = new Common.ParsedURL.ParsedURL(font.request.args.data.url);
+        const url = new Common2.ParsedURL.ParsedURL(font.request.args.data.url);
         fontName = url.isValid ? url.lastPathComponent : "(not available)";
       }
       output += `
@@ -4681,7 +4777,7 @@ ${text}`, metadata: { source: "devtools", score: ScorePriority.REQUIRED } });
     this.addFact(this.#callFrameDataDescriptionFact);
     this.addFact(this.#networkDataDescriptionFact);
     if (!this.#traceFacts.length) {
-      const target = SDK.TargetManager.TargetManager.instance().primaryPageTarget();
+      const target = SDK2.TargetManager.TargetManager.instance().primaryPageTarget();
       if (!target) {
         throw new Error("missing target");
       }
@@ -5033,7 +5129,7 @@ ${result}`,
         if (!this.#formatter) {
           throw new Error("missing formatter");
         }
-        const target = SDK.TargetManager.TargetManager.instance().primaryPageTarget();
+        const target = SDK2.TargetManager.TargetManager.instance().primaryPageTarget();
         if (!target) {
           throw new Error("missing target");
         }
@@ -5076,7 +5172,7 @@ ${result}`,
         if (script?.content !== void 0) {
           content = script.content;
         } else if (isFresh || isTraceApp) {
-          const resource = SDK.ResourceTreeModel.ResourceTreeModel.resourceForURL(url);
+          const resource = SDK2.ResourceTreeModel.ResourceTreeModel.resourceForURL(url);
           if (!resource) {
             return { error: "Resource not found" };
           }
@@ -5118,8 +5214,8 @@ ${result}`,
           if (!event) {
             return { error: "Invalid eventKey" };
           }
-          const revealable = new SDK.TraceObject.RevealableEvent(event);
-          await Common2.Revealer.reveal(revealable);
+          const revealable = new SDK2.TraceObject.RevealableEvent(event);
+          await Common3.Revealer.reveal(revealable);
           return { result: { success: true } };
         }
       });
@@ -5323,7 +5419,7 @@ import * as Host8 from "./../../core/host/host.js";
 import * as i18n11 from "./../../core/i18n/i18n.js";
 import * as Platform5 from "./../../core/platform/platform.js";
 import * as Root8 from "./../../core/root/root.js";
-import * as SDK5 from "./../../core/sdk/sdk.js";
+import * as SDK6 from "./../../core/sdk/sdk.js";
 import * as Annotations4 from "./../annotations/annotations.js";
 
 // gen/front_end/models/ai_assistance/ChangeManager.js
@@ -5331,20 +5427,20 @@ var ChangeManager_exports = {};
 __export(ChangeManager_exports, {
   ChangeManager: () => ChangeManager
 });
-import * as Common3 from "./../../core/common/common.js";
+import * as Common4 from "./../../core/common/common.js";
 import * as Platform3 from "./../../core/platform/platform.js";
-import * as SDK2 from "./../../core/sdk/sdk.js";
+import * as SDK3 from "./../../core/sdk/sdk.js";
 function formatStyles(styles, indent = 2) {
   const lines = Object.entries(styles).map(([key, value]) => `${" ".repeat(indent)}${key}: ${value};`);
   return lines.join("\n");
 }
 var ChangeManager = class {
-  #stylesheetMutex = new Common3.Mutex.Mutex();
+  #stylesheetMutex = new Common4.Mutex.Mutex();
   #cssModelToStylesheetId = /* @__PURE__ */ new Map();
   #stylesheetChanges = /* @__PURE__ */ new Map();
   #backupStylesheetChanges = /* @__PURE__ */ new Map();
   constructor() {
-    SDK2.TargetManager.TargetManager.instance().addModelListener(SDK2.ResourceTreeModel.ResourceTreeModel, SDK2.ResourceTreeModel.Events.PrimaryPageChanged, this.clear, this);
+    SDK3.TargetManager.TargetManager.instance().addModelListener(SDK3.ResourceTreeModel.ResourceTreeModel, SDK3.ResourceTreeModel.Events.PrimaryPageChanged, this.clear, this);
   }
   async stashChanges() {
     for (const [cssModel, stylesheetMap] of this.#cssModelToStylesheetId.entries()) {
@@ -5429,7 +5525,7 @@ ${formatStyles(change.styles)}
       if (!frameToStylesheet) {
         frameToStylesheet = /* @__PURE__ */ new Map();
         this.#cssModelToStylesheetId.set(cssModel, frameToStylesheet);
-        cssModel.addEventListener(SDK2.CSSModel.Events.ModelDisposed, this.#onCssModelDisposed, this);
+        cssModel.addEventListener(SDK3.CSSModel.Events.ModelDisposed, this.#onCssModelDisposed, this);
       }
       let stylesheetId = frameToStylesheet.get(frameId);
       if (!stylesheetId) {
@@ -5450,7 +5546,7 @@ ${formatStyles(change.styles)}
   async #onCssModelDisposed(event) {
     return await this.#stylesheetMutex.run(async () => {
       const cssModel = event.data;
-      cssModel.removeEventListener(SDK2.CSSModel.Events.ModelDisposed, this.#onCssModelDisposed, this);
+      cssModel.removeEventListener(SDK3.CSSModel.Events.ModelDisposed, this.#onCssModelDisposed, this);
       const stylesheetIds = Array.from(this.#cssModelToStylesheetId.get(cssModel)?.values() ?? []);
       const results = await Promise.allSettled(stylesheetIds.map(async (id) => {
         this.#stylesheetChanges.delete(id);
@@ -5476,7 +5572,7 @@ __export(EvaluateAction_exports, {
   stringifyObjectOnThePage: () => stringifyObjectOnThePage,
   stringifyRemoteObject: () => stringifyRemoteObject
 });
-import * as SDK3 from "./../../core/sdk/sdk.js";
+import * as SDK4 from "./../../core/sdk/sdk.js";
 
 // gen/front_end/models/ai_assistance/injected.js
 var injected_exports = {};
@@ -5695,7 +5791,7 @@ var EvaluateAction = class _EvaluateAction {
       }
       if (response.exceptionDetails) {
         const exceptionDescription = response.exceptionDetails.exception?.description;
-        if (SDK3.RuntimeModel.RuntimeModel.isSideEffectFailure(response)) {
+        if (SDK4.RuntimeModel.RuntimeModel.isSideEffectFailure(response)) {
           throw new SideEffectError(exceptionDescription);
         }
         return formatError(exceptionDescription ?? "JS exception");
@@ -5760,9 +5856,9 @@ var ExtensionScope_exports = {};
 __export(ExtensionScope_exports, {
   ExtensionScope: () => ExtensionScope
 });
-import * as Common4 from "./../../core/common/common.js";
+import * as Common5 from "./../../core/common/common.js";
 import * as Platform4 from "./../../core/platform/platform.js";
-import * as SDK4 from "./../../core/sdk/sdk.js";
+import * as SDK5 from "./../../core/sdk/sdk.js";
 import * as Bindings2 from "./../bindings/bindings.js";
 var _a2;
 var ExtensionScope = class {
@@ -5773,7 +5869,7 @@ var ExtensionScope = class {
   #frameId;
   /** Don't use directly use the getter */
   #target;
-  #bindingMutex = new Common4.Mutex.Mutex();
+  #bindingMutex = new Common5.Mutex.Mutex();
   constructor(changes, agentId, selectedNode) {
     this.#changeManager = changes;
     const frameId = selectedNode?.frameId();
@@ -5792,14 +5888,14 @@ var ExtensionScope = class {
     if (this.#frameId) {
       return this.#frameId;
     }
-    const resourceTreeModel = this.target.model(SDK4.ResourceTreeModel.ResourceTreeModel);
+    const resourceTreeModel = this.target.model(SDK5.ResourceTreeModel.ResourceTreeModel);
     if (!resourceTreeModel?.mainFrame) {
       throw new Error("Main frame is not found for executing code");
     }
     return resourceTreeModel.mainFrame.id;
   }
   async install() {
-    const runtimeModel = this.target.model(SDK4.RuntimeModel.RuntimeModel);
+    const runtimeModel = this.target.model(SDK5.RuntimeModel.RuntimeModel);
     const pageAgent = this.target.pageAgent();
     const { executionContextId } = await pageAgent.invoke_createIsolatedWorld({ frameId: this.frameId, worldName: FREESTYLER_WORLD_NAME });
     const isolatedWorldContext = runtimeModel?.executionContext(executionContextId);
@@ -5807,7 +5903,7 @@ var ExtensionScope = class {
       throw new Error("Execution context is not found for executing code");
     }
     const handler = this.#bindingCalled.bind(this, isolatedWorldContext);
-    runtimeModel?.addEventListener(SDK4.RuntimeModel.Events.BindingCalled, handler);
+    runtimeModel?.addEventListener(SDK5.RuntimeModel.Events.BindingCalled, handler);
     this.#listeners.push(handler);
     await this.target.runtimeAgent().invoke_addBinding({
       name: FREESTYLER_BINDING_NAME,
@@ -5817,9 +5913,9 @@ var ExtensionScope = class {
     await this.#simpleEval(isolatedWorldContext, injectedFunctions);
   }
   async uninstall() {
-    const runtimeModel = this.target.model(SDK4.RuntimeModel.RuntimeModel);
+    const runtimeModel = this.target.model(SDK5.RuntimeModel.RuntimeModel);
     for (const handler of this.#listeners) {
-      runtimeModel?.removeEventListener(SDK4.RuntimeModel.Events.BindingCalled, handler);
+      runtimeModel?.removeEventListener(SDK5.RuntimeModel.Events.BindingCalled, handler);
     }
     this.#listeners = [];
     await this.target.runtimeAgent().invoke_removeBinding({
@@ -5864,7 +5960,7 @@ var ExtensionScope = class {
       if (rule?.origin === "user-agent") {
         break;
       }
-      if (rule instanceof SDK4.CSSRule.CSSStyleRule) {
+      if (rule instanceof SDK5.CSSRule.CSSStyleRule) {
         if (rule.nestingSelectors?.at(0)?.includes(AI_ASSISTANCE_CSS_CLASS_NAME) || rule.selectors.every((selector) => selector.text.includes(AI_ASSISTANCE_CSS_CLASS_NAME))) {
           continue;
         }
@@ -5924,7 +6020,7 @@ var ExtensionScope = class {
     }
     const lineNumber = styleSheetHeader.lineNumberInSource(range.startLine);
     const columnNumber = styleSheetHeader.columnNumberInSource(range.startLine, range.startColumn);
-    const location = new SDK4.CSSModel.CSSLocation(styleSheetHeader, lineNumber, columnNumber);
+    const location = new SDK5.CSSModel.CSSLocation(styleSheetHeader, lineNumber, columnNumber);
     const uiLocation = Bindings2.CSSWorkspaceBinding.CSSWorkspaceBinding.instance().rawLocationToUILocation(location);
     return uiLocation?.linkText(
       /* skipTrim= */
@@ -5937,11 +6033,11 @@ var ExtensionScope = class {
     if (!remoteObject.objectId) {
       throw new Error("DOMModel is not found");
     }
-    const cssModel = this.target.model(SDK4.CSSModel.CSSModel);
+    const cssModel = this.target.model(SDK5.CSSModel.CSSModel);
     if (!cssModel) {
       throw new Error("CSSModel is not found");
     }
-    const domModel = this.target.model(SDK4.DOMModel.DOMModel);
+    const domModel = this.target.model(SDK5.DOMModel.DOMModel);
     if (!domModel) {
       throw new Error("DOMModel is not found");
     }
@@ -5979,7 +6075,7 @@ var ExtensionScope = class {
       return;
     }
     await this.#bindingMutex.run(async () => {
-      const cssModel = this.target.model(SDK4.CSSModel.CSSModel);
+      const cssModel = this.target.model(SDK5.CSSModel.CSSModel);
       if (!cssModel) {
         throw new Error("CSSModel is not found");
       }
@@ -6119,12 +6215,12 @@ async function executeJsCode(functionDeclaration, { throwOnSideEffect, contextNo
   if (!target) {
     throw new Error("Target is not found for executing code");
   }
-  const resourceTreeModel = target.model(SDK5.ResourceTreeModel.ResourceTreeModel);
+  const resourceTreeModel = target.model(SDK6.ResourceTreeModel.ResourceTreeModel);
   const frameId = contextNode.frameId() ?? resourceTreeModel?.mainFrame?.id;
   if (!frameId) {
     throw new Error("Main frame is not found for executing code");
   }
-  const runtimeModel = target.model(SDK5.RuntimeModel.RuntimeModel);
+  const runtimeModel = target.model(SDK6.RuntimeModel.RuntimeModel);
   const pageAgent = target.pageAgent();
   const { executionContextId } = await pageAgent.invoke_createIsolatedWorld({ frameId, worldName: FREESTYLER_WORLD_NAME });
   const executionContext = runtimeModel?.executionContext(executionContextId);
@@ -6526,7 +6622,7 @@ const data = {
       if (!selectedNode) {
         return { error: "Error: Could not find the currently selected element." };
       }
-      const node = new SDK5.DOMModel.DeferredDOMNode(selectedNode.domModel().target(), Number(uid));
+      const node = new SDK6.DOMModel.DeferredDOMNode(selectedNode.domModel().target(), Number(uid));
       const resolved = await node.resolvePromise();
       if (!resolved) {
         return { error: "Error: Could not find the element with uid=" + uid };
@@ -6575,7 +6671,7 @@ const data = {
       return { error: "Error: no selected node found." };
     }
     const target = selectedNode.domModel().target();
-    if (target.model(SDK5.DebuggerModel.DebuggerModel)?.selectedCallFrame()) {
+    if (target.model(SDK6.DebuggerModel.DebuggerModel)?.selectedCallFrame()) {
       return {
         error: "Error: Cannot evaluate JavaScript because the execution is paused on a breakpoint."
       };
@@ -6673,7 +6769,7 @@ __export(AiConversation_exports, {
 });
 import * as Host9 from "./../../core/host/host.js";
 import * as Root9 from "./../../core/root/root.js";
-import * as SDK6 from "./../../core/sdk/sdk.js";
+import * as SDK7 from "./../../core/sdk/sdk.js";
 import * as Trace7 from "./../trace/trace.js";
 import * as NetworkTimeCalculator3 from "./../network_time_calculator/network_time_calculator.js";
 
@@ -6682,18 +6778,18 @@ var AiHistoryStorage_exports = {};
 __export(AiHistoryStorage_exports, {
   AiHistoryStorage: () => AiHistoryStorage
 });
-import * as Common5 from "./../../core/common/common.js";
+import * as Common6 from "./../../core/common/common.js";
 var instance = null;
 var DEFAULT_MAX_STORAGE_SIZE = 50 * 1024 * 1024;
-var AiHistoryStorage = class _AiHistoryStorage extends Common5.ObjectWrapper.ObjectWrapper {
+var AiHistoryStorage = class _AiHistoryStorage extends Common6.ObjectWrapper.ObjectWrapper {
   #historySetting;
   #imageHistorySettings;
-  #mutex = new Common5.Mutex.Mutex();
+  #mutex = new Common6.Mutex.Mutex();
   #maxStorageSize;
   constructor(maxStorageSize = DEFAULT_MAX_STORAGE_SIZE) {
     super();
-    this.#historySetting = Common5.Settings.Settings.instance().createSetting("ai-assistance-history-entries", []);
-    this.#imageHistorySettings = Common5.Settings.Settings.instance().createSetting("ai-assistance-history-images", []);
+    this.#historySetting = Common6.Settings.Settings.instance().createSetting("ai-assistance-history-entries", []);
+    this.#imageHistorySettings = Common6.Settings.Settings.instance().createSetting("ai-assistance-history-images", []);
     this.#maxStorageSize = maxStorageSize;
   }
   clearForTest() {
@@ -6813,24 +6909,25 @@ var AiConversation = class _AiConversation {
     return new _AiConversation(serializedConversation.type, history, serializedConversation.id, true, void 0, void 0, serializedConversation.isExternal);
   }
   id;
+  // Handled in #updateAgent
   #type;
+  // Handled in #updateAgent
+  #agent;
   #isReadOnly;
   history;
   #isExternal;
   #aidaClient;
   #changeManager;
-  #agent;
   #origin;
   #contexts = [];
   constructor(type, data = [], id = crypto.randomUUID(), isReadOnly = true, aidaClient = new Host9.AidaClient.AidaClient(), changeManager, isExternal = false) {
     this.#changeManager = changeManager;
     this.#aidaClient = aidaClient;
-    this.#type = type;
     this.id = id;
     this.#isReadOnly = isReadOnly;
     this.#isExternal = isExternal;
     this.history = this.#reconstructHistory(data);
-    this.#agent = this.#createAgent();
+    this.#updateAgent(type);
   }
   get isReadOnly() {
     return this.#isReadOnly;
@@ -6859,9 +6956,38 @@ var AiConversation = class _AiConversation {
   setContext(updateContext) {
     if (!updateContext) {
       this.#contexts = [];
+      if (isAiAssistanceContextSelectionAgentEnabled()) {
+        this.#updateAgent(
+          "none"
+          /* ConversationType.NONE */
+        );
+      }
       return;
     }
     this.#contexts = [updateContext];
+    if (isAiAssistanceContextSelectionAgentEnabled()) {
+      if (updateContext instanceof FileContext) {
+        this.#updateAgent(
+          "drjones-file"
+          /* ConversationType.FILE */
+        );
+      } else if (updateContext instanceof NodeContext) {
+        this.#updateAgent(
+          "freestyler"
+          /* ConversationType.STYLING */
+        );
+      } else if (updateContext instanceof RequestContext) {
+        this.#updateAgent(
+          "drjones-network-request"
+          /* ConversationType.NETWORK */
+        );
+      } else if (updateContext instanceof PerformanceTraceContext) {
+        this.#updateAgent(
+          "drjones-performance-full"
+          /* ConversationType.PERFORMANCE */
+        );
+      }
+    }
   }
   get selectedContext() {
     return this.#contexts.at(0);
@@ -6981,37 +7107,39 @@ ${item.text.trim()}`);
       isExternal: this.#isExternal
     };
   }
-  #createAgent() {
+  #updateAgent(type) {
+    if (this.#type === type) {
+      return;
+    }
+    this.#type = type;
     const options = {
       aidaClient: this.#aidaClient,
       serverSideLoggingEnabled: isAiAssistanceServerSideLoggingEnabled(),
       sessionId: this.id,
       changeManager: this.#changeManager
     };
-    let agent;
-    switch (this.#type) {
+    switch (type) {
       case "freestyler": {
-        agent = new StylingAgent(options);
+        this.#agent = new StylingAgent(options);
         break;
       }
       case "drjones-network-request": {
-        agent = new NetworkAgent(options);
+        this.#agent = new NetworkAgent(options);
         break;
       }
       case "drjones-file": {
-        agent = new FileAgent(options);
+        this.#agent = new FileAgent(options);
         break;
       }
       case "drjones-performance-full": {
-        agent = new PerformanceAgent(options);
+        this.#agent = new PerformanceAgent(options);
         break;
       }
       case "none": {
-        agent = new ContextSelectionAgent(options);
+        this.#agent = new ContextSelectionAgent(options);
         break;
       }
     }
-    return agent;
   }
   #factsCache = /* @__PURE__ */ new Map();
   async #createFactsForExtraContext(contexts) {
@@ -7021,7 +7149,7 @@ ${item.text.trim()}`);
         this.#agent.addFact(cached);
         continue;
       }
-      if (context instanceof SDK6.DOMModel.DOMNode) {
+      if (context instanceof SDK7.DOMModel.DOMNode) {
         const desc = await StylingAgent.describeElement(context);
         const fact = {
           text: `Relevant HTML element:
@@ -7033,7 +7161,7 @@ ${desc}`,
         };
         this.#factsCache.set(context, fact);
         this.#agent.addFact(fact);
-      } else if (context instanceof SDK6.NetworkRequest.NetworkRequest) {
+      } else if (context instanceof SDK7.NetworkRequest.NetworkRequest) {
         const calculator = new NetworkTimeCalculator3.NetworkTransferTimeCalculator();
         calculator.updateBoundaries(context);
         const formatter = new NetworkRequestFormatter(context, calculator);
@@ -7100,10 +7228,6 @@ ${desc}`,
       signal: options.signal,
       selected: this.selectedContext ?? null
     }, options.multimodalInput)) {
-      if (data.type === "context-change") {
-        this.#type = "drjones-network-request";
-        this.#agent = this.#createAgent();
-      }
       if (shouldAddToHistory(data)) {
         void this.addHistoryItem(data);
       }
@@ -7128,6 +7252,9 @@ ${desc}`,
 function isAiAssistanceServerSideLoggingEnabled() {
   return !Root9.Runtime.hostConfig.aidaAvailability?.disallowLogging;
 }
+function isAiAssistanceContextSelectionAgentEnabled() {
+  return Boolean(Root9.Runtime.hostConfig.devToolsAiAssistanceContextSelectionAgent?.enabled);
+}
 
 // gen/front_end/models/ai_assistance/AiUtils.js
 var AiUtils_exports = {};
@@ -7136,7 +7263,7 @@ __export(AiUtils_exports, {
   getIconName: () => getIconName,
   isGeminiBranding: () => isGeminiBranding
 });
-import * as Common6 from "./../../core/common/common.js";
+import * as Common7 from "./../../core/common/common.js";
 import * as Host10 from "./../../core/host/host.js";
 import * as i18n13 from "./../../core/i18n/i18n.js";
 import * as Root10 from "./../../core/root/root.js";
@@ -7179,7 +7306,7 @@ function getDisabledReasons(aidaAvailability) {
       }
     }
   }
-  reasons.push(...Common6.Settings.Settings.instance().moduleSetting("ai-assistance-enabled").disabledReasons());
+  reasons.push(...Common7.Settings.Settings.instance().moduleSetting("ai-assistance-enabled").disabledReasons());
   return reasons;
 }
 function isGeminiBranding() {
@@ -7194,11 +7321,11 @@ var BuiltInAi_exports = {};
 __export(BuiltInAi_exports, {
   BuiltInAi: () => BuiltInAi
 });
-import * as Common7 from "./../../core/common/common.js";
+import * as Common8 from "./../../core/common/common.js";
 import * as Host11 from "./../../core/host/host.js";
 import * as Root11 from "./../../core/root/root.js";
 var builtInAiInstance;
-var BuiltInAi = class _BuiltInAi extends Common7.ObjectWrapper.ObjectWrapper {
+var BuiltInAi = class _BuiltInAi extends Common8.ObjectWrapper.ObjectWrapper {
   #availability = null;
   #hasGpu;
   #consoleInsightsSession;
@@ -7448,12 +7575,12 @@ var ConversationHandler_exports = {};
 __export(ConversationHandler_exports, {
   ConversationHandler: () => ConversationHandler
 });
-import * as Common8 from "./../../core/common/common.js";
+import * as Common9 from "./../../core/common/common.js";
 import * as Host12 from "./../../core/host/host.js";
 import * as i18n15 from "./../../core/i18n/i18n.js";
 import * as Platform6 from "./../../core/platform/platform.js";
 import * as Root12 from "./../../core/root/root.js";
-import * as SDK7 from "./../../core/sdk/sdk.js";
+import * as SDK8 from "./../../core/sdk/sdk.js";
 import * as NetworkTimeCalculator4 from "./../network_time_calculator/network_time_calculator.js";
 var UIStringsNotTranslate4 = {
   /**
@@ -7470,8 +7597,8 @@ async function inspectElementBySelector(selector) {
   if (!whitespaceTrimmedQuery.length) {
     return null;
   }
-  const showUAShadowDOM = Common8.Settings.Settings.instance().moduleSetting("show-ua-shadow-dom").get();
-  const domModels = SDK7.TargetManager.TargetManager.instance().models(SDK7.DOMModel.DOMModel, { scoped: true });
+  const showUAShadowDOM = Common9.Settings.Settings.instance().moduleSetting("show-ua-shadow-dom").get();
+  const domModels = SDK8.TargetManager.TargetManager.instance().models(SDK8.DOMModel.DOMModel, { scoped: true });
   const performSearchPromises = domModels.map((domModel) => domModel.performSearch(whitespaceTrimmedQuery, showUAShadowDOM));
   const resultCounts = await Promise.all(performSearchPromises);
   const index = resultCounts.findIndex((value) => value > 0);
@@ -7481,7 +7608,7 @@ async function inspectElementBySelector(selector) {
   return null;
 }
 async function inspectNetworkRequestByUrl(selector) {
-  const networkManagers = SDK7.TargetManager.TargetManager.instance().models(SDK7.NetworkManager.NetworkManager, { scoped: true });
+  const networkManagers = SDK8.TargetManager.TargetManager.instance().models(SDK8.NetworkManager.NetworkManager, { scoped: true });
   const results = networkManagers.map((networkManager) => {
     let request2 = networkManager.requestForURL(Platform6.DevToolsPath.urlString`${selector}`);
     if (!request2 && selector.at(-1) === "/") {
@@ -7495,7 +7622,7 @@ async function inspectNetworkRequestByUrl(selector) {
   return request ?? null;
 }
 var conversationHandlerInstance;
-var ConversationHandler = class _ConversationHandler extends Common8.ObjectWrapper.ObjectWrapper {
+var ConversationHandler = class _ConversationHandler extends Common9.ObjectWrapper.ObjectWrapper {
   #aiAssistanceEnabledSetting;
   #aidaClient;
   #aidaAvailability;
@@ -7520,7 +7647,7 @@ var ConversationHandler = class _ConversationHandler extends Common8.ObjectWrapp
   }
   #getAiAssistanceEnabledSetting() {
     try {
-      return Common8.Settings.moduleSetting("ai-assistance-enabled");
+      return Common9.Settings.moduleSetting("ai-assistance-enabled");
     } catch {
       return;
     }

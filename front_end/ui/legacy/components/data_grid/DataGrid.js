@@ -1926,6 +1926,7 @@ export class DataGridNode {
         for (let i = 0; i < this.children.length; ++i) {
             this.children[i].revealed = false;
         }
+        this.dataGrid?.dispatchEventToListeners("CollapsedNode" /* Events.COLLAPSED_NODE */, this);
     }
     collapseRecursively() {
         let item = this;
@@ -1973,6 +1974,7 @@ export class DataGridNode {
             this.dataGrid.announceSelectedGridNode();
         }
         this.expandedInternal = true;
+        this.dataGrid?.dispatchEventToListeners("ExpandedNode" /* Events.EXPANDED_NODE */, this);
     }
     expandRecursively() {
         let item = this;

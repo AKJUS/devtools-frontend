@@ -3221,7 +3221,7 @@ var SourcesSearchScope = class _SourcesSearchScope {
       if (!searchInAnonymousAndContentScripts && project.type() === Workspace4.Workspace.projectTypes.ContentScripts) {
         return false;
       }
-      if (!localOverridesEnabled && project.type() === Workspace4.Workspace.projectTypes.FileSystem) {
+      if (!localOverridesEnabled && project.type() === Workspace4.Workspace.projectTypes.FileSystem && Persistence.FileSystemWorkspaceBinding.FileSystemWorkspaceBinding.fileSystemType(project) === "overrides") {
         return false;
       }
       return true;
@@ -11819,7 +11819,7 @@ var CallStackSidebarPane = class _CallStackSidebarPane extends UI19.View.SimpleV
       </div>
       ${this.list.element}
       <div class='show-more-message hidden' ${ref2(showMoreRef)}>
-        <span class='link' @click=${onShowMoreClicked}>${i18nString17(UIStrings18.showMore)}</span>
+        <button class='link' @click=${onShowMoreClicked}>${i18nString17(UIStrings18.showMore)}</button>
       </div>
     `, this.contentElement);
     this.ignoreListMessageElement = ignoreListMessageRef.value;
