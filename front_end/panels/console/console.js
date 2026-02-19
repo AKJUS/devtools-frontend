@@ -841,7 +841,6 @@ __export(ConsoleViewMessage_exports, {
   ConsoleGroupViewMessage: () => ConsoleGroupViewMessage,
   ConsoleTableMessageView: () => ConsoleTableMessageView,
   ConsoleViewMessage: () => ConsoleViewMessage,
-  MaxLengthForLinks: () => MaxLengthForLinks,
   concatErrorDescriptionAndIssueSummary: () => concatErrorDescriptionAndIssueSummary,
   getLongStringVisibleLength: () => getLongStringVisibleLength,
   getMaxTokenizableStringLength: () => getMaxTokenizableStringLength,
@@ -2326,14 +2325,22 @@ var ConsoleViewMessage = class _ConsoleViewMessage {
       clickableElement.tabIndex = -1;
     }
     clickableElement.appendChild(messageElement);
-    const stackTraceElement = contentElement.createChild("div");
-    const stackTracePreview = new Components.JSPresentationUtils.StackTracePreviewContent(void 0, target ?? void 0, this.linkifier, { runtimeStackTrace: stackTrace, widthConstrained: true });
+    const stackTraceElement = contentElement.createChild("div", "hidden-stack-trace");
+    const targetManager = SDK3.TargetManager.TargetManager.instance();
+    const stackTraceTarget = target ?? targetManager.primaryPageTarget() ?? targetManager.rootTarget();
+    const stackTracePreview = new Components.JSPresentationUtils.StackTracePreviewContent(void 0, { widthConstrained: true });
+    if (stackTraceTarget && stackTrace) {
+      const selectableChildIndex = this.selectableChildren.length;
+      void Bindings.DebuggerWorkspaceBinding.DebuggerWorkspaceBinding.instance().createStackTraceFromProtocolRuntime(stackTrace, stackTraceTarget).then((stackTrace2) => {
+        stackTracePreview.stackTrace = stackTrace2;
+        return stackTracePreview.updateComplete;
+      }).then(() => {
+        const selectableLinks = stackTracePreview.linkElements.map((element) => ({ element, forceSelect: () => element.focus() }));
+        this.selectableChildren.splice(selectableChildIndex, 0, ...selectableLinks);
+      });
+    }
     stackTracePreview.markAsRoot();
     stackTracePreview.show(stackTraceElement);
-    for (const linkElement of stackTracePreview.linkElements) {
-      this.selectableChildren.push({ element: linkElement, forceSelect: () => linkElement.focus() });
-    }
-    stackTraceElement.classList.add("hidden-stack-trace");
     UI2.ARIAUtils.setLabel(contentElement, `${messageElement.textContent} ${i18nString2(UIStrings2.stackMessageCollapsed)}`);
     UI2.ARIAUtils.markAsGroup(stackTraceElement);
     return { stackTraceElement, contentElement, messageElement, clickableElement, toggleElement };
@@ -3715,7 +3722,6 @@ var ConsoleTableMessageView = class extends ConsoleViewMessage {
   }
 };
 var MaxLengthToIgnoreHighlighter = 1e4;
-var MaxLengthForLinks = 40;
 var maxTokenizableStringLength = 1e4;
 var longStringVisibleLength = 5e3;
 var getMaxTokenizableStringLength = () => {
@@ -6503,7 +6509,7 @@ var ConsoleView = class _ConsoleView extends UI7.Widget.VBox {
     this.messagesElement.addEventListener("contextmenu", this.handleContextMenuEvent.bind(this), false);
     const throttler = new Common8.Throttler.Throttler(100);
     const refilterMessages = () => throttler.schedule(async () => this.onFilterChanged());
-    this.linkifier = new Components4.Linkifier.Linkifier(MaxLengthForLinks);
+    this.linkifier = new Components4.Linkifier.Linkifier(UI7.UIUtils.MaxLengthForDisplayedURLsInConsole);
     this.linkifier.addEventListener("liveLocationUpdated", refilterMessages);
     this.consoleMessages = [];
     this.consoleGroupStarts = [];

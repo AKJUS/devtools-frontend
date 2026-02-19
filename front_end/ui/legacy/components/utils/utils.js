@@ -247,7 +247,6 @@ var JSPresentationUtils_exports = {};
 __export(JSPresentationUtils_exports, {
   StackTracePreviewContent: () => StackTracePreviewContent
 });
-import * as Common3 from "./../../../../core/common/common.js";
 import * as i18n5 from "./../../../../core/i18n/i18n.js";
 import * as SDK3 from "./../../../../core/sdk/sdk.js";
 import * as StackTrace from "./../../../../models/stack_trace/stack_trace.js";
@@ -416,9 +415,10 @@ import * as Breakpoints from "./../../../../models/breakpoints/breakpoints.js";
 import * as TextUtils from "./../../../../models/text_utils/text_utils.js";
 import * as Workspace from "./../../../../models/workspace/workspace.js";
 import * as UIHelpers from "./../../../helpers/helpers.js";
-import { html, render } from "./../../../lit/lit.js";
+import { Directives, html, render } from "./../../../lit/lit.js";
 import * as VisualLogging from "./../../../visual_logging/visual_logging.js";
 import * as UI from "./../../legacy.js";
+var { ref, ifDefined, classMap } = Directives;
 var UIStrings2 = {
   /**
    * @description Text in Linkifier
@@ -684,11 +684,10 @@ var Linkifier = class _Linkifier extends Common2.ObjectWrapper.ObjectWrapper {
     };
     return this.maybeLinkifyScriptLocation(target, String(callFrame.scriptId), callFrame.url, callFrame.lineNumber, linkifyOptions);
   }
-  maybeLinkifyStackTraceFrame(target, frame, options) {
+  static linkifyStackTraceFrame(frame, options) {
     const linkifyURLOptions = {
       ...options,
       lineNumber: frame.line,
-      maxLength: this.maxLength,
       columnNumber: frame.column,
       showColumnNumber: Boolean(options?.showColumnNumber),
       className: options?.className,
@@ -700,7 +699,7 @@ var Linkifier = class _Linkifier extends Common2.ObjectWrapper.ObjectWrapper {
     };
     const { className = "" } = linkifyURLOptions;
     const fallbackAnchor = _Linkifier.linkifyURL(frame.url, linkifyURLOptions);
-    if (!target || target.isDisposed() || !frame.uiSourceCode) {
+    if (!frame.uiSourceCode) {
       return fallbackAnchor;
     }
     const createLinkOptions = {
@@ -708,18 +707,15 @@ var Linkifier = class _Linkifier extends Common2.ObjectWrapper.ObjectWrapper {
       jslogContext: "script-location"
     };
     const { link: link3, linkInfo } = _Linkifier.createLink(fallbackAnchor?.textContent ? fallbackAnchor.textContent : "", className, createLinkOptions);
-    linkInfo.enableDecorator = this.useLinkDecorator;
     linkInfo.fallback = fallbackAnchor;
     linkInfo.userMetric = options?.userMetric;
     const linkDisplayOptions = {
       showColumnNumber: linkifyURLOptions.showColumnNumber ?? false,
-      maxLength: linkifyURLOptions.maxLength,
+      maxLength: linkifyURLOptions.maxLength ?? UI.UIUtils.MaxLengthForDisplayedURLs,
       revealBreakpoint: options?.revealBreakpoint
     };
     const uiLocation = frame.uiSourceCode.uiLocation(frame.line, frame.column) ?? null;
     _Linkifier.updateAnchorFromUILocation(link3, linkDisplayOptions, uiLocation);
-    const anchors = this.anchorsByTarget.get(target);
-    anchors.push(link3);
     return link3;
   }
   linkifyStackTraceTopFrame(target, stackTrace) {
@@ -855,7 +851,7 @@ var Linkifier = class _Linkifier extends Common2.ObjectWrapper.ObjectWrapper {
     }
     info.icon = icon;
   }
-  static linkifyURL(url, options) {
+  static renderLinkifiedUrl(url, options) {
     options = options || {
       showColumnNumber: false,
       inlineFrameIndex: 0
@@ -870,12 +866,7 @@ var Linkifier = class _Linkifier extends Common2.ObjectWrapper.ObjectWrapper {
     const bypassURLTrimming = options.bypassURLTrimming;
     const omitOrigin = options.omitOrigin;
     if (!url || Common2.ParsedURL.schemeIs(url, "javascript:")) {
-      const element = document.createElement("span");
-      if (className) {
-        element.className = className;
-      }
-      element.textContent = text || url || i18nString2(UIStrings2.unknown);
-      return element;
+      return html`<span class=${className}>${text || url || i18nString2(UIStrings2.unknown)}</span>`;
     }
     let linkText = text || Bindings.ResourceUtils.displayNameForURL(url);
     if (omitOrigin) {
@@ -898,17 +889,20 @@ var Linkifier = class _Linkifier extends Common2.ObjectWrapper.ObjectWrapper {
       preventClick,
       tabStop: options.tabStop,
       bypassURLTrimming,
-      jslogContext: options.jslogContext || "url"
+      jslogContext: options.jslogContext || "url",
+      lineNumber,
+      columnNumber,
+      userMetric: options?.userMetric
     };
-    const { link: link3, linkInfo } = _Linkifier.createLink(linkText, className, linkOptions);
-    if (lineNumber) {
-      linkInfo.lineNumber = lineNumber;
-    }
-    if (columnNumber) {
-      linkInfo.columnNumber = columnNumber;
-    }
-    linkInfo.userMetric = options?.userMetric;
-    return link3;
+    return _Linkifier.renderLink(linkText, className, linkOptions);
+  }
+  /**
+   * @deprecated use renderLinkifiedUrl.
+   */
+  static linkifyURL(url, options) {
+    const container = document.createDocumentFragment();
+    render(_Linkifier.renderLinkifiedUrl(url, options), container);
+    return container.firstElementChild;
   }
   static linkifyRevealable(revealable, text, fallbackHref, title, className, jslogContext) {
     const createLinkOptions = {
@@ -921,60 +915,83 @@ var Linkifier = class _Linkifier extends Common2.ObjectWrapper.ObjectWrapper {
     linkInfo.revealable = revealable;
     return link3;
   }
-  static createLink(text, className, options = {}) {
+  static renderLink(text, className, options = {}) {
     const { maxLength, title, href, preventClick, tabStop, bypassURLTrimming, jslogContext } = options;
-    const link3 = document.createElement(options.preventClick ? "span" : "button");
-    if (className) {
-      link3.className = className;
-    }
-    link3.classList.add("devtools-link");
-    if (!options.preventClick) {
-      link3.classList.add("text-button", "link-style");
-    }
-    if (title) {
-      UI.Tooltip.Tooltip.install(link3, title);
-    }
-    if (href) {
-      link3.href = href;
-    }
-    link3.setAttribute("jslog", `${VisualLogging.link(jslogContext).track({ click: true })}`);
-    if (text instanceof HTMLElement) {
-      link3.appendChild(text);
-    } else if (bypassURLTrimming) {
-      link3.classList.add("devtools-link-styled-trim");
-      _Linkifier.appendTextWithoutHashes(link3, text);
-    } else {
-      _Linkifier.setTrimmedText(link3, text, maxLength);
-    }
-    const linkInfo = {
-      icon: null,
-      enableDecorator: false,
-      uiLocation: null,
-      liveLocation: null,
-      url: href || null,
-      lineNumber: null,
-      columnNumber: null,
-      inlineFrameIndex: 0,
-      revealable: null,
-      fallback: null
+    const classes = {
+      "devtools-link": true,
+      "text-button": !preventClick,
+      "link-style": !preventClick,
+      "devtools-link-prevent-click": !!preventClick
     };
-    infoByAnchor.set(link3, linkInfo);
-    if (!preventClick) {
-      const handler = (event) => {
-        if (event instanceof KeyboardEvent && event.key !== Platform2.KeyboardUtilities.ENTER_KEY && event.key !== " ") {
+    for (const cls of className.split(" ")) {
+      if (cls) {
+        classes[cls] = true;
+      }
+    }
+    const handler = (event) => {
+      if (event instanceof KeyboardEvent && event.key !== Platform2.KeyboardUtilities.ENTER_KEY && event.key !== " ") {
+        return;
+      }
+      if (_Linkifier.handleClick(event)) {
+        event.consume(true);
+      }
+    };
+    const createRef = () => {
+      return ref((link3) => {
+        if (!link3) {
           return;
         }
-        if (_Linkifier.handleClick(event)) {
-          event.consume(true);
+        if (text instanceof HTMLElement) {
+          link3.appendChild(text);
+        } else if (bypassURLTrimming) {
+          link3.classList.add("devtools-link-styled-trim");
+          _Linkifier.appendTextWithoutHashes(link3, text);
+        } else {
+          _Linkifier.setTrimmedText(link3, text, maxLength);
         }
-      };
-      link3.onclick = handler;
-      link3.onkeydown = handler;
-    } else {
-      link3.classList.add("devtools-link-prevent-click");
-    }
-    UI.ARIAUtils.markAsLink(link3);
-    link3.tabIndex = tabStop ? 0 : -1;
+        const linkInfo = {
+          icon: null,
+          enableDecorator: false,
+          uiLocation: null,
+          liveLocation: null,
+          url: options.href || null,
+          lineNumber: options.lineNumber ?? null,
+          columnNumber: options.columnNumber ?? null,
+          inlineFrameIndex: 0,
+          revealable: null,
+          fallback: null,
+          userMetric: options.userMetric
+        };
+        infoByAnchor.set(link3, linkInfo);
+      });
+    };
+    const jslog = VisualLogging.link(jslogContext).track({ click: true });
+    return preventClick ? html`<span
+      class=${classMap(classes)}
+      .href=${href}
+      title=${ifDefined(title ? title : void 0)}
+      jslog=${jslog}
+      .tabIndex=${tabStop ? 0 : -1}
+      role="link"
+      ${createRef()}></span>` : html`<button
+        @click=${handler}
+        @keydown=${handler}
+        class=${classMap(classes)}
+        .href=${href}
+        title=${ifDefined(title ? title : void 0)}
+        jslog=${jslog}
+        .tabIndex=${tabStop ? 0 : -1}
+        role="link"
+        ${createRef()}></button>`;
+  }
+  /**
+   * @deprecated use renderLink.
+   */
+  static createLink(text, className, options = {}) {
+    const container = document.createDocumentFragment();
+    render(_Linkifier.renderLink(text, className, options), container);
+    const link3 = container.firstElementChild;
+    const linkInfo = infoByAnchor.get(link3);
     return { link: link3, linkInfo };
   }
   static setTrimmedText(link3, text, maxLength) {
@@ -1307,11 +1324,7 @@ var UIStrings3 = {
   /**
    * @description A link to rehide frames that are by default hidden.
    */
-  showLess: "Show less",
-  /**
-   * @description Text indicating that source url of a link is currently unknown
-   */
-  unknownSource: "unknown"
+  showLess: "Show less"
 };
 var str_3 = i18n5.i18n.registerUIStrings("ui/legacy/components/utils/JSPresentationUtils.ts", UIStrings3);
 var i18nString3 = i18n5.i18n.getLocalizedString.bind(void 0, str_3);
@@ -1329,56 +1342,7 @@ function populateContextMenu(link3, event) {
   contextMenu.appendApplicableItems(event);
   void contextMenu.show();
 }
-function buildStackTraceRowsForLegacyRuntimeStackTrace(stackTrace, target, linkifier, tabStops, updateCallback, showColumnNumber) {
-  const stackTraceRows = [];
-  if (updateCallback) {
-    const throttler = new Common3.Throttler.Throttler(100);
-    linkifier.addEventListener("liveLocationUpdated", () => {
-      void throttler.schedule(async () => updateCallback(stackTraceRows));
-    });
-  }
-  function buildStackTraceRowsHelper(stackTrace2, previousCallFrames2 = void 0) {
-    let asyncRow = null;
-    if (previousCallFrames2) {
-      asyncRow = {
-        asyncDescription: UI2.UIUtils.asyncStackTraceLabel(stackTrace2.description, previousCallFrames2)
-      };
-      stackTraceRows.push(asyncRow);
-    }
-    let previousStackFrameWasBreakpointCondition = false;
-    for (const stackFrame of stackTrace2.callFrames) {
-      const functionName = UI2.UIUtils.beautifyFunctionName(stackFrame.functionName);
-      const link3 = linkifier.maybeLinkifyConsoleCallFrame(target, stackFrame, {
-        showColumnNumber,
-        tabStop: Boolean(tabStops),
-        inlineFrameIndex: 0,
-        revealBreakpoint: previousStackFrameWasBreakpointCondition
-      });
-      if (link3) {
-        link3.setAttribute("jslog", `${VisualLogging2.link("stack-trace").track({ click: true })}`);
-        link3.addEventListener("contextmenu", populateContextMenu.bind(null, link3));
-        if (!link3.textContent) {
-          link3.textContent = i18nString3(UIStrings3.unknownSource);
-        }
-      }
-      stackTraceRows.push({ functionName, link: link3 });
-      previousStackFrameWasBreakpointCondition = [
-        SDK3.DebuggerModel.COND_BREAKPOINT_SOURCE_URL,
-        SDK3.DebuggerModel.LOGPOINT_SOURCE_URL
-      ].includes(stackFrame.url);
-    }
-  }
-  buildStackTraceRowsHelper(stackTrace);
-  let previousCallFrames = stackTrace.callFrames;
-  for (let asyncStackTrace = stackTrace.parent; asyncStackTrace; asyncStackTrace = asyncStackTrace.parent) {
-    if (asyncStackTrace.callFrames.length) {
-      buildStackTraceRowsHelper(asyncStackTrace, previousCallFrames);
-    }
-    previousCallFrames = asyncStackTrace.callFrames;
-  }
-  return stackTraceRows;
-}
-function buildStackTraceRows(stackTrace, target, linkifier, tabStops, showColumnNumber) {
+function buildStackTraceRows(stackTrace, tabStops, showColumnNumber) {
   const stackTraceRows = [];
   function buildStackTraceRowsHelper(fragment, previousFragment2 = void 0) {
     let asyncRow = null;
@@ -1392,11 +1356,12 @@ function buildStackTraceRows(stackTrace, target, linkifier, tabStops, showColumn
     let previousStackFrameWasBreakpointCondition = false;
     for (const frame of fragment.frames) {
       const functionName = UI2.UIUtils.beautifyFunctionName(frame.name ?? "");
-      const link3 = linkifier.maybeLinkifyStackTraceFrame(target, frame, {
+      const link3 = Linkifier.linkifyStackTraceFrame(frame, {
         showColumnNumber,
         tabStop: Boolean(tabStops),
         inlineFrameIndex: 0,
-        revealBreakpoint: previousStackFrameWasBreakpointCondition
+        revealBreakpoint: previousStackFrameWasBreakpointCondition,
+        maxLength: UI2.UIUtils.MaxLengthForDisplayedURLsInConsole
       });
       link3.setAttribute("jslog", `${VisualLogging2.link("stack-trace").track({ click: true })}`);
       link3.addEventListener("contextmenu", populateContextMenu.bind(null, link3));
@@ -1482,9 +1447,6 @@ function renderStackTraceTable(container, parent, expandable, stackTraceRows) {
 }
 var StackTracePreviewContent = class extends UI2.Widget.Widget {
   #stackTrace;
-  #target;
-  #linkifier;
-  #ownedLinkifier;
   #options;
   #links = [];
   #table;
@@ -1493,14 +1455,8 @@ var StackTracePreviewContent = class extends UI2.Widget.Widget {
    * allowing the caller to know if this element is empty or not.
    */
   #hasRows = false;
-  constructor(element, target, linkifier, options) {
+  constructor(element, options) {
     super(element, { useShadowDom: true });
-    this.#target = target;
-    this.#linkifier = linkifier;
-    if (!this.#linkifier) {
-      this.#ownedLinkifier = new Linkifier();
-      this.#linkifier = this.#ownedLinkifier;
-    }
     this.#options = options || {
       widthConstrained: false
     };
@@ -1517,33 +1473,15 @@ var StackTracePreviewContent = class extends UI2.Widget.Widget {
     return this.#hasRows;
   }
   performUpdate() {
-    if (!this.#linkifier) {
+    if (!this.#stackTrace) {
       return;
     }
-    const { runtimeStackTrace, tabStops } = this.#options;
-    if (this.#stackTrace) {
-      const stackTraceRows = buildStackTraceRows(this.#stackTrace, this.#target ?? null, this.#linkifier, tabStops, this.#options.showColumnNumber);
-      this.#hasRows = stackTraceRows.length > 0;
-      this.#links = renderStackTraceTable(this.#table, this.element, this.#options.expandable ?? false, stackTraceRows);
-      return;
-    }
-    if (runtimeStackTrace) {
-      const updateCallback = renderStackTraceTable.bind(null, this.#table, this.element, this.#options.expandable ?? false);
-      const stackTraceRows = buildStackTraceRowsForLegacyRuntimeStackTrace(runtimeStackTrace ?? { callFrames: [] }, this.#target ?? null, this.#linkifier, tabStops, updateCallback, this.#options.showColumnNumber);
-      this.#hasRows = stackTraceRows.length > 0;
-      this.#links = renderStackTraceTable(this.#table, this.element, this.#options.expandable ?? false, stackTraceRows);
-    }
+    const stackTraceRows = buildStackTraceRows(this.#stackTrace, this.#options.tabStops, this.#options.showColumnNumber);
+    this.#hasRows = stackTraceRows.length > 0;
+    this.#links = renderStackTraceTable(this.#table, this.element, this.#options.expandable ?? false, stackTraceRows);
   }
   get linkElements() {
     return this.#links;
-  }
-  set target(target) {
-    this.#target = target;
-    this.requestUpdate();
-  }
-  set linkifier(linkifier) {
-    this.#linkifier = linkifier;
-    this.requestUpdate();
   }
   set options(options) {
     this.#options = options;
@@ -1556,9 +1494,6 @@ var StackTracePreviewContent = class extends UI2.Widget.Widget {
     this.#stackTrace = stackTrace;
     this.#stackTrace.addEventListener("UPDATED", this.requestUpdate, this);
     this.requestUpdate();
-  }
-  onDetach() {
-    this.#ownedLinkifier?.dispose();
   }
 };
 
