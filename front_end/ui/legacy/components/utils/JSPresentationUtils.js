@@ -78,14 +78,9 @@ function populateContextMenu(link, event) {
 }
 function buildStackTraceRows(stackTrace, tabStops, showColumnNumber) {
     const stackTraceRows = [];
-    function buildStackTraceRowsHelper(fragment, previousFragment = undefined) {
-        let asyncRow = null;
-        const isAsync = 'description' in fragment;
-        if (previousFragment && isAsync) {
-            asyncRow = {
-                asyncDescription: UI.UIUtils.asyncStackTraceLabel(fragment.description, previousFragment.frames.map(f => ({ functionName: f.name ?? '' }))),
-            };
-            stackTraceRows.push(asyncRow);
+    function buildStackTraceRowsHelper(fragment) {
+        if ('description' in fragment) {
+            stackTraceRows.push({ asyncDescription: UI.UIUtils.asyncFragmentLabel(stackTrace, fragment) });
         }
         let previousStackFrameWasBreakpointCondition = false;
         for (const frame of fragment.frames) {
@@ -107,18 +102,15 @@ function buildStackTraceRows(stackTrace, tabStops, showColumnNumber) {
         }
     }
     buildStackTraceRowsHelper(stackTrace.syncFragment);
-    let previousFragment = stackTrace.syncFragment;
     for (const asyncFragment of stackTrace.asyncFragments) {
         if (asyncFragment.frames.length) {
-            buildStackTraceRowsHelper(asyncFragment, previousFragment);
+            buildStackTraceRowsHelper(asyncFragment);
         }
-        previousFragment = asyncFragment;
     }
     return stackTraceRows;
 }
 function renderStackTraceTable(container, parent, expandable, stackTraceRows) {
     container.removeChildren();
-    const links = [];
     // The tableSection groups one or more synchronous call frames together.
     // Wherever there is an asynchronous call, a new section is created.
     let tableSection = null;
@@ -152,10 +144,7 @@ function renderStackTraceTable(container, parent, expandable, stackTraceRows) {
         else {
             row.createChild('td', 'function-name').textContent = item.functionName;
             row.createChild('td').textContent = ' @ ';
-            if (item.link) {
-                row.createChild('td', 'link').appendChild(item.link);
-                links.push(item.link);
-            }
+            row.createChild('td', 'link').appendChild(item.link);
         }
     }
     tableSection = container.createChild('tfoot');
@@ -187,48 +176,36 @@ function renderStackTraceTable(container, parent, expandable, stackTraceRows) {
         // If we are in a popup, this will trigger a re-layout
         UI.GlassPane.GlassPane.containerMoved(container);
     }, false);
-    return links;
 }
 export class StackTracePreviewContent extends UI.Widget.Widget {
     #stackTrace;
-    #options;
-    #links = [];
+    #options = {};
     #table;
-    /**
-     * Updated when we update to define if we have any rows for the StackTrace;
-     * allowing the caller to know if this element is empty or not.
-     */
-    #hasRows = false;
-    constructor(element, options) {
-        super(element, { useShadowDom: true });
-        this.#options = options || {
-            widthConstrained: false,
-        };
-        this.element.classList.add('monospace');
-        this.element.classList.add('stack-preview-container');
-        this.element.classList.toggle('width-constrained', this.#options.widthConstrained ?? false);
-        this.element.style.display = 'inline-block';
+    constructor(element) {
+        super(element, { useShadowDom: true, classes: ['monospace', 'stack-preview-container'] });
         UI.DOMUtilities.appendStyle(this.element.shadowRoot, jsUtilsStyles);
         this.#table = this.contentElement.createChild('table', 'stack-preview-container');
-        this.#table.classList.toggle('width-constrained', this.#options.widthConstrained ?? false);
-        this.performUpdate();
     }
     hasContent() {
-        return this.#hasRows;
+        if (!this.#stackTrace) {
+            return false;
+        }
+        const { syncFragment, asyncFragments } = this.#stackTrace;
+        return syncFragment.frames.length > 0 || asyncFragments.some(f => f.frames.length > 0);
     }
     performUpdate() {
         if (!this.#stackTrace) {
             return;
         }
         const stackTraceRows = buildStackTraceRows(this.#stackTrace, this.#options.tabStops, this.#options.showColumnNumber);
-        this.#hasRows = stackTraceRows.length > 0;
-        this.#links = renderStackTraceTable(this.#table, this.element, this.#options.expandable ?? false, stackTraceRows);
+        renderStackTraceTable(this.#table, this.element, this.#options.expandable ?? false, stackTraceRows);
     }
     get linkElements() {
-        return this.#links;
+        return [...this.contentElement.querySelectorAll('td.link > .devtools-link')];
     }
     set options(options) {
         this.#options = options;
+        this.#table.classList.toggle('width-constrained', this.#options.widthConstrained ?? false);
         this.requestUpdate();
     }
     set stackTrace(stackTrace) {

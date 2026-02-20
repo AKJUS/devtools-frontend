@@ -4002,7 +4002,8 @@ var RequestInitiatorView = class extends UI8.Widget.VBox {
     const networkManager = SDK7.NetworkManager.NetworkManager.forRequest(request);
     const target = networkManager?.target() ?? targetManager.primaryPageTarget() ?? targetManager.rootTarget();
     let stackTrace = null;
-    const preview = new Components2.JSPresentationUtils.StackTracePreviewContent(void 0, { tabStops: focusableLink });
+    const preview = new Components2.JSPresentationUtils.StackTracePreviewContent();
+    preview.options = { tabStops: focusableLink };
     if (target) {
       stackTrace = await Bindings2.DebuggerWorkspaceBinding.DebuggerWorkspaceBinding.instance().createStackTraceFromProtocolRuntime(initiator.stack, target);
       preview.stackTrace = stackTrace;

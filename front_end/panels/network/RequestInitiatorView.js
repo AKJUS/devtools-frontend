@@ -146,7 +146,8 @@ export class RequestInitiatorView extends UI.Widget.VBox {
         const networkManager = SDK.NetworkManager.NetworkManager.forRequest(request);
         const target = networkManager?.target() ?? targetManager.primaryPageTarget() ?? targetManager.rootTarget();
         let stackTrace = null;
-        const preview = new Components.JSPresentationUtils.StackTracePreviewContent(undefined, { tabStops: focusableLink });
+        const preview = new Components.JSPresentationUtils.StackTracePreviewContent();
+        preview.options = { tabStops: focusableLink };
         if (target) {
             stackTrace = await Bindings.DebuggerWorkspaceBinding.DebuggerWorkspaceBinding.instance()
                 .createStackTraceFromProtocolRuntime(initiator.stack, target);

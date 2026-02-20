@@ -12567,7 +12567,8 @@ var TimelineDetailsContentHelper = class {
       return null;
     }
     const stackTrace = await Bindings2.DebuggerWorkspaceBinding.DebuggerWorkspaceBinding.instance().createStackTraceFromProtocolRuntime(runtimeStackTrace, target);
-    const callFrameContents = new LegacyComponents.JSPresentationUtils.StackTracePreviewContent(void 0, { tabStops: true, showColumnNumber: true });
+    const callFrameContents = new LegacyComponents.JSPresentationUtils.StackTracePreviewContent();
+    callFrameContents.options = { tabStops: true, showColumnNumber: true };
     callFrameContents.stackTrace = stackTrace;
     await callFrameContents.updateComplete;
     if (!callFrameContents.hasContent()) {

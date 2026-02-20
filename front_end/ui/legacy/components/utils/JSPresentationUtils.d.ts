@@ -8,7 +8,7 @@ export interface Options {
 }
 export declare class StackTracePreviewContent extends UI.Widget.Widget {
     #private;
-    constructor(element?: HTMLElement, options?: Options);
+    constructor(element?: HTMLElement);
     hasContent(): boolean;
     performUpdate(): void;
     get linkElements(): readonly HTMLElement[];
