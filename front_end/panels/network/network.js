@@ -758,7 +758,7 @@ var RequestConditionsDrawer = class _RequestConditionsDrawer extends UI2.Widget.
         case "has-regexp-groups":
           return { errorMessage: i18nString2(UIStrings2.patternFailedWithRegExpGroups), valid: false };
       }
-      return { valid: true, errorMessage: void 0 };
+      return { valid: true };
     };
     const urlInput = editor.createInput("url", "text", "", validator);
     label.htmlFor = urlInput.id = "editor-url-input";
@@ -1126,9 +1126,7 @@ var EventSourceMessagesView = class extends UI4.Widget.VBox {
     ];
     this.dataGrid = new DataGrid.SortableDataGrid.SortableDataGrid({
       displayName: i18nString4(UIStrings4.eventSource),
-      columns,
-      deleteCallback: void 0,
-      refreshCallback: void 0
+      columns
     });
     this.dataGrid.setStriped(true);
     this.dataGrid.setEnableAutoScrollToBottom(true);
@@ -3978,14 +3976,100 @@ var UIStrings9 = {
 var str_9 = i18n17.i18n.registerUIStrings("panels/network/RequestHeadersView.ts", UIStrings9);
 var i18nString9 = i18n17.i18n.getLocalizedString.bind(void 0, str_9);
 var DEFAULT_VIEW5 = (input, output, target) => {
-  render6(html5`
+  const requestHeadersText = input.request.requestHeadersText();
+  const statusClasses = ["status"];
+  if (input.request.statusCode < 300 || input.request.statusCode === 304) {
+    statusClasses.push("green-circle");
+  } else if (input.request.statusCode < 400) {
+    statusClasses.push("yellow-circle");
+  } else {
+    statusClasses.push("red-circle");
+  }
+  let comment = "";
+  if (input.request.cachedInMemory()) {
+    comment = i18nString9(UIStrings9.fromMemoryCache);
+  } else if (input.request.fromEarlyHints()) {
+    comment = i18nString9(UIStrings9.fromEarlyHints);
+  } else if (input.request.fetchedViaServiceWorker) {
+    comment = i18nString9(UIStrings9.fromServiceWorker);
+  } else if (input.request.redirectSourceSignedExchangeInfoHasNoErrors()) {
+    comment = i18nString9(UIStrings9.fromSignedexchange);
+  } else if (input.request.fromPrefetchCache()) {
+    comment = i18nString9(UIStrings9.fromPrefetchCache);
+  } else if (input.request.cached()) {
+    comment = i18nString9(UIStrings9.fromDiskCache);
+  }
+  if (comment) {
+    statusClasses.push("status-with-comment");
+  }
+  const statusText = [input.request.statusCode, input.request.getInferredStatusText(), comment].join(" ");
+  render6(
+    html5`
         <style>${NetworkComponents.RequestHeaderSection.requestHeadersViewStyles}</style>
         <style>${Input.checkboxStyles}</style>
-        ${renderGeneralSection(input)}
-        ${renderEarlyHintsHeaders(input)}
-        ${renderResponseHeaders(input)}
-        ${renderRequestHeaders(input)}
-      `, target);
+        ${renderCategory({
+      name: "general",
+      title: i18nString9(UIStrings9.general),
+      forceOpen: input.toReveal?.section === "General",
+      loggingContext: "general",
+      contents: html5`<div jslog=${VisualLogging6.section("general")}>
+            ${renderGeneralRow(input, i18nString9(UIStrings9.requestUrl), input.request.url(), "request-url")}
+            ${input.request.statusCode ? renderGeneralRow(input, i18nString9(UIStrings9.requestMethod), input.request.requestMethod, "request-method") : Lit3.nothing}
+            ${input.request.statusCode ? renderGeneralRow(input, i18nString9(UIStrings9.statusCode), statusText, "status-code", statusClasses) : Lit3.nothing}
+            ${input.request.remoteAddress() ? renderGeneralRow(input, i18nString9(UIStrings9.remoteAddress), input.request.remoteAddress(), "remote-address") : Lit3.nothing}
+            ${input.request.referrerPolicy() ? renderGeneralRow(input, i18nString9(UIStrings9.referrerPolicy), String(input.request.referrerPolicy()), "referrer-policy") : Lit3.nothing}
+            </div>`
+    })}
+        ${!input.request?.earlyHintsHeaders || input.request.earlyHintsHeaders.length === 0 ? Lit3.nothing : renderCategory({
+      name: "early-hints-headers",
+      onToggleRawHeaders: input.toggleShowRawResponseHeaders,
+      title: i18nString9(UIStrings9.earlyHintsHeaders),
+      headerCount: input.request.earlyHintsHeaders.length,
+      checked: void 0,
+      additionalContent: void 0,
+      forceOpen: input.toReveal?.section === "EarlyHints",
+      loggingContext: "early-hints-headers",
+      contents: input.showResponseHeadersText ? renderRawHeaders(input.request.responseHeadersText) : html5`
+            <devtools-early-hints-header-section .data=${{
+        request: input.request,
+        toReveal: input.toReveal
+      }}></devtools-early-hints-header-section>
+              `
+    })}
+        ${renderCategory({
+      name: "response-headers",
+      onToggleRawHeaders: input.toggleShowRawResponseHeaders,
+      title: i18nString9(UIStrings9.responseHeaders),
+      headerCount: input.request.sortedResponseHeaders.length,
+      checked: input.request.responseHeadersText ? input.showResponseHeadersText : void 0,
+      additionalContent: renderHeaderOverridesLink(input),
+      forceOpen: input.toReveal?.section === "Response",
+      loggingContext: "response-headers",
+      contents: input.showResponseHeadersText ? renderRawHeaders(input.request.responseHeadersText) : html5`
+          <devtools-response-header-section .data=${{
+        request: input.request,
+        toReveal: input.toReveal
+      }} jslog=${VisualLogging6.section("response-headers")}></devtools-response-header-section>
+            `
+    })}
+        ${renderCategory({
+      name: "request-headers",
+      onToggleRawHeaders: input.toggleShowRawRequestHeaders,
+      title: i18nString9(UIStrings9.requestHeaders),
+      headerCount: input.request.requestHeaders().length,
+      checked: requestHeadersText ? input.showRequestHeadersText : void 0,
+      forceOpen: input.toReveal?.section === "Request",
+      loggingContext: "request-headers",
+      contents: input.showRequestHeadersText && requestHeadersText ? renderRawHeaders(requestHeadersText) : html5`
+          <devtools-widget .widgetConfig=${UI9.Widget.widgetConfig(NetworkComponents.RequestHeaderSection.RequestHeaderSection, {
+        request: input.request,
+        toReveal: input.toReveal
+      })} jslog=${VisualLogging6.section("request-headers")}></devtools-widget>`
+    })}
+      `,
+    // clang-format on
+    target
+  );
 };
 var RequestHeadersView = class extends UI9.Widget.Widget {
   #request;
@@ -4091,45 +4175,6 @@ var RequestHeadersView = class extends UI9.Widget.Widget {
     return fileUrl.substring(0, fileUrl.lastIndexOf("/")) + "/" + Persistence.NetworkPersistenceManager.HEADERS_FILENAME;
   }
 };
-function renderEarlyHintsHeaders(input) {
-  if (!input.request?.earlyHintsHeaders || input.request.earlyHintsHeaders.length === 0) {
-    return Lit3.nothing;
-  }
-  return renderCategory({
-    onToggleRawHeaders: input.toggleShowRawResponseHeaders,
-    name: "early-hints-headers",
-    title: i18nString9(UIStrings9.earlyHintsHeaders),
-    headerCount: input.request.earlyHintsHeaders.length,
-    checked: void 0,
-    additionalContent: void 0,
-    forceOpen: input.toReveal?.section === "EarlyHints",
-    loggingContext: "early-hints-headers",
-    contents: input.showResponseHeadersText ? renderRawHeaders(input.request.responseHeadersText) : html5`
-          <devtools-early-hints-header-section .data=${{
-      request: input.request,
-      toReveal: input.toReveal
-    }}></devtools-early-hints-header-section>
-        `
-  });
-}
-function renderResponseHeaders(input) {
-  return renderCategory({
-    onToggleRawHeaders: input.toggleShowRawResponseHeaders,
-    name: "response-headers",
-    title: i18nString9(UIStrings9.responseHeaders),
-    headerCount: input.request.sortedResponseHeaders.length,
-    checked: input.request.responseHeadersText ? input.showResponseHeadersText : void 0,
-    additionalContent: renderHeaderOverridesLink(input),
-    forceOpen: input.toReveal?.section === "Response",
-    loggingContext: "response-headers",
-    contents: input.showResponseHeadersText ? renderRawHeaders(input.request.responseHeadersText) : html5`
-          <devtools-response-header-section .data=${{
-      request: input.request,
-      toReveal: input.toReveal
-    }} jslog=${VisualLogging6.section("response-headers")}></devtools-response-header-section>
-        `
-  });
-}
 function renderHeaderOverridesLink(input) {
   if (!input.revealHeadersFile) {
     return Lit3.nothing;
@@ -4161,70 +4206,12 @@ function renderHeaderOverridesLink(input) {
       </devtools-link>
     `;
 }
-function renderRequestHeaders(input) {
-  const requestHeadersText = input.request.requestHeadersText();
-  return renderCategory({
-    onToggleRawHeaders: input.toggleShowRawRequestHeaders,
-    name: "request-headers",
-    title: i18nString9(UIStrings9.requestHeaders),
-    headerCount: input.request.requestHeaders().length,
-    checked: requestHeadersText ? input.showRequestHeadersText : void 0,
-    forceOpen: input.toReveal?.section === "Request",
-    loggingContext: "request-headers",
-    contents: input.showRequestHeadersText && requestHeadersText ? renderRawHeaders(requestHeadersText) : html5`
-          <devtools-widget .widgetConfig=${UI9.Widget.widgetConfig(NetworkComponents.RequestHeaderSection.RequestHeaderSection, {
-      request: input.request,
-      toReveal: input.toReveal
-    })} jslog=${VisualLogging6.section("request-headers")}></devtools-widget>`
-  });
-}
 function renderRawHeaders(text) {
   return html5`<div class="row raw-headers-row"><devtools-widget  class=raw-headers .widgetConfig=${UI9.Widget.widgetConfig(ShowMoreDetailsWidget, { text })}></devtools-widget></div>`;
 }
-function renderGeneralSection(input) {
-  const statusClasses = ["status"];
-  if (input.request.statusCode < 300 || input.request.statusCode === 304) {
-    statusClasses.push("green-circle");
-  } else if (input.request.statusCode < 400) {
-    statusClasses.push("yellow-circle");
-  } else {
-    statusClasses.push("red-circle");
-  }
-  let comment = "";
-  if (input.request.cachedInMemory()) {
-    comment = i18nString9(UIStrings9.fromMemoryCache);
-  } else if (input.request.fromEarlyHints()) {
-    comment = i18nString9(UIStrings9.fromEarlyHints);
-  } else if (input.request.fetchedViaServiceWorker) {
-    comment = i18nString9(UIStrings9.fromServiceWorker);
-  } else if (input.request.redirectSourceSignedExchangeInfoHasNoErrors()) {
-    comment = i18nString9(UIStrings9.fromSignedexchange);
-  } else if (input.request.fromPrefetchCache()) {
-    comment = i18nString9(UIStrings9.fromPrefetchCache);
-  } else if (input.request.cached()) {
-    comment = i18nString9(UIStrings9.fromDiskCache);
-  }
-  if (comment) {
-    statusClasses.push("status-with-comment");
-  }
-  const statusText = [input.request.statusCode, input.request.getInferredStatusText(), comment].join(" ");
-  return renderCategory({
-    name: "general",
-    title: i18nString9(UIStrings9.general),
-    forceOpen: input.toReveal?.section === "General",
-    loggingContext: "general",
-    // clang-format off
-    contents: html5`<div jslog=${VisualLogging6.section("general")}>
-        ${renderGeneralRow(i18nString9(UIStrings9.requestUrl), input.request.url(), "request-url")}
-        ${input.request.statusCode ? renderGeneralRow(i18nString9(UIStrings9.requestMethod), input.request.requestMethod, "request-method") : Lit3.nothing}
-        ${input.request.statusCode ? renderGeneralRow(i18nString9(UIStrings9.statusCode), statusText, "status-code", statusClasses) : Lit3.nothing}
-        ${input.request.remoteAddress() ? renderGeneralRow(i18nString9(UIStrings9.remoteAddress), input.request.remoteAddress(), "remote-address") : Lit3.nothing}
-        ${input.request.referrerPolicy() ? renderGeneralRow(i18nString9(UIStrings9.referrerPolicy), String(input.request.referrerPolicy()), "referrer-policy") : Lit3.nothing}
-      </div>`
-  });
-  function renderGeneralRow(name, value, id, classNames) {
-    const isHighlighted = input.toReveal?.section === "General" && name.toLowerCase() === input.toReveal?.header?.toLowerCase();
-    return html5`
+function renderGeneralRow(input, name, value, id, classNames) {
+  const isHighlighted = input.toReveal?.section === "General" && name.toLowerCase() === input.toReveal?.header?.toLowerCase();
+  return html5`
       <div class="row ${isHighlighted ? "header-highlight" : ""}">
         <div class="header-name">${name}</div>
         <div
@@ -4234,7 +4221,6 @@ function renderGeneralSection(input) {
         >${value}</div>
       </div>
     `;
-  }
 }
 function renderCategory(data) {
   const expandedSetting = Common6.Settings.Settings.instance().createSetting("request-info-" + data.name + "-category-expanded", true);
@@ -4298,7 +4284,7 @@ import * as Bindings2 from "./../../models/bindings/bindings.js";
 import * as Logs3 from "./../../models/logs/logs.js";
 import * as Components2 from "./../../ui/legacy/components/utils/utils.js";
 import * as UI10 from "./../../ui/legacy/legacy.js";
-import * as Lit4 from "./../../ui/lit/lit.js";
+import { html as html6, nothing as nothing6, render as render7 } from "./../../ui/lit/lit.js";
 import * as VisualLogging7 from "./../../ui/visual_logging/visual_logging.js";
 
 // gen/front_end/panels/network/requestInitiatorView.css.js
@@ -4350,7 +4336,6 @@ var requestInitiatorViewTree_css_default = `/*
 /*# sourceURL=${import.meta.resolve("./requestInitiatorViewTree.css")} */`;
 
 // gen/front_end/panels/network/RequestInitiatorView.js
-var { html: html6, render: render7, nothing: nothing7 } = Lit4;
 var { widgetConfig: widgetConfig2 } = UI10.Widget;
 var UIStrings10 = {
   /**
@@ -4380,10 +4365,10 @@ var DEFAULT_VIEW6 = (input, _output, target) => {
   }
   const renderStackTraceSection = () => {
     if (!input.stackTrace) {
-      return html6`${nothing7}`;
+      return html6`${nothing6}`;
     }
     return html6`
-      <li role="treeitem" class="request-initiator-view-section-title" aria-expanded="true">
+      <li role="treeitem" class="request-initiator-view-section-title" aria-expanded="true" open>
         ${i18nString10(UIStrings10.requestCallStack)}
         <ul role="group">
           <li role="treeitem">
@@ -4398,19 +4383,20 @@ var DEFAULT_VIEW6 = (input, _output, target) => {
   };
   const renderInitiatorNodes = (initiators, index, initiated, visited) => {
     if (index >= initiators.length) {
-      return html6`${nothing7}`;
+      return html6`${nothing6}`;
     }
     const request = initiators[index];
     const isCurrentRequest = index === initiators.length - 1;
+    const hasFurtherInitiatedNodes = index + 1 < initiators.length;
     return html6`
-      <li role="treeitem" ?selected=${isCurrentRequest} aria-expanded="true">
-        <span style=${isCurrentRequest ? "font-weight: bold" : ""}>${request.url()}</span>
-        <ul role="group">
-          ${renderInitiatorNodes(initiators, index + 1, initiated, visited)}
-          ${isCurrentRequest ? renderInitiatedNodes(initiated, request, visited) : nothing7}
-        </ul>
-      </li>
-    `;
+          <li role="treeitem" ?selected=${isCurrentRequest} aria-expanded="true" open>
+            <span style=${isCurrentRequest ? "font-weight: bold" : ""}>${request.url()}</span>
+            ${hasFurtherInitiatedNodes || isCurrentRequest ? html6`
+              <ul role="group">
+                ${renderInitiatorNodes(initiators, index + 1, initiated, visited)}
+                ${isCurrentRequest ? renderInitiatedNodes(initiated, request, visited) : nothing6}
+              </ul>` : nothing6}
+          </li>`;
   };
   const renderInitiatedNodes = (initiated, parentRequest, visited) => {
     const children = [];
@@ -4420,7 +4406,7 @@ var DEFAULT_VIEW6 = (input, _output, target) => {
       }
     }
     if (children.length === 0) {
-      return html6`${nothing7}`;
+      return nothing6;
     }
     return html6`
       ${children.map((child) => {
@@ -4428,10 +4414,11 @@ var DEFAULT_VIEW6 = (input, _output, target) => {
       if (shouldRecurse) {
         visited.add(child);
       }
+      const renderedChildren = shouldRecurse ? renderInitiatedNodes(initiated, child, visited) : nothing6;
       return html6`
-        <li role="treeitem" aria-expanded="true">
+        <li role="treeitem" aria-expanded="true" open>
           <span>${child.url()}</span>
-          ${shouldRecurse ? html6`<ul>${renderInitiatedNodes(initiated, child, visited)}</ul>` : nothing7}
+          ${renderedChildren !== nothing6 ? html6`<ul role="group">${renderedChildren}</ul>` : nothing6}
         </li>
       `;
     })}
@@ -4441,25 +4428,26 @@ var DEFAULT_VIEW6 = (input, _output, target) => {
     const initiators = Array.from(initiatorGraph.initiators).reverse();
     const visited = /* @__PURE__ */ new Set();
     visited.add(input.request);
+    const hasInitiatorChain2 = initiators.length > 0;
     return html6`
-      <li role="treeitem" class="request-initiator-view-section-title" aria-expanded="true">
+      <li role="treeitem" class="request-initiator-view-section-title" aria-expanded="true" open>
         ${i18nString10(UIStrings10.requestInitiatorChain)}
-        <ul role="group">
-          ${renderInitiatorNodes(initiators, 0, initiatorGraph.initiated, visited)}
-        </ul>
-      </li>
-    `;
+        ${hasInitiatorChain2 ? html6`
+          <ul role="group">
+            ${renderInitiatorNodes(initiators, 0, initiatorGraph.initiated, visited)}
+          </ul>` : nothing6}
+      </li>`;
   };
+  const hasInitiatorChain = input.initiatorGraph.initiators.size > 1 || input.initiatorGraph.initiated.size > 1;
   render7(html6`
     <div class="request-initiator-view-tree" jslog=${VisualLogging7.tree("initiator-tree")}>
       <devtools-tree .template=${html6`
-        <style>
-          ${requestInitiatorViewTree_css_default}
-        </style>
-        <ul role="tree">
-           ${renderStackTraceSection()}
-           ${input.initiatorGraph.initiators.size > 1 || input.initiatorGraph.initiated.size > 1 ? renderInitiatorChain(input.initiatorGraph) : Lit4.nothing}
-        </ul>
+        <style>${requestInitiatorViewTree_css_default}</style>
+        ${input.stackTrace || hasInitiatorChain ? html6`
+          <ul role="tree">
+            ${renderStackTraceSection()}
+            ${hasInitiatorChain ? renderInitiatorChain(input.initiatorGraph) : nothing6}
+          </ul>` : nothing6}
       `}></devtools-tree>
     </div>
   `, target);
@@ -5045,6 +5033,7 @@ var DEFAULT_VIEW7 = (input, output, target) => {
           jslog=${VisualLogging8.section().context("query-string")}
           @contextmenu=${onContextMenu(input.viewQueryParamSource, input.setViewQueryParamSource)}
           @expanded=${(e) => queryStringExpandedSetting.set(e.detail.expanded)}
+          ?open=${queryStringExpandedSetting.get()}
         >
         <div class="selection fill"></div>${i18nString11(UIStrings11.queryStringParameters)}<span
           class=payload-count>${`\xA0(${input.queryParameters?.length ?? 0})`}</span>${createViewSourceToggle(input.viewQueryParamSource, input.setViewQueryParamSource)}
@@ -5056,7 +5045,7 @@ var DEFAULT_VIEW7 = (input, output, target) => {
             @click=${toggleURLDecoding}>
           ${input.decodeRequestParameters ? i18nString11(UIStrings11.viewUrlEncoded) : i18nString11(UIStrings11.viewDecoded)}
         </devtools-button>
-        <ul role=group ?hidden=${!queryStringExpandedSetting.get()}>
+        <ul role=group>
           ${input.viewQueryParamSource ? createSourceText(input.queryString ?? "") : createParsedParams(input.queryParameters ?? [])}
         </ul>
       </li>
@@ -5066,6 +5055,7 @@ var DEFAULT_VIEW7 = (input, output, target) => {
           jslog=${VisualLogging8.section().context("form-data")}
           @contextmenu=${onContextMenu(input.viewFormParamSource, input.setViewFormParamSource)}
           @expanded=${(e) => formDataExpandedSetting.set(e.detail.expanded)}
+          ?open=${formDataExpandedSetting.get()}
         >
         <div class="selection fill"></div>${i18nString11(UIStrings11.formData)}<span
           class=payload-count>${`\xA0(${input.formParameters?.length ?? 0})`}</span>${createViewSourceToggle(input.viewFormParamSource, input.setViewFormParamSource)}
@@ -5077,7 +5067,7 @@ var DEFAULT_VIEW7 = (input, output, target) => {
             @click=${toggleURLDecoding}>
           ${input.decodeRequestParameters ? i18nString11(UIStrings11.viewUrlEncoded) : i18nString11(UIStrings11.viewDecoded)}
         </devtools-button>
-        <ul role=group ?hidden=${!formDataExpandedSetting.get()}>>
+        <ul role=group>
           ${input.viewFormParamSource ? createSourceText(input.formData ?? "") : createParsedParams(input.formParameters ?? [])}
         </ul>
       </li>
@@ -5092,9 +5082,10 @@ var DEFAULT_VIEW7 = (input, output, target) => {
     false
   )}
           @expanded=${(e) => requestPayloadExpandedSetting.set(e.detail.expanded)}
+          ?open=${requestPayloadExpandedSetting.get()}
         >
         <div class="selection fill"></div>${i18nString11(UIStrings11.requestPayload)}${createViewSourceToggle(input.viewJSONPayloadSource, input.setViewJSONPayloadSource)}
-        <ul role=group ?hidden=${!requestPayloadExpandedSetting.get()}>
+        <ul role=group>
           ${!parsedFormData || input.viewJSONPayloadSource ? createSourceText(input.formData ?? "") : createPayload(parsedFormData)}
         </ul>
       </li>
@@ -5235,7 +5226,7 @@ __export(RequestHTMLView_exports, {
   RequestHTMLView: () => RequestHTMLView
 });
 import * as UI12 from "./../../ui/legacy/legacy.js";
-import { html as html8, nothing as nothing8, render as render9 } from "./../../ui/lit/lit.js";
+import { html as html8, nothing as nothing7, render as render9 } from "./../../ui/lit/lit.js";
 
 // gen/front_end/panels/network/requestHTMLView.css.js
 var requestHTMLView_css_default = `/*
@@ -5265,7 +5256,7 @@ var DEFAULT_VIEW8 = (input, _output, target) => {
         <!-- @ts-ignore -->
         <iframe class="html-preview-frame" sandbox
           csp="default-src 'none';img-src data:;style-src 'unsafe-inline'" src=${input.dataURL}
-          tabindex="-1" role="presentation"></iframe>` : nothing8}
+          tabindex="-1" role="presentation"></iframe>` : nothing7}
     </div>`, target);
 };
 var RequestHTMLView = class _RequestHTMLView extends UI12.Widget.VBox {
@@ -5761,8 +5752,8 @@ import * as i18n27 from "./../../core/i18n/i18n.js";
 import * as TextUtils2 from "./../../models/text_utils/text_utils.js";
 import * as SourceFrame3 from "./../../ui/legacy/components/source_frame/source_frame.js";
 import * as UI15 from "./../../ui/legacy/legacy.js";
-import * as Lit5 from "./../../ui/lit/lit.js";
-var { html: html9, render: render10 } = Lit5;
+import * as Lit4 from "./../../ui/lit/lit.js";
+var { html: html9, render: render10 } = Lit4;
 var UIStrings14 = {
   /**
    * @description Text in Request Response View of the Network panel if no preview can be shown
@@ -5864,7 +5855,7 @@ import * as NetworkTimeCalculator from "./../../models/network_time_calculator/n
 import * as uiI18n3 from "./../../ui/i18n/i18n.js";
 import * as ObjectUI2 from "./../../ui/legacy/components/object_ui/object_ui.js";
 import * as UI16 from "./../../ui/legacy/legacy.js";
-import { Directives as Directives3, html as html10, nothing as nothing9, render as render11 } from "./../../ui/lit/lit.js";
+import { Directives as Directives3, html as html10, nothing as nothing8, render as render11 } from "./../../ui/lit/lit.js";
 import * as VisualLogging10 from "./../../ui/visual_logging/visual_logging.js";
 
 // gen/front_end/panels/network/networkTimingTable.css.js
@@ -6439,10 +6430,10 @@ var DEFAULT_VIEW10 = (input, output, target) => {
         <td title=${metricDesc} class=network-timing-metric>
           ${metricDesc}
         </td>
-        ${serverTiming.value === null ? nothing9 : html10`
+        ${serverTiming.value === null ? nothing8 : html10`
           <td class=server-timing-cell--value-bar>
             <div class=network-timing-row>
-              ${left < 0 ? nothing9 : html10`<span
+              ${left < 0 ? nothing8 : html10`<span
                     class="network-timing-bar server-timing"
                     data-background=${ifDefined(isTotal ? void 0 : colorGenerator.colorForID(serverTiming.metric))}
                     data-left=${left}
@@ -6567,11 +6558,11 @@ var DEFAULT_VIEW10 = (input, output, target) => {
             ${range.name === "serviceworker-respondwith" && input.fetchDetails ? html10`
               <tr class="network-fetch-timing-bar-details network-fetch-timing-bar-details-collapsed">
                 ${input.fetchDetails.element}
-              </tr>` : nothing9}
+              </tr>` : nothing8}
             ${range.name === "serviceworker-routerevaluation" && input.routerDetails ? html10`
               <tr class="router-evaluation-timing-bar-details network-fetch-timing-bar-details-collapsed">
                 ${input.routerDetails.element}
-              </tr>` : nothing9}
+              </tr>` : nothing8}
           `)}
         `)}
         ${input.requestUnfinished ? html10`
@@ -6579,7 +6570,7 @@ var DEFAULT_VIEW10 = (input, output, target) => {
             <td class=caution colspan=3>
               ${i18nString15(UIStrings15.cautionRequestIsNotFinishedYet)}
             </td>
-          </tr>` : nothing9}
+          </tr>` : nothing8}
        <tr class=network-timing-footer>
          <td colspan=1>
            <devtools-link
@@ -6590,7 +6581,7 @@ var DEFAULT_VIEW10 = (input, output, target) => {
            </devtools-link>
          <td></td>
          <td class=${input.wasThrottled ? "throttled" : ""} title=${ifDefined(throttledRequestTitle)}>
-           ${input.wasThrottled ? html10` <devtools-icon name=watch @click=${revealThrottled}></devtools-icon>` : nothing9}
+           ${input.wasThrottled ? html10` <devtools-icon name=watch @click=${revealThrottled}></devtools-icon>` : nothing8}
            ${i18n29.TimeUtilities.secondsToString(input.totalDuration, true)}
          </td>
        </tr>
@@ -6611,7 +6602,7 @@ var DEFAULT_VIEW10 = (input, output, target) => {
            <td colspan=3>
 ${uiI18n3.getFormatLocalizedStringTemplate(str_15, UIStrings15.duringDevelopmentYouCanUseSToAdd, { PH1: html10`<devtools-link href="https://web.dev/custom-metrics/#server-timing-api" .jslogContext=${"server-timing-api"}>${i18nString15(UIStrings15.theServerTimingApi)}</devtools-link>` })}
            </td>
-         </tr>` : nothing9}
+         </tr>` : nothing8}
    </table>`,
     // clang-format on
     target
@@ -6933,9 +6924,7 @@ var ResourceChunkView = class extends UI17.Widget.VBox {
     const columns = this.getColumns();
     this.dataGrid = new DataGrid4.SortableDataGrid.SortableDataGrid({
       displayName: dataGridDisplayName,
-      columns,
-      deleteCallback: void 0,
-      refreshCallback: void 0
+      columns
     });
     this.dataGrid.setRowContextMenuCallback(onRowContextMenu.bind(this));
     this.dataGrid.setEnableAutoScrollToBottom(true);
@@ -8497,7 +8486,9 @@ var NetworkManageCustomHeadersView = class extends UI22.Widget.VBox {
       if (this.columnConfigs.has(headerId) && item.header !== headerId) {
         valid = false;
       }
-      return { valid, errorMessage: void 0 };
+      return {
+        valid
+      };
     }
   }
 };
@@ -8958,7 +8949,7 @@ var NetworkWaterfallColumn = class _NetworkWaterfallColumn extends UI23.Widget.V
     this.styleForWaitingResourceType = resourceStyleTuple[0];
     this.styleForDownloadingResourceType = resourceStyleTuple[1];
     const baseLineColor = ThemeSupport3.ThemeSupport.instance().getComputedValue("--sys-color-state-disabled");
-    this.wiskerStyle = { borderColor: baseLineColor, lineWidth: 1, fillStyle: void 0 };
+    this.wiskerStyle = { borderColor: baseLineColor, lineWidth: 1 };
     this.hoverDetailsStyle = { fillStyle: baseLineColor, lineWidth: 1, borderColor: baseLineColor };
     this.pathForStyle = /* @__PURE__ */ new Map();
     this.textLayers = [];
@@ -9166,8 +9157,7 @@ var NetworkWaterfallColumn = class _NetworkWaterfallColumn extends UI23.Widget.V
         await content.updateComplete;
         content.show(popover.contentElement);
         return true;
-      },
-      hide: void 0
+      }
     };
   }
   setHoveredNode(node, highlightInitiatorChain) {
@@ -9699,9 +9689,7 @@ var NetworkLogViewColumns = class _NetworkLogViewColumns {
     this.popoverHelper.setTimeout(300, 300);
     this.#dataGrid = new DataGrid7.SortableDataGrid.SortableDataGrid({
       displayName: i18nString21(UIStrings21.networkLog),
-      columns: this.columns.map(_NetworkLogViewColumns.convertToDataGridDescriptor),
-      deleteCallback: void 0,
-      refreshCallback: void 0
+      columns: this.columns.map(_NetworkLogViewColumns.convertToDataGridDescriptor)
     });
     this.dataGridScroller = this.#dataGrid.scrollContainer;
     this.updateColumns();

@@ -6550,14 +6550,6 @@ export const NativeFunctions = [
         signatures: [["milliseconds"]]
     },
     {
-        name: "AttributePart",
-        signatures: [["root", "element", "localName", "?init"]]
-    },
-    {
-        name: "ChildNodePart",
-        signatures: [["root", "previousSibling", "nextSibling", "?init"]]
-    },
-    {
         name: "Comment",
         signatures: [["?data"]]
     },
@@ -6622,10 +6614,6 @@ export const NativeFunctions = [
         signatures: [["type", "?eventInitDict"]]
     },
     {
-        name: "getValueRange",
-        signatures: [["start", "end"]]
-    },
-    {
         name: "getBoxQuads",
         signatures: [["?options"]]
     },
@@ -6644,10 +6632,6 @@ export const NativeFunctions = [
     {
         name: "MutationObserver",
         signatures: [["callback"]]
-    },
-    {
-        name: "NodePart",
-        signatures: [["root", "node", "?init"]]
     },
     {
         name: "Observable",
@@ -6680,6 +6664,10 @@ export const NativeFunctions = [
     {
         name: "last",
         signatures: [["?options"]]
+    },
+    {
+        name: "getValueRange",
+        signatures: [["start", "end"]]
     },
     {
         name: "moveBefore",
@@ -6798,10 +6786,6 @@ export const NativeFunctions = [
     {
         name: "MouseEvent",
         signatures: [["type", "?eventInitDict"]]
-    },
-    {
-        name: "OverscrollEvent",
-        signatures: [["type", "bubbles", "?eventInitDict"]]
     },
     {
         name: "PageTransitionEvent",
@@ -8946,7 +8930,7 @@ export const NativeFunctions = [
     },
     {
         name: "framebufferTexturePixelLocalStorageWEBGL",
-        signatures: [["plane", "texture", "level", "layer"]]
+        signatures: [["plane", "texture", "level", "layer", "usage"]]
     },
     {
         name: "framebufferPixelLocalClearValuefvWEBGL",

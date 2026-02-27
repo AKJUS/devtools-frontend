@@ -43,7 +43,6 @@ import * as Lit from '../../ui/lit/lit.js';
 import * as ElementsComponents from './components/components.js';
 import computedStyleWidgetStyles from './computedStyleWidget.css.js';
 import { ImagePreviewPopover } from './ImagePreviewPopover.js';
-import { PlatformFontsWidget } from './PlatformFontsWidget.js';
 import { categorizePropertyName, DefaultCategoryOrder } from './PropertyNameCategories.js';
 import { Renderer, rendererBase, StringRenderer, URLRenderer } from './PropertyRenderer.js';
 import { StylePropertiesSection } from './StylePropertiesSection.js';
@@ -180,8 +179,8 @@ class ColorRenderer extends rendererBase(SDK.CSSPropertyParserMatchers.ColorMatc
             return [document.createTextNode(match.text)];
         }
         const swatch = new InlineEditor.ColorSwatch.ColorSwatch();
-        swatch.readonly = true;
-        swatch.color = color;
+        swatch.setReadonly(true);
+        swatch.renderColor(color);
         const valueElement = document.createElement('span');
         valueElement.textContent = match.text;
         swatch.addEventListener(InlineEditor.ColorSwatch.ColorChangedEvent.eventName, (event) => {
@@ -217,29 +216,30 @@ export const DEFAULT_VIEW = (input, _output, target) => {
     // clang-format off
     render(html `
     <style>${computedStyleWidgetStyles}</style>
-    <div class="styles-sidebar-pane-toolbar">
-      <devtools-toolbar class="styles-pane-toolbar" role="presentation">
-        <devtools-toolbar-input
-          type="filter"
-          autofocus
-          ?regex=${true}
-          value=${input.filterText}
-          @change=${input.onFilterChanged}
-          @regextoggle=${input.onRegexToggled}
-        ></devtools-toolbar-input>
-        <devtools-checkbox
-          title=${i18nString(UIStrings.showAll)}
-          ${bindToSetting(input.showInheritedComputedStylePropertiesSetting)}
-        >${i18nString(UIStrings.showAll)}</devtools-checkbox>
-        <devtools-checkbox
-          title=${i18nString(UIStrings.group)}
-          ${bindToSetting(input.groupComputedStylesSetting)}
-        >${i18nString(UIStrings.group)}</devtools-checkbox>
-      </devtools-toolbar>
-    </div>
+    ${input.includeToolbar ? html `
+      <div class="styles-sidebar-pane-toolbar">
+        <devtools-toolbar class="styles-pane-toolbar" role="presentation">
+          <devtools-toolbar-input
+            type="filter"
+            autofocus
+            ?regex=${true}
+            value=${input.filterText}
+            @change=${input.onFilterChanged}
+            @regextoggle=${input.onRegexToggled}
+          ></devtools-toolbar-input>
+          <devtools-checkbox
+            title=${i18nString(UIStrings.showAll)}
+            ${bindToSetting(input.showInheritedComputedStylePropertiesSetting)}
+          >${i18nString(UIStrings.showAll)}</devtools-checkbox>
+          <devtools-checkbox
+            title=${i18nString(UIStrings.group)}
+            ${bindToSetting(input.groupComputedStylesSetting)}
+          >${i18nString(UIStrings.group)}</devtools-checkbox>
+        </devtools-toolbar>
+      </div>
+      ` : Lit.nothing}
     ${input.computedStylesTree}
     ${!input.hasMatches ? html `<div class="gray-info-message">${i18nString(UIStrings.noMatchingProperty)}</div>` : ''}
-    ${input.computedStyleModel ? html `<devtools-widget .widgetConfig=${UI.Widget.widgetConfig(PlatformFontsWidget, { sharedModel: input.computedStyleModel })}></devtools-widget>` : ''}
   `, target);
     // clang-format on
 };
@@ -257,6 +257,7 @@ export class ComputedStyleWidget extends UI.Widget.VBox {
     #view;
     #filterText = '';
     #isRegex = false;
+    #includeToolbar = true;
     constructor() {
         super({ useShadowDom: true });
         this.#view = DEFAULT_VIEW;
@@ -283,13 +284,12 @@ export class ComputedStyleWidget extends UI.Widget.VBox {
         const isNarrow = this.contentElement.offsetWidth < 260;
         this.#computedStylesTree.classList.toggle('computed-narrow', isNarrow);
     }
-    wasShown() {
-        UI.Context.Context.instance().setFlavor(ComputedStyleWidget, this);
-        super.wasShown();
+    get includeToolbar() {
+        return this.#includeToolbar;
     }
-    willHide() {
-        super.willHide();
-        UI.Context.Context.instance().setFlavor(ComputedStyleWidget, null);
+    set includeToolbar(x) {
+        this.#includeToolbar = x;
+        this.requestUpdate();
     }
     /**
      * @param input.hasMatches Whether any properties matched the current filter (or if any properties exist at all).
@@ -297,8 +297,8 @@ export class ComputedStyleWidget extends UI.Widget.VBox {
     #updateView({ hasMatches }) {
         this.#view({
             computedStylesTree: this.#computedStylesTree,
+            includeToolbar: this.#includeToolbar,
             hasMatches,
-            computedStyleModel: this.#computedStyleModel,
             showInheritedComputedStylePropertiesSetting: this.showInheritedComputedStylePropertiesSetting,
             groupComputedStylesSetting: this.groupComputedStylesSetting,
             onFilterChanged: this.onFilterChanged.bind(this),

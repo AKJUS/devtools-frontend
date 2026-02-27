@@ -27,7 +27,7 @@ import { ElementsPanel } from './ElementsPanel.js';
 import { BinOpRenderer, Renderer, rendererBase, RenderingContext, StringRenderer, URLRenderer } from './PropertyRenderer.js';
 import { StyleEditorWidget } from './StyleEditorWidget.js';
 import { getCssDeclarationAsJavascriptProperty } from './StylePropertyUtils.js';
-import { CSSPropertyPrompt, REGISTERED_PROPERTY_SECTION_NAME, StylesSidebarPane, } from './StylesSidebarPane.js';
+import { CSSPropertyPrompt, REGISTERED_PROPERTY_SECTION_NAME } from './StylesSidebarPane.js';
 const { html, nothing, render, Directives: { classMap } } = Lit;
 const ASTUtils = SDK.CSSPropertyParser.ASTUtils;
 const FlexboxEditor = ElementsComponents.StylePropertyEditor.FlexboxEditor;
@@ -339,7 +339,7 @@ export class VariableRenderer extends rendererBase(SDK.CSSPropertyParserMatchers
         context.addControl('color', colorSwatch);
         if (fromFallback) {
             renderedFallback?.cssControls.get('color')?.forEach(innerSwatch => innerSwatch.addEventListener(InlineEditor.ColorSwatch.ColorChangedEvent.eventName, ev => {
-                colorSwatch.color = ev.data.color;
+                colorSwatch.setColor(ev.data.color);
             }));
         }
         return [colorSwatch, varSwatch];
@@ -437,7 +437,7 @@ export class AttributeRenderer extends rendererBase(SDK.CSSPropertyParserMatcher
         context.addControl('color', colorSwatch);
         if (fromFallback) {
             renderedFallback?.cssControls.get('color')?.forEach(innerSwatch => innerSwatch.addEventListener(InlineEditor.ColorSwatch.ColorChangedEvent.eventName, ev => {
-                colorSwatch.color = ev.data.color;
+                colorSwatch.setColor(ev.data.color);
             }));
         }
         return [colorSwatch, varSwatch];
@@ -585,10 +585,10 @@ export class ColorRenderer extends rendererBase(SDK.CSSPropertyParserMatchers.Co
                         return;
                     }
                     if (color.is("hsl" /* Common.Color.Format.HSL */) || color.is("hsla" /* Common.Color.Format.HSLA */)) {
-                        swatch.color = new Common.Color.HSL(hue, color.s, color.l, color.alpha);
+                        swatch.setColor(new Common.Color.HSL(hue, color.s, color.l, color.alpha));
                     }
                     else if (color.is("hwb" /* Common.Color.Format.HWB */) || color.is("hwba" /* Common.Color.Format.HWBA */)) {
-                        swatch.color = new Common.Color.HWB(hue, color.w, color.b, color.alpha);
+                        swatch.setColor(new Common.Color.HWB(hue, color.w, color.b, color.alpha));
                     }
                     angle.updateProperty(swatch.color?.asString() ?? '');
                 });
@@ -601,9 +601,9 @@ export class ColorRenderer extends rendererBase(SDK.CSSPropertyParserMatchers.Co
         const shiftClickMessage = i18nString(UIStrings.shiftClickToChangeColorFormat);
         const tooltip = editable ? i18nString(UIStrings.openColorPickerS, { PH1: shiftClickMessage }) : '';
         const swatch = new InlineEditor.ColorSwatch.ColorSwatch(tooltip);
-        swatch.readonly = !editable;
+        swatch.setReadonly(!editable);
         if (color) {
-            swatch.color = color;
+            swatch.renderColor(color);
         }
         if (this.#treeElement?.editable()) {
             const treeElement = this.#treeElement;
@@ -622,7 +622,7 @@ export class ColorRenderer extends rendererBase(SDK.CSSPropertyParserMatchers.Co
             const swatchIcon = new ColorSwatchPopoverIcon(treeElement, treeElement.parentPane().swatchPopoverHelper(), swatch);
             swatchIcon.addEventListener("colorchanged" /* ColorSwatchPopoverIconEvents.COLOR_CHANGED */, ev => {
                 valueChild.textContent = ev.data.getAuthoredText() ?? ev.data.asString();
-                swatch.color = ev.data;
+                swatch.setColor(ev.data);
             });
             if (treeElement.property.name === 'color') {
                 void this.#addColorContrastInfo(swatchIcon);
@@ -681,15 +681,13 @@ export class LightDarkColorRenderer extends rendererBase(SDK.CSSPropertyParserMa
             return;
         }
         const activeColorSwatches = (activeColor === match.light ? lightControls : darkControls).get('color');
-        activeColorSwatches?.forEach(swatch => swatch.addEventListener(InlineEditor.ColorSwatch.ColorChangedEvent.eventName, ev => {
-            colorSwatch.color = ev.data.color;
-        }));
+        activeColorSwatches?.forEach(swatch => swatch.addEventListener(InlineEditor.ColorSwatch.ColorChangedEvent.eventName, ev => colorSwatch.setColor(ev.data.color)));
         const inactiveColor = (activeColor === match.light) ? dark : light;
         const colorText = context.matchedResult.getComputedTextRange(activeColor[0], activeColor[activeColor.length - 1]);
         const color = colorText && Common.Color.parse(colorText);
         inactiveColor.classList.add('inactive-value');
         if (color) {
-            colorSwatch.color = color;
+            colorSwatch.renderColor(color);
         }
     }
     // Returns the syntax node group corresponding the active color scheme:
@@ -789,7 +787,7 @@ export class ColorMixRenderer extends rendererBase(SDK.CSSPropertyParserMatchers
                     if (results) {
                         const color = Common.Color.parse(results[0]);
                         if (color) {
-                            swatch.color = color.as("hexa" /* Common.Color.Format.HEXA */);
+                            swatch.setColor(color.as("hexa" /* Common.Color.Format.HEXA */));
                             return true;
                         }
                     }
@@ -1807,7 +1805,7 @@ export class StylePropertyTreeElement extends UI.TreeOutline.TreeElement {
         else {
             this.listItemElement.classList.remove('implicit');
         }
-        const hasIgnorableError = !this.property.parsedOk && StylesSidebarPane.ignoreErrorsForProperty(this.property);
+        const hasIgnorableError = !this.property.parsedOk && this.property.ignoreErrors();
         if (hasIgnorableError) {
             this.listItemElement.classList.add('has-ignorable-error');
         }
@@ -2387,12 +2385,12 @@ export class StylePropertyTreeElement extends UI.TreeOutline.TreeElement {
             Host.InspectorFrontendHost.InspectorFrontendHostInstance.copyText(this.property.value);
         }, { jslogContext: 'copy-value' });
         contextMenu.headerSection().appendItem(i18nString(UIStrings.copyRule), () => {
-            const ruleText = StylesSidebarPane.formatLeadingProperties(this.#parentSection).ruleText;
+            const ruleText = this.#parentSection.formatLeadingProperties().ruleText;
             Host.InspectorFrontendHost.InspectorFrontendHostInstance.copyText(ruleText);
         }, { jslogContext: 'copy-rule' });
         contextMenu.headerSection().appendItem(i18nString(UIStrings.copyCssDeclarationAsJs), this.copyCssDeclarationAsJs.bind(this), { jslogContext: 'copy-css-declaration-as-js' });
         contextMenu.clipboardSection().appendItem(i18nString(UIStrings.copyAllDeclarations), () => {
-            const allDeclarationText = StylesSidebarPane.formatLeadingProperties(this.#parentSection).allDeclarationText;
+            const allDeclarationText = this.#parentSection.formatLeadingProperties().allDeclarationText;
             Host.InspectorFrontendHost.InspectorFrontendHostInstance.copyText(allDeclarationText);
         }, { jslogContext: 'copy-all-declarations' });
         contextMenu.clipboardSection().appendItem(i18nString(UIStrings.copyAllCssDeclarationsAsJs), this.copyAllCssDeclarationAsJs.bind(this), { jslogContext: 'copy-all-css-declarations-as-js' });

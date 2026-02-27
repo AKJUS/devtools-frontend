@@ -20,12 +20,12 @@ type ComputedStyleData = {
 interface ComputedStyleWidgetInput {
     computedStylesTree: TreeOutline.TreeOutline.TreeOutline<ComputedStyleData>;
     hasMatches: boolean;
-    computedStyleModel?: ComputedStyleModule.ComputedStyleModel.ComputedStyleModel;
     showInheritedComputedStylePropertiesSetting: Common.Settings.Setting<boolean>;
     groupComputedStylesSetting: Common.Settings.Setting<boolean>;
     onFilterChanged: (event: CustomEvent<string>) => void;
     filterText: string;
     onRegexToggled: () => void;
+    includeToolbar: boolean;
 }
 type View = (input: ComputedStyleWidgetInput, output: null, target: HTMLElement) => void;
 export declare const DEFAULT_VIEW: View;
@@ -38,8 +38,8 @@ export declare class ComputedStyleWidget extends UI.Widget.VBox {
     private readonly imagePreviewPopover;
     constructor();
     onResize(): void;
-    wasShown(): void;
-    willHide(): void;
+    get includeToolbar(): boolean;
+    set includeToolbar(x: boolean);
     get nodeStyle(): ComputedStyleModule.ComputedStyleModel.ComputedStyle | null;
     set nodeStyle(nodeStyle: ComputedStyleModule.ComputedStyleModel.ComputedStyle | null);
     get matchedStyles(): SDK.CSSMatchedStyles.CSSMatchedStyles | null;
