@@ -1852,6 +1852,14 @@ declare namespace ProtocolProxyApi {
      */
     invoke_removeScreen(params: Protocol.Emulation.RemoveScreenRequest): Promise<Protocol.ProtocolResponseWithError>;
 
+    /**
+     * Set primary screen. Only supported in headless mode.
+     * Note that this changes the coordinate system origin to the top-left
+     * of the new primary screen, updating the bounds and work areas
+     * of all existing screens accordingly.
+     */
+    invoke_setPrimaryScreen(params: Protocol.Emulation.SetPrimaryScreenRequest): Promise<Protocol.ProtocolResponseWithError>;
+
   }
   export interface EmulationDispatcher {
     /**
@@ -1897,6 +1905,13 @@ declare namespace ProtocolProxyApi {
      * flag is set.
      */
     invoke_loadUnpacked(params: Protocol.Extensions.LoadUnpackedRequest): Promise<Protocol.Extensions.LoadUnpackedResponse>;
+
+    /**
+     * Gets a list of all unpacked extensions.
+     * Available if the client is connected using the --remote-debugging-pipe flag
+     * and the --enable-unsafe-extension-debugging flag is set.
+     */
+    invoke_getExtensions(): Promise<Protocol.Extensions.GetExtensionsResponse>;
 
     /**
      * Uninstalls an unpacked extension (others not supported) from the profile.

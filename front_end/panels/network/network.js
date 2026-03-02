@@ -4388,13 +4388,14 @@ var DEFAULT_VIEW6 = (input, _output, target) => {
     const request = initiators[index];
     const isCurrentRequest = index === initiators.length - 1;
     const hasFurtherInitiatedNodes = index + 1 < initiators.length;
+    const renderedChildren = isCurrentRequest ? renderInitiatedNodes(initiated, request, visited) : nothing6;
     return html6`
           <li role="treeitem" ?selected=${isCurrentRequest} aria-expanded="true" open>
             <span style=${isCurrentRequest ? "font-weight: bold" : ""}>${request.url()}</span>
-            ${hasFurtherInitiatedNodes || isCurrentRequest ? html6`
+            ${hasFurtherInitiatedNodes || renderedChildren !== nothing6 ? html6`
               <ul role="group">
                 ${renderInitiatorNodes(initiators, index + 1, initiated, visited)}
-                ${isCurrentRequest ? renderInitiatedNodes(initiated, request, visited) : nothing6}
+                ${renderedChildren}
               </ul>` : nothing6}
           </li>`;
   };
@@ -4906,6 +4907,7 @@ var requestPayloadView_css_default = `/*
 // gen/front_end/panels/network/RequestPayloadView.js
 var { classMap } = Directives2;
 var { widgetConfig: widgetConfig3 } = UI11.Widget;
+var { ifExpanded } = UI11.TreeOutline;
 var UIStrings11 = {
   /**
    * @description A context menu item Payload View of the Network panel to copy a parsed value.
@@ -5046,7 +5048,7 @@ var DEFAULT_VIEW7 = (input, output, target) => {
           ${input.decodeRequestParameters ? i18nString11(UIStrings11.viewUrlEncoded) : i18nString11(UIStrings11.viewDecoded)}
         </devtools-button>
         <ul role=group>
-          ${input.viewQueryParamSource ? createSourceText(input.queryString ?? "") : createParsedParams(input.queryParameters ?? [])}
+          ${ifExpanded(input.viewQueryParamSource ? createSourceText(input.queryString ?? "") : createParsedParams(input.queryParameters ?? []))}
         </ul>
       </li>
       <li
@@ -5068,7 +5070,7 @@ var DEFAULT_VIEW7 = (input, output, target) => {
           ${input.decodeRequestParameters ? i18nString11(UIStrings11.viewUrlEncoded) : i18nString11(UIStrings11.viewDecoded)}
         </devtools-button>
         <ul role=group>
-          ${input.viewFormParamSource ? createSourceText(input.formData ?? "") : createParsedParams(input.formParameters ?? [])}
+          ${ifExpanded(input.viewFormParamSource ? createSourceText(input.formData ?? "") : createParsedParams(input.formParameters ?? []))}
         </ul>
       </li>
       <li
@@ -5086,7 +5088,7 @@ var DEFAULT_VIEW7 = (input, output, target) => {
         >
         <div class="selection fill"></div>${i18nString11(UIStrings11.requestPayload)}${createViewSourceToggle(input.viewJSONPayloadSource, input.setViewJSONPayloadSource)}
         <ul role=group>
-          ${!parsedFormData || input.viewJSONPayloadSource ? createSourceText(input.formData ?? "") : createPayload(parsedFormData)}
+          ${ifExpanded(!parsedFormData || input.viewJSONPayloadSource ? createSourceText(input.formData ?? "") : createPayload(parsedFormData))}
         </ul>
       </li>
      </ul>
