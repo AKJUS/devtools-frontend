@@ -1685,9 +1685,6 @@
   "models/issues_manager/Issue.ts | pageErrors": {
     "message": "Page Errors"
   },
-  "models/issues_manager/LowTextContrastIssue.ts | colorAndContrastAccessibility": {
-    "message": "Color and contrast accessibility"
-  },
   "models/issues_manager/MixedContentIssue.ts | preventingMixedContent": {
     "message": "Preventing mixed content"
   },
@@ -2181,13 +2178,13 @@
     "message": "Duration"
   },
   "models/trace/insights/RenderBlocking.ts | noRenderBlocking": {
-    "message": "No render blocking requests for this navigation"
+    "message": "No render-blocking requests for this navigation"
   },
   "models/trace/insights/RenderBlocking.ts | renderBlockingRequest": {
     "message": "Request"
   },
   "models/trace/insights/RenderBlocking.ts | title": {
-    "message": "Render blocking requests"
+    "message": "Render-blocking requests"
   },
   "models/trace/insights/SlowCSSSelector.ts | description": {
     "message": "If Recalculate Style costs remain high, selector optimization can reduce them. [Optimize the selectors](https://developer.chrome.com/docs/performance/insights/slow-css-selector) with both high elapsed time and high slow-path %. Simpler selectors, fewer selectors, a smaller DOM, and a shallower DOM will all reduce matching costs."
@@ -3176,7 +3173,7 @@
   "panels/ai_assistance/components/WalkthroughView.ts | close": {
     "message": "Close"
   },
-  "panels/ai_assistance/components/WalkthroughView.ts | inlineTitle": {
+  "panels/ai_assistance/components/WalkthroughView.ts | showThinking": {
     "message": "Show thinking"
   },
   "panels/ai_assistance/components/WalkthroughView.ts | title": {
@@ -8169,7 +8166,7 @@
     "message": "Close DevTools"
   },
   "panels/emulation/DeviceModeToolbar.ts | defaultF": {
-    "message": "Default: {PH1}"
+    "message": "{PH1} (default)"
   },
   "panels/emulation/DeviceModeToolbar.ts | devicePixelRatio": {
     "message": "Device pixel ratio"
@@ -8181,13 +8178,16 @@
     "message": "Device type"
   },
   "panels/emulation/DeviceModeToolbar.ts | dimensions": {
-    "message": "Dimensions"
+    "message": "Dimensions: {PH1}"
+  },
+  "panels/emulation/DeviceModeToolbar.ts | dpr": {
+    "message": "DPR: {PH1}"
   },
   "panels/emulation/DeviceModeToolbar.ts | edit": {
     "message": "Edit…"
   },
-  "panels/emulation/DeviceModeToolbar.ts | fitToWindowF": {
-    "message": "Fit to window ({PH1}%)"
+  "panels/emulation/DeviceModeToolbar.ts | fitToWindowPercentage": {
+    "message": "{PH1}% (fit to window)"
   },
   "panels/emulation/DeviceModeToolbar.ts | heightLeaveEmptyForFull": {
     "message": "Height (leave empty for full)"
@@ -8227,6 +8227,9 @@
   },
   "panels/emulation/DeviceModeToolbar.ts | rotate": {
     "message": "Rotate"
+  },
+  "panels/emulation/DeviceModeToolbar.ts | screenOrientationLocked": {
+    "message": "Screen orientation is locked by the page"
   },
   "panels/emulation/DeviceModeToolbar.ts | screenOrientationOptions": {
     "message": "Screen orientation options"
@@ -8509,24 +8512,6 @@
   },
   "panels/issues/AffectedElementsView.ts | nElements": {
     "message": "{n, plural, =1 {# element} other {# elements}}"
-  },
-  "panels/issues/AffectedElementsWithLowContrastView.ts | contrastRatio": {
-    "message": "Contrast ratio"
-  },
-  "panels/issues/AffectedElementsWithLowContrastView.ts | element": {
-    "message": "Element"
-  },
-  "panels/issues/AffectedElementsWithLowContrastView.ts | minimumAA": {
-    "message": "Minimum AA ratio"
-  },
-  "panels/issues/AffectedElementsWithLowContrastView.ts | minimumAAA": {
-    "message": "Minimum AAA ratio"
-  },
-  "panels/issues/AffectedElementsWithLowContrastView.ts | textSize": {
-    "message": "Text size"
-  },
-  "panels/issues/AffectedElementsWithLowContrastView.ts | textWeight": {
-    "message": "Text weight"
   },
   "panels/issues/AffectedHeavyAdView.ts | cpuPeakLimit": {
     "message": "CPU peak limit"
@@ -10752,7 +10737,7 @@
     "message": "Remote address space"
   },
   "panels/network/NetworkLogViewColumns.ts | renderBlocking": {
-    "message": "Render Blocking"
+    "message": "Render-blocking"
   },
   "panels/network/NetworkLogViewColumns.ts | requestHeaders": {
     "message": "Request headers"
@@ -15528,7 +15513,7 @@
     "message": "Protocol"
   },
   "panels/timeline/components/NetworkRequestDetails.ts | renderBlocking": {
-    "message": "Render blocking"
+    "message": "Render-blocking"
   },
   "panels/timeline/components/NetworkRequestDetails.ts | requestMethod": {
     "message": "Request method"
@@ -15558,7 +15543,7 @@
     "message": "Redirects"
   },
   "panels/timeline/components/NetworkRequestTooltip.ts | renderBlocking": {
-    "message": "Render blocking"
+    "message": "Render-blocking"
   },
   "panels/timeline/components/NetworkRequestTooltip.ts | requestSentAndWaiting": {
     "message": "Request sent and waiting"

@@ -745,7 +745,7 @@ var GREENDEV_VIEW = (input, _output, target) => {
               <span>${i18nString(UIStrings.greenDevUnstable)}</span>
              </div>
              <div class="settings-experiments-block">
-               ${renderPrototypeCheckboxes(input.settings, ["aiAnnotations", "copyToGemini"])}
+               ${renderPrototypeCheckboxes(input.settings, ["aiAnnotations", "copyToGemini", "breakpointDebuggerAgent"])}
              </div>
            </devtools-card>
          </div>
@@ -753,7 +753,8 @@ var GREENDEV_VIEW = (input, _output, target) => {
 };
 var GREENDEV_PROTOTYPE_NAMES = {
   aiAnnotations: "AI auto-annotations",
-  copyToGemini: "Copy changes to AI Prompt"
+  copyToGemini: "Copy changes to AI Prompt",
+  breakpointDebuggerAgent: "Breakpoint Debugger Agent"
 };
 function renderPrototypeCheckboxes(settings, keys) {
   const { bindToSetting } = UI.UIUtils;
@@ -2651,7 +2652,7 @@ var ShortcutListItem = class {
     this.settingsTab = settingsTab;
     this.item = item2;
     this.element = document.createElement("div");
-    this.element.setAttribute("jslog", `${VisualLogging4.item().context(item2.id()).track({ keydown: "Escape" })}`);
+    this.element.setAttribute("jslog", `${VisualLogging4.item().context(item2.id()).track({ keydown: "Escape", resize: true })}`);
     this.editedShortcuts = /* @__PURE__ */ new Map();
     this.shortcutInputs = /* @__PURE__ */ new Map();
     this.shortcuts = UI5.ShortcutRegistry.ShortcutRegistry.instance().shortcutsForAction(item2.id());
@@ -3023,7 +3024,7 @@ var DEFAULT_VIEW2 = (input, _output, target) => {
               class="harmony-input"
               jslog=${VisualLogging5.textField().track({ keydown: "Enter", change: true }).context(input.excludePatternSetting.name)}
               ${UI6.UIUtils.bindToSetting(input.excludePatternSetting, { jslog: false })}
-              id="workspace-setting-folder-exclude-pattern"></input>
+              id="workspace-setting-folder-exclude-pattern">
           </div>
           <div class="mappings-info">${i18nString6(UIStrings6.mappingsAreInferredAutomatically)}</div>
         </devtools-card>

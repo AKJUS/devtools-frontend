@@ -11,6 +11,7 @@ import * as SDK from '../../core/sdk/sdk.js';
 import * as AiAssistanceModel from '../../models/ai_assistance/ai_assistance.js';
 import * as Annotations from '../../models/annotations/annotations.js';
 import * as Badges from '../../models/badges/badges.js';
+import * as Greendev from '../../models/greendev/greendev.js';
 import * as TextUtils from '../../models/text_utils/text_utils.js';
 import * as Workspace from '../../models/workspace/workspace.js';
 import * as Buttons from '../../ui/components/buttons/buttons.js';
@@ -238,6 +239,13 @@ async function getEmptyStateSuggestions(conversation) {
                 { title: 'What performance issues exist with my page?', jslogContext: 'performance-default' },
             ];
         }
+        case "breakpoint" /* AiAssistanceModel.AiHistoryStorage.ConversationType.BREAKPOINT */: {
+            return [
+                { title: 'Why did the code pause here?' },
+                { title: 'What function does this breakpoint belong to?' },
+                { title: 'Why is this error thrown?' },
+            ];
+        }
         case "none" /* AiAssistanceModel.AiHistoryStorage.ConversationType.NONE */: {
             return [
                 { title: 'What can you help me with?', jslogContext: 'empty' },
@@ -359,8 +367,21 @@ function defaultView(input, output, target) {
         ></devtools-widget>`;
         }
     }
-    const shouldShowWalkthrough = input.state === "chat-view" /* ViewState.CHAT_VIEW */ && input.walkthrough.isExpanded;
-    if (Root.Runtime.hostConfig.devToolsAiAssistanceV2?.enabled) {
+    if (Root.Runtime.hostConfig.devToolsAiAssistanceV2?.enabled ||
+        Greendev.Prototypes.instance().isEnabled('breakpointDebuggerAgent')) {
+        const shouldShowWalkthrough = input.state === "chat-view" /* ViewState.CHAT_VIEW */ && input.walkthrough.isExpanded;
+        /**
+         * We want to mark the walkthrough as loading only if it's showing the last
+         * message. Otherwise, a previous walkthrough will show as loading if we
+         * rely only on the isLoading flag.
+         */
+        let walkthroughIsForLastMessage = false;
+        if (input.state === "chat-view" /* ViewState.CHAT_VIEW */) {
+            const lastMessage = input.props.messages.at(-1);
+            if (lastMessage && input.props.walkthrough.activeMessage === lastMessage) {
+                walkthroughIsForLastMessage = true;
+            }
+        }
         Lit.render(html `
       ${toolbarView(input)}
       <div class="ai-assistance-view-container">
@@ -378,7 +399,7 @@ function defaultView(input, output, target) {
             ${shouldShowWalkthrough ? html `
               <devtools-widget .widgetConfig=${UI.Widget.widgetConfig(WalkthroughView, {
             message: input.props.walkthrough.activeMessage,
-            isLoading: input.props.isLoading,
+            isLoading: input.props.isLoading && walkthroughIsForLastMessage,
             markdownRenderer: input.props.markdownRenderer,
             onToggle: input.props.walkthrough.onToggle,
         })}></devtools-widget>` : Lit.nothing}
@@ -406,6 +427,12 @@ function createFileContext(file) {
         return null;
     }
     return new AiAssistanceModel.FileAgent.FileContext(file);
+}
+function createBreakpointContext(uiLocation) {
+    if (!uiLocation) {
+        return null;
+    }
+    return new AiAssistanceModel.BreakpointDebuggerAgent.BreakpointContext(uiLocation);
 }
 function createRequestContext(request) {
     if (!request) {
@@ -437,6 +464,7 @@ export class AiAssistancePanel extends UI.Panel.Panel {
     #selectedElement = null;
     #selectedPerformanceTrace = null;
     #selectedRequest = null;
+    #selectedBreakpoint = null;
     // Messages displayed in the `ChatView` component.
     #messages = [];
     // Whether the UI should show loading or not.
@@ -640,6 +668,10 @@ export class AiAssistancePanel extends UI.Panel.Panel {
         else if (isNetworkPanelVisible && hostConfig.devToolsAiAssistanceNetworkAgent?.enabled) {
             targetConversationType = "drjones-network-request" /* AiAssistanceModel.AiHistoryStorage.ConversationType.NETWORK */;
         }
+        else if (isSourcesPanelVisible &&
+            this.#conversation?.type === "breakpoint" /* AiAssistanceModel.AiHistoryStorage.ConversationType.BREAKPOINT */) {
+            targetConversationType = "breakpoint" /* AiAssistanceModel.AiHistoryStorage.ConversationType.BREAKPOINT */;
+        }
         else if (isSourcesPanelVisible && hostConfig.devToolsAiAssistanceFileAgent?.enabled) {
             targetConversationType = "drjones-file" /* AiAssistanceModel.AiHistoryStorage.ConversationType.FILE */;
         }
@@ -705,6 +737,18 @@ export class AiAssistancePanel extends UI.Panel.Panel {
         }
         this.requestUpdate();
     }
+    async handleBreakpointConversation(uiLocation, errorMsg) {
+        const context = new AiAssistanceModel.BreakpointDebuggerAgent.BreakpointContext(uiLocation);
+        this.#selectedBreakpoint = context;
+        const conversation = new AiAssistanceModel.AiConversation.AiConversation("breakpoint" /* AiAssistanceModel.AiHistoryStorage.ConversationType.BREAKPOINT */, [], undefined, false, this.#aidaClient, this.#changeManager, false, this.#handlePerformanceRecordAndReload.bind(this), this.#handleInspectElement.bind(this), NetworkPanel.NetworkPanel.NetworkPanel.instance().networkLogView.timeCalculator());
+        this.#updateConversationState(conversation);
+        this.#conversation?.setContext(context);
+        this.requestUpdate();
+        await UI.ViewManager.ViewManager.instance().showView(AiAssistancePanel.panelName);
+        const prompt = errorMsg ? `debug the error "${errorMsg}" using breakpoint debugging agent` :
+            'debug the error using breakpoint debugging agent';
+        await this.#startConversation(prompt);
+    }
     wasShown() {
         super.wasShown();
         this.#viewOutput.chatView?.restoreScrollPosition();
@@ -717,6 +761,8 @@ export class AiAssistancePanel extends UI.Panel.Panel {
         this.#selectedPerformanceTrace =
             createPerformanceTraceContext(UI.Context.Context.instance().flavor(AiAssistanceModel.AIContext.AgentFocus));
         this.#selectedFile = createFileContext(UI.Context.Context.instance().flavor(Workspace.UISourceCode.UISourceCode));
+        this.#selectedBreakpoint =
+            createBreakpointContext(UI.Context.Context.instance().flavor(Workspace.UISourceCode.UILocation));
         this.#updateConversationState(this.#conversation);
         this.#aiAssistanceEnabledSetting?.addChangeListener(this.requestUpdate, this);
         Host.AidaClient.HostConfigTracker.instance().addEventListener("aidaAvailabilityChanged" /* Host.AidaClient.Events.AIDA_AVAILABILITY_CHANGED */, this.#handleAidaAvailabilityChange);
@@ -725,6 +771,7 @@ export class AiAssistancePanel extends UI.Panel.Panel {
         UI.Context.Context.instance().addFlavorChangeListener(SDK.NetworkRequest.NetworkRequest, this.#handleNetworkRequestFlavorChange);
         UI.Context.Context.instance().addFlavorChangeListener(AiAssistanceModel.AIContext.AgentFocus, this.#handlePerformanceTraceFlavorChange);
         UI.Context.Context.instance().addFlavorChangeListener(Workspace.UISourceCode.UISourceCode, this.#handleUISourceCodeFlavorChange);
+        UI.Context.Context.instance().addFlavorChangeListener(Workspace.UISourceCode.UILocation, this.#handleBreakpointFlavorChange);
         UI.ViewManager.ViewManager.instance().addEventListener("ViewVisibilityChanged" /* UI.ViewManager.Events.VIEW_VISIBILITY_CHANGED */, this.#selectDefaultAgentIfNeeded, this);
         SDK.TargetManager.TargetManager.instance().addModelListener(SDK.DOMModel.DOMModel, SDK.DOMModel.Events.AttrModified, this.#handleDOMNodeAttrChange, this);
         SDK.TargetManager.TargetManager.instance().addModelListener(SDK.DOMModel.DOMModel, SDK.DOMModel.Events.AttrRemoved, this.#handleDOMNodeAttrChange, this);
@@ -810,6 +857,14 @@ export class AiAssistancePanel extends UI.Panel.Panel {
         this.#selectedFile = new AiAssistanceModel.FileAgent.FileContext(ev.data);
         this.#updateConversationState(this.#conversation);
     };
+    #handleBreakpointFlavorChange = (ev) => {
+        const newBreakpoint = ev.data;
+        if (!newBreakpoint || this.#selectedBreakpoint?.getItem() === newBreakpoint) {
+            return;
+        }
+        this.#selectedBreakpoint = new AiAssistanceModel.BreakpointDebuggerAgent.BreakpointContext(newBreakpoint);
+        this.#updateConversationState(this.#conversation);
+    };
     #getChangeSummary() {
         if (!isAiAssistancePatchingEnabled() || !this.#conversation || this.#conversation?.isReadOnly) {
             return;
@@ -891,6 +946,8 @@ export class AiAssistancePanel extends UI.Panel.Panel {
                 }
                 return lockedString(UIStringsNotTranslate.inputPlaceholderForPerformanceWithNoRecording);
             }
+            case "breakpoint" /* AiAssistanceModel.AiHistoryStorage.ConversationType.BREAKPOINT */:
+                return lockedString(UIStringsNotTranslate.inputPlaceholderForNoContext);
             case "none" /* AiAssistanceModel.AiHistoryStorage.ConversationType.NONE */:
                 if (AiAssistanceModel.AiUtils.isGeminiBranding()) {
                     return lockedString(UIStringsNotTranslate.inputPlaceholderForNoContextBranded);
@@ -927,6 +984,7 @@ export class AiAssistancePanel extends UI.Panel.Panel {
                     return lockedString(UIStringsNotTranslate.inputDisclaimerForPerformanceEnterpriseNoLogging);
                 }
                 return lockedString(UIStringsNotTranslate.inputDisclaimerForPerformance);
+            case "breakpoint" /* AiAssistanceModel.AiHistoryStorage.ConversationType.BREAKPOINT */:
             case "none" /* AiAssistanceModel.AiHistoryStorage.ConversationType.NONE */:
                 if (noLogging) {
                     return lockedString(UIStringsNotTranslate.inputDisclaimerForNoContextEnterpriseNoLogging);
@@ -1081,10 +1139,16 @@ export class AiAssistancePanel extends UI.Panel.Panel {
     #onHistoryDeleted() {
         this.#updateConversationState();
     }
+    #clearWalkthrough() {
+        this.#walkthrough.isExpanded = false;
+        this.#walkthrough.activeMessage = null;
+    }
     #onDeleteClicked() {
         if (!this.#conversation) {
             return;
         }
+        // Ensure we clear the walkthrough so it doesn't hold onto a chat that is about to be deleted.
+        this.#clearWalkthrough();
         void AiAssistanceModel.AiHistoryStorage.AiHistoryStorage.instance().deleteHistoryEntry(this.#conversation.id);
         this.#updateConversationState();
         UI.ARIAUtils.LiveAnnouncer.alert(i18nString(UIStrings.chatDeleted));
@@ -1135,6 +1199,8 @@ export class AiAssistancePanel extends UI.Panel.Panel {
                 return this.#selectedRequest;
             case "drjones-performance-full" /* AiAssistanceModel.AiHistoryStorage.ConversationType.PERFORMANCE */:
                 return this.#selectedPerformanceTrace;
+            case "breakpoint" /* AiAssistanceModel.AiHistoryStorage.ConversationType.BREAKPOINT */:
+                return this.#selectedBreakpoint;
             case "none" /* AiAssistanceModel.AiHistoryStorage.ConversationType.NONE */:
             case undefined:
                 return null;
@@ -1152,6 +1218,9 @@ export class AiAssistancePanel extends UI.Panel.Panel {
         }
         else if (data instanceof AiAssistanceModel.PerformanceAgent.PerformanceTraceContext) {
             this.#selectedPerformanceTrace = data;
+        }
+        else if (data instanceof AiAssistanceModel.BreakpointDebuggerAgent.BreakpointContext) {
+            this.#selectedBreakpoint = data;
         }
         void VisualLogging.logFunctionCall(`context-change-${this.#conversation?.type}`);
         this.requestUpdate();
@@ -1251,7 +1320,7 @@ export class AiAssistancePanel extends UI.Panel.Panel {
             let announcedAnswerLoading = false;
             let announcedAnswerReady = false;
             for await (const data of items) {
-                step.sideEffect = undefined;
+                step.requestApproval = undefined;
                 switch (data.type) {
                     case "user-query" /* AiAssistanceModel.AiAgent.ResponseType.USER_QUERY */: {
                         this.#messages.push({
@@ -1264,6 +1333,10 @@ export class AiAssistancePanel extends UI.Panel.Panel {
                             parts: [],
                         };
                         this.#messages.push(systemMessage);
+                        if (Greendev.Prototypes.instance().isEnabled('breakpointDebuggerAgent') &&
+                            this.#conversation?.type === "breakpoint" /* AiAssistanceModel.AiHistoryStorage.ConversationType.BREAKPOINT */) {
+                            this.#openWalkthrough(systemMessage);
+                        }
                         break;
                     }
                     case "querying" /* AiAssistanceModel.AiAgent.ResponseType.QUERYING */: {
@@ -1308,10 +1381,11 @@ export class AiAssistancePanel extends UI.Panel.Panel {
                     case "side-effect" /* AiAssistanceModel.AiAgent.ResponseType.SIDE_EFFECT */: {
                         step.isLoading = false;
                         step.code ??= data.code;
-                        step.sideEffect = {
+                        step.requestApproval = {
+                            description: data.description,
                             onAnswer: (result) => {
                                 data.confirm(result);
-                                step.sideEffect = undefined;
+                                step.requestApproval = undefined;
                                 this.requestUpdate();
                             },
                         };
@@ -1323,6 +1397,7 @@ export class AiAssistancePanel extends UI.Panel.Panel {
                         step.code ??= data.code;
                         step.output ??= data.output;
                         step.canceled = data.canceled;
+                        step.widgets ??= data.widgets;
                         commitStep();
                         break;
                     }

@@ -7226,6 +7226,10 @@ var NativeFunctions = [
     signatures: [["width", "height"]]
   },
   {
+    name: "OverscrollEvent",
+    signatures: [["type", "?eventInitDict"]]
+  },
+  {
     name: "setValueAndClosePopup",
     signatures: [["numberValue", "stringValue", "is_keyboard_event"]]
   },
@@ -7326,16 +7330,16 @@ var NativeFunctions = [
     signatures: [["type", "eventInitDict"]]
   },
   {
+    name: "provideContext",
+    signatures: [["?options"]]
+  },
+  {
     name: "registerTool",
-    signatures: [["params"]]
+    signatures: [["tool"]]
   },
   {
     name: "unregisterTool",
-    signatures: [["tool_name"]]
-  },
-  {
-    name: "provideContext",
-    signatures: [["params"]]
+    signatures: [["name"]]
   },
   {
     name: "SnapEvent",

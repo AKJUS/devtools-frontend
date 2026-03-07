@@ -4953,7 +4953,7 @@ var generatedProperties = [
     "inherited": false,
     "keywords": [
       "none",
-      "auto"
+      "all"
     ],
     "name": "view-transition-scope"
   },
@@ -7329,7 +7329,7 @@ var generatedPropertyValues = {
   "view-transition-scope": {
     "values": [
       "none",
-      "auto"
+      "all"
     ]
   },
   "visibility": {
@@ -9085,6 +9085,23 @@ var extraPropertyValues = /* @__PURE__ */ new Map([
   ["-webkit-transform-origin-x", /* @__PURE__ */ new Set(["left", "right", "center"])],
   ["-webkit-transform-origin-y", /* @__PURE__ */ new Set(["top", "bottom", "center"])],
   ["width", /* @__PURE__ */ new Set(["-webkit-fill-available", "stretch"])],
+  [
+    "animation-trigger",
+    /* @__PURE__ */ new Set([
+      "play",
+      "pause",
+      "play-once",
+      "play-alternate",
+      "play-forwards",
+      "play-backwards",
+      "play-pause",
+      "replay"
+    ])
+  ],
+  ["timeline-trigger-activation-range-start", /* @__PURE__ */ new Set(["normal"])],
+  ["timeline-trigger-activation-range-end", /* @__PURE__ */ new Set(["normal"])],
+  ["timeline-trigger-active-range-start", /* @__PURE__ */ new Set(["normal"])],
+  ["timeline-trigger-active-range-end", /* @__PURE__ */ new Set(["normal"])],
   ["contain-intrinsic-width", /* @__PURE__ */ new Set(["auto none", "auto 100px"])],
   ["contain-intrinsic-height", /* @__PURE__ */ new Set(["auto none", "auto 100px"])],
   ["contain-intrinsic-size", /* @__PURE__ */ new Set(["auto none", "auto 100px"])],
@@ -21632,7 +21649,8 @@ var RuntimeModel = class extends SDKModel {
       }
     }
     if (object.isNode()) {
-      void Common15.Revealer.reveal(object).then(object.release.bind(object));
+      const omitFocus = hints !== null && typeof hints === "object" && "omitFocus" in hints && Boolean(hints.omitFocus);
+      void Common15.Revealer.reveal(object, omitFocus).then(object.release.bind(object));
       return;
     }
     if (object.type === "function") {
@@ -33313,10 +33331,14 @@ var EmulationModel = class extends SDKModel {
   #touchEmulationAllowed;
   #customTouchEnabled;
   #touchConfiguration;
+  #screenOrientationLocked;
+  #lockedOrientation;
   constructor(target) {
     super(target);
     this.#emulationAgent = target.emulationAgent();
     this.#deviceOrientationAgent = target.deviceOrientationAgent();
+    this.#screenOrientationLocked = false;
+    this.#lockedOrientation = null;
     this.#cssModel = target.model(CSSModel);
     this.#overlayModel = target.model(OverlayModel);
     if (this.#overlayModel) {
@@ -33478,6 +33500,7 @@ var EmulationModel = class extends SDKModel {
       enabled: false,
       configuration: "mobile"
     };
+    target.registerEmulationDispatcher(this);
   }
   setTouchEmulationAllowed(touchEmulationAllowed) {
     this.#touchEmulationAllowed = touchEmulationAllowed;
@@ -33678,6 +33701,20 @@ var EmulationModel = class extends SDKModel {
       }
     ];
     return await this.emulateCSSMedia(type, features);
+  }
+  // ProtocolProxyApi.EmulationDispatcher implementation
+  virtualTimeBudgetExpired() {
+  }
+  screenOrientationLockChanged(event) {
+    this.#screenOrientationLocked = event.locked;
+    this.#lockedOrientation = event.orientation ?? null;
+    this.dispatchEventToListeners("ScreenOrientationLockChanged", { locked: event.locked, orientation: event.orientation ?? null });
+  }
+  isScreenOrientationLocked() {
+    return this.#screenOrientationLocked;
+  }
+  lockedOrientation() {
+    return this.#lockedOrientation;
   }
 };
 var Location2 = class _Location {
