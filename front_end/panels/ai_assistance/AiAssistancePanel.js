@@ -608,6 +608,8 @@ export class AiAssistancePanel extends UI.Panel.Panel {
         if (isNarrow === this.#walkthrough.isInlined) {
             return;
         }
+        // If the UI changed, we reset the visibility of the AI Walkthrough.
+        this.#clearWalkthrough();
         this.#walkthrough.isInlined = isNarrow;
         this.requestUpdate();
     }
@@ -1359,6 +1361,7 @@ export class AiAssistancePanel extends UI.Panel.Panel {
                     case "context" /* AiAssistanceModel.AiAgent.ResponseType.CONTEXT */: {
                         step.title = data.title;
                         step.contextDetails = data.details;
+                        step.widgets = data.widgets;
                         step.isLoading = false;
                         commitStep();
                         break;

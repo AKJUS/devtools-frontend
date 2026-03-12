@@ -18,6 +18,8 @@ import * as UI from '../../../ui/legacy/legacy.js';
 import * as Lit from '../../../ui/lit/lit.js';
 import * as VisualLogging from '../../../ui/visual_logging/visual_logging.js';
 import * as Elements from '../../elements/elements.js';
+import * as TimelineComponents from '../../timeline/components/components.js';
+import * as TimelineUtils from '../../timeline/utils/utils.js';
 import chatMessageStyles from './chatMessage.css.js';
 import { walkthroughTitle, WalkthroughView } from './WalkthroughView.js';
 const { html, Directives: { ref, ifDefined } } = Lit;
@@ -326,13 +328,16 @@ function renderStepDetails({ step, markdownRenderer, isLast, }) {
   </div>`;
     // clang-format on
 }
-function renderWalkthroughSidebarButton(input, lastStep) {
+function renderWalkthroughSidebarButton(input, steps) {
     const { message, walkthrough } = input;
-    if (walkthrough.isInlined) {
+    const lastStep = steps.at(-1);
+    if (walkthrough.isInlined || !lastStep) {
         return Lit.nothing;
     }
+    const hasOneStepWithWidget = steps.some(step => step.widgets?.length);
     const title = walkthroughTitle({
         isLoading: input.isLoading,
+        hasWidgets: hasOneStepWithWidget,
         lastStep,
     });
     // clang-format off
@@ -346,7 +351,7 @@ function renderWalkthroughSidebarButton(input, lastStep) {
         .jslogContext=${walkthrough.isExpanded ? 'ai-hide-walkthrough-sidebar' : 'ai-show-walkthrough-sidebar'}
         data-show-walkthrough
         @click=${() => {
-        if (walkthrough.isExpanded) {
+        if (walkthrough.activeMessage === input.message && walkthrough.isExpanded) {
             walkthrough.onToggle(false);
         }
         else {
@@ -376,7 +381,7 @@ function renderWalkthroughUI(input, steps) {
     const sideEffectSteps = steps.filter(s => s.requestApproval);
     // If the walkthrough is in the sidebar, we render a button into the
     // ChatView to open it.
-    const openWalkThroughSidebarButton = !input.walkthrough.isInlined ? renderWalkthroughSidebarButton(input, lastStep) : Lit.nothing;
+    const openWalkThroughSidebarButton = !input.walkthrough.isInlined ? renderWalkthroughSidebarButton(input, steps) : Lit.nothing;
     // If there are side-effect steps, and the walkthrough is not open, we render
     // those inline so that the user can see them and approve them.
     // Note: this is a temporary approach and needs more UX discussion; b/487921578
@@ -393,6 +398,8 @@ function renderWalkthroughUI(input, steps) {
     // clang-format on
     // If the walkthrough is inlined (narrow width screens), render it here.
     // Note that we force it open if there is a side-effect.
+    const isExpanded = (input.walkthrough.isExpanded && input.walkthrough.activeMessage === input.message) ||
+        steps.some(s => s.requestApproval);
     // clang-format off
     const walkthroughInline = input.walkthrough.isInlined ? html `
     <div class="walkthrough-container">
@@ -401,9 +408,9 @@ function renderWalkthroughUI(input, steps) {
         isLoading: input.isLoading && input.isLastMessage,
         markdownRenderer: input.markdownRenderer,
         isInlined: true,
-        isExpanded: input.isLastMessage &&
-            (input.walkthrough.isExpanded || steps.some(step => Boolean(step.requestApproval))),
+        isExpanded,
         onToggle: input.walkthrough.onToggle,
+        onOpen: input.walkthrough.onOpen,
     })}></devtools-widget>
     </div>
   ` : Lit.nothing;
@@ -468,31 +475,45 @@ export function renderStep({ step, isLoading, markdownRenderer, isLast }) {
       </div>` : Lit.nothing}`;
     // clang-format on
 }
+const computedStyleNodeCache = new Map();
 async function makeComputedStyleWidget(widgetData) {
-    const target = SDK.TargetManager.TargetManager.instance().primaryPageTarget();
-    if (!target) {
-        return null;
+    let domNodeForId = computedStyleNodeCache.get(widgetData.data.backendNodeId);
+    if (!domNodeForId) {
+        const target = SDK.TargetManager.TargetManager.instance().primaryPageTarget();
+        if (!target) {
+            return null;
+        }
+        const node = new SDK.DOMModel.DeferredDOMNode(target, widgetData.data.backendNodeId);
+        const resolved = await node.resolvePromise();
+        if (!resolved) {
+            return null;
+        }
+        domNodeForId = resolved;
+        computedStyleNodeCache.set(widgetData.data.backendNodeId, resolved);
     }
-    const node = new SDK.DOMModel.DeferredDOMNode(target, widgetData.data.backendNodeId);
-    const resolved = await node.resolvePromise();
-    if (!resolved) {
-        return null;
-    }
-    const model = new ComputedStyle.ComputedStyleModel.ComputedStyleModel(resolved);
-    const styles = new ComputedStyle.ComputedStyleModel.ComputedStyle(resolved, widgetData.data.computedStyles);
+    const styles = new ComputedStyle.ComputedStyleModel.ComputedStyle(domNodeForId, widgetData.data.computedStyles);
     const widgetConfig = UI.Widget.widgetConfig(Elements.ComputedStyleWidget.ComputedStyleWidget, {
         nodeStyle: styles,
         matchedStyles: widgetData.data.matchedCascade,
         // This disables showing the nested traces and detailed information in the widget.
         propertyTraces: null,
-        computedStyleModel: model,
         allowUserControl: false,
         filterText: new RegExp(widgetData.data.properties.join('|'), 'i')
     });
     // clang-format off
     const widget = html `<devtools-widget class="computed-styles-widget" .widgetConfig=${widgetConfig}></devtools-widget>`;
     // clang-format on
-    return { renderedWidget: widget, revealable: new Elements.ElementsPanel.NodeComputedStyles(resolved) };
+    return { renderedWidget: widget, revealable: new Elements.ElementsPanel.NodeComputedStyles(domNodeForId) };
+}
+async function makeCoreVitalsWidget(widgetData) {
+    const widgetConfig = UI.Widget.widgetConfig(TimelineComponents.CWVMetrics.CWVMetrics, { data: widgetData.data });
+    // clang-format off
+    const widget = html `<devtools-widget class="core-vitals-widget" .widgetConfig=${widgetConfig}></devtools-widget>`;
+    // clang-format on
+    return {
+        renderedWidget: widget,
+        revealable: new TimelineUtils.Helpers.RevealableCoreVitals(widgetData.data.insightSetKey)
+    };
 }
 function renderWidgetResponse(response) {
     if (response === null) {
@@ -506,15 +527,17 @@ function renderWidgetResponse(response) {
     }
     // clang-format off
     return html `
-    <div class="widget-content-container">
-      ${response.renderedWidget}
-    </div>
-    <div class="widget-reveal-container">
-      <devtools-button class="widget-reveal"
-        .iconName=${'tab-move'}
-        .variant=${"text" /* Buttons.Button.Variant.TEXT */}
-        @click=${onReveal}
-      >${lockedString(UIStringsNotTranslate.reveal)}</devtools-button>
+    <div class="widget-and-revealer-container">
+      <div class="widget-content-container">
+        ${response.renderedWidget}
+      </div>
+      <div class="widget-reveal-container">
+        <devtools-button class="widget-reveal"
+          .iconName=${'tab-move'}
+          .variant=${"text" /* Buttons.Button.Variant.TEXT */}
+          @click=${onReveal}
+        >${lockedString(UIStringsNotTranslate.reveal)}</devtools-button>
+      </div>
     </div>
     `;
     // clang-format on
@@ -525,10 +548,11 @@ function renderWidgetResponse(response) {
  * iterates through the `step.widgets` array. For each widget, it determines
  * the appropriate rendering logic based on the `widgetData.name`.
  *
- * Currently, only 'COMPUTED_STYLES' widgets are supported. For these, the
- * `makeComputedStyleWidget` function is called to construct the necessary
+ * Currently, only 'COMPUTED_STYLES' and 'CORE_VITALS' widgets are supported. For these, the
+ * `makeComputedStyleWidget` and `makeCoreVitalsWidget` functions are called to construct the necessary
  * data and configuration for the `Elements.ComputedStyleWidget.ComputedStyleWidget`
- * component. The widget is then rendered using the `<devtools-widget>`
+ * and `TimelineComponents.CWVMetrics.CWVMetrics`
+ * components. The widget is then rendered using the `<devtools-widget>`
  * custom element, which dynamically instantiates and displays the specified
  * UI.Widget subclass with the provided configuration.
  *
@@ -543,6 +567,10 @@ async function renderStepWidgets(step) {
     const ui = await Promise.all(step.widgets.map(async (widgetData) => {
         if (widgetData.name === 'COMPUTED_STYLES') {
             const response = await makeComputedStyleWidget(widgetData);
+            return renderWidgetResponse(response);
+        }
+        if (widgetData.name === 'CORE_VITALS') {
+            const response = await makeCoreVitalsWidget(widgetData);
             return renderWidgetResponse(response);
         }
         return Lit.nothing;
@@ -770,6 +798,7 @@ export class ChatMessage extends UI.Widget.Widget {
         onToggle: () => { },
         isInlined: false,
         isExpanded: false,
+        activeMessage: null,
     };
     #suggestionsResizeObserver = new ResizeObserver(() => this.#handleSuggestionsScrollOrResize());
     #suggestionsEvaluateLayoutThrottler = new Common.Throttler.Throttler(50);
