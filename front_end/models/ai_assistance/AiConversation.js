@@ -1,8 +1,10 @@
 // Copyright 2024 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
+import * as Common from '../../core/common/common.js';
 import * as Host from '../../core/host/host.js';
 import * as Root from '../../core/root/root.js';
+import * as SDK from '../../core/sdk/sdk.js';
 import * as Greendev from '../greendev/greendev.js';
 import { BreakpointDebuggerAgent } from './agents/BreakpointDebuggerAgent.js';
 import { ContextSelectionAgent } from './agents/ContextSelectionAgent.js';
@@ -107,6 +109,10 @@ export class AiConversation {
     get selectedContext() {
         return this.#contexts.at(0);
     }
+    getPendingMultimodalInput() {
+        const greenDevEmulationEnabled = Greendev.Prototypes.instance().isEnabled('emulationCapabilities');
+        return greenDevEmulationEnabled ? this.#agent.popPendingMultimodalInput() : undefined;
+    }
     #reconstructHistory(historyWithoutImages) {
         const imageHistory = AiHistoryStorage.instance().getImageHistory();
         if (imageHistory && imageHistory.length > 0) {
@@ -199,20 +205,23 @@ export class AiConversation {
             id: this.id,
             history: this.history
                 .map(item => {
-                if (item.type === "context-change" /* ResponseType.CONTEXT_CHANGE */) {
-                    return null;
+                switch (item.type) {
+                    case "context-change" /* ResponseType.CONTEXT_CHANGE */: {
+                        return null;
+                    }
+                    case "user-query" /* ResponseType.USER_QUERY */: {
+                        return { ...item, imageInput: undefined };
+                    }
+                    case "side-effect" /* ResponseType.SIDE_EFFECT */: {
+                        return { ...item, confirm: undefined };
+                    }
+                    case "context" /* ResponseType.CONTEXT */:
+                    case "action" /* ResponseType.ACTION */: {
+                        return { ...item, widgets: undefined };
+                    }
+                    default:
+                        return item;
                 }
-                if (item.type === "user-query" /* ResponseType.USER_QUERY */) {
-                    return { ...item, imageInput: undefined };
-                }
-                // Remove the `confirm()`-function because `structuredClone()` throws on functions
-                if (item.type === "side-effect" /* ResponseType.SIDE_EFFECT */) {
-                    return { ...item, confirm: undefined };
-                }
-                if (item.type === "context" /* ResponseType.CONTEXT */ && item.widgets) {
-                    return { ...item, widgets: undefined };
-                }
-                return item;
             })
                 .filter(history => !!history),
             type: this.#type,
@@ -242,6 +251,7 @@ export class AiConversation {
             performanceRecordAndReload: this.#performanceRecordAndReload,
             onInspectElement: this.#onInspectElement,
             networkTimeCalculator: this.#networkTimeCalculator,
+            allowedOrigin: this.allowedOrigin,
             history,
         };
         switch (type) {
@@ -288,16 +298,20 @@ export class AiConversation {
         };
         void this.addHistoryItem(userQuery);
         yield userQuery;
-        this.#setOriginIfEmpty(this.selectedContext?.getOrigin());
-        if (this.isBlockedByOrigin) {
-            throw new Error('Cross-origin context data should not be included');
-        }
         yield* this.#runAgent(initialQuery, options);
     }
     #getQueryAfterSelection(initialQuery, selection) {
         return `${selection}\nOriginal user query: ${initialQuery}`;
     }
     async *#runAgent(initialQuery, options = {}) {
+        this.#setOriginIfEmpty(this.selectedContext?.getOrigin());
+        if (this.isBlockedByOrigin) {
+            yield {
+                type: "error" /* ResponseType.ERROR */,
+                error: "cross-origin" /* ErrorType.CROSS_ORIGIN */,
+            };
+            return;
+        }
         function shouldAddToHistory(data) {
             if (data.type === "context-change" /* ResponseType.CONTEXT_CHANGE */) {
                 return false;
@@ -342,6 +356,15 @@ export class AiConversation {
     get type() {
         return this.#type;
     }
+    allowedOrigin = () => {
+        if (this.#origin) {
+            return this.#origin;
+        }
+        const target = SDK.TargetManager.TargetManager.instance().primaryPageTarget();
+        const inspectedURL = target?.inspectedURL();
+        this.#origin = inspectedURL ? new Common.ParsedURL.ParsedURL(inspectedURL).securityOrigin() : undefined;
+        return this.#origin;
+    };
 }
 function isAiAssistanceServerSideLoggingEnabled() {
     return !Root.Runtime.hostConfig.aidaAvailability?.disallowLogging;

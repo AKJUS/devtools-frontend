@@ -2824,7 +2824,7 @@ import * as UI8 from "./../../../ui/legacy/legacy.js";
 import * as Lit10 from "./../../../ui/lit/lit.js";
 import * as PanelsCommon from "./../../common/common.js";
 var { html: html10 } = Lit10;
-var { widgetConfig } = UI8.Widget;
+var { widget } = UI8.Widget;
 var DEFAULT_VIEW4 = (input, output, target) => {
   const { relatedNodeEl, fallbackUrl, fallbackHtmlSnippet, fallbackText } = input;
   let template;
@@ -2919,9 +2919,7 @@ var NodeLink = class extends UI8.Widget.Widget {
   }
 };
 function nodeLink(data) {
-  return html10`<devtools-widget .widgetConfig=${widgetConfig(NodeLink, {
-    data
-  })}></devtools-widget>`;
+  return html10`${widget(NodeLink, { data })}`;
 }
 
 // gen/front_end/panels/timeline/components/layoutShiftDetails.css.js
@@ -5107,7 +5105,7 @@ devtools-link {
 
 // gen/front_end/panels/timeline/components/LiveMetricsView.js
 var { html: html14, nothing: nothing12 } = Lit14;
-var { widgetConfig: widgetConfig2 } = UI10.Widget;
+var { widget: widget2 } = UI10.Widget;
 var DEVICE_OPTION_LIST = ["AUTO", ...CrUXManager11.DEVICE_SCOPE_LIST];
 var RTT_MINIMUM = 60;
 var UIStrings15 = {
@@ -5491,8 +5489,7 @@ var LiveMetricsView = class extends LegacyWrapper.LegacyWrapper.WrappableCompone
             <div class="related-info" slot="extra-info">
               <span class="related-info-label">${i18nString14(UIStrings15.lcpElement)}</span>
               <span class="related-info-link">
-               <devtools-widget .widgetConfig=${widgetConfig2(PanelsCommon2.DOMLinkifier.DOMNodeLink, { node: this.#lcpValue?.nodeRef })}>
-               </devtools-widget>
+               ${widget2(PanelsCommon2.DOMLinkifier.DOMNodeLink, { node: this.#lcpValue?.nodeRef })}
               </span>
             </div>
           ` : nothing12}
@@ -5625,7 +5622,7 @@ var LiveMetricsView = class extends LegacyWrapper.LegacyWrapper.WrappableCompone
         </ul>
       ` : nothing12}
       <div class="environment-option">
-        <devtools-widget .widgetConfig=${widgetConfig2(CPUThrottlingSelector, { recommendedOption: recs.cpuOption })}></devtools-widget>
+        ${widget2(CPUThrottlingSelector, { recommendedOption: recs.cpuOption })}
       </div>
       <div class="environment-option">
         <devtools-network-throttling-selector .recommendedConditions=${recs.networkConditions}></devtools-network-throttling-selector>
@@ -5907,8 +5904,7 @@ var LiveMetricsView = class extends LegacyWrapper.LegacyWrapper.WrappableCompone
                     ${interaction.interactionType} ${isInp ? html14`<span class="interaction-inp-chip" title=${i18nString14(UIStrings15.inpInteraction)}>INP</span>` : nothing12}
                   </span>
                   <span class="interaction-node">
-                    <devtools-widget .widgetConfig=${widgetConfig2(PanelsCommon2.DOMLinkifier.DOMNodeLink, { node: interaction.nodeRef })}>
-                    </devtools-widget>
+                    ${widget2(PanelsCommon2.DOMLinkifier.DOMNodeLink, { node: interaction.nodeRef })}
                   </span>
                   ${isP98Excluded ? html14`<devtools-icon
                     class="interaction-info"
@@ -6007,8 +6003,7 @@ var LiveMetricsView = class extends LegacyWrapper.LegacyWrapper.WrappableCompone
               <div class="layout-shift-nodes">
                 ${layoutShift.affectedNodeRefs.map((node) => html14`
                   <div class="layout-shift-node">
-                    <devtools-widget .widgetConfig=${widgetConfig2(PanelsCommon2.DOMLinkifier.DOMNodeLink, { node })}>
-                    </devtools-widget>
+                    ${widget2(PanelsCommon2.DOMLinkifier.DOMNodeLink, { node })}
                   </div>
                 `)}
               </div>
@@ -7847,19 +7842,14 @@ var UIStrings20 = {
 };
 var str_20 = i18n39.i18n.registerUIStrings("panels/timeline/components/SidebarSingleInsightSet.ts", UIStrings20);
 var i18nString19 = i18n39.i18n.getLocalizedString.bind(void 0, str_20);
+var { widget: widget3 } = UI15.Widget;
 var DEFAULT_VIEW10 = (input, output, target) => {
   const { shownInsights, passedInsights, insightSetKey, parsedTrace, renderInsightComponent } = input;
   function renderMetrics() {
     if (!insightSetKey || !parsedTrace) {
       return Lit19.nothing;
     }
-    const metricsWidgetConfig = UI15.Widget.widgetConfig(CWVMetrics, {
-      data: {
-        insightSetKey,
-        parsedTrace
-      }
-    });
-    return html19`<devtools-widget .widgetConfig=${metricsWidgetConfig}></devtools-widget>`;
+    return html19`${widget3(CWVMetrics, { data: { insightSetKey, parsedTrace } })}`;
   }
   function renderInsights() {
     const shownInsightTemplates = shownInsights.map(renderInsightComponent);
@@ -7983,7 +7973,7 @@ var SidebarSingleInsightSet = class _SidebarSingleInsightSet extends UI15.Widget
 
 // gen/front_end/panels/timeline/components/SidebarInsightsTab.js
 var { html: html20 } = Lit20;
-var { widgetConfig: widgetConfig3 } = UI16.Widget;
+var { widgetConfig } = UI16.Widget;
 var DEFAULT_VIEW11 = (input, output, target) => {
   const { parsedTrace, labels, activeInsightSet, activeInsight, selectedCategory, onInsightSetToggled, onInsightSetHovered, onInsightSetUnhovered, onZoomClick } = input;
   const insights = parsedTrace.insights;
@@ -8006,7 +7996,7 @@ var DEFAULT_VIEW11 = (input, output, target) => {
     const contents = html20`
           <devtools-widget
             data-insight-set-key=${id}
-            .widgetConfig=${widgetConfig3(SidebarSingleInsightSet, { data })}
+            .widgetConfig=${widgetConfig(SidebarSingleInsightSet, { data })}
           ></devtools-widget>
         `;
     if (hasMultipleInsightSets) {
@@ -8302,30 +8292,30 @@ var InsightsView = class extends UI17.Widget.VBox {
     this.#component.widgetConfig = UI17.Widget.widgetConfig(SidebarInsightsTab, { parsedTrace });
   }
   getActiveInsight() {
-    const widget = this.#component.getWidget();
-    if (widget) {
-      return widget.activeInsight;
+    const widget4 = this.#component.getWidget();
+    if (widget4) {
+      return widget4.activeInsight;
     }
     return null;
   }
   setActiveInsight(active, opts) {
-    const widget = this.#component.getWidget();
-    if (!widget) {
+    const widget4 = this.#component.getWidget();
+    if (!widget4) {
       return;
     }
-    widget.activeInsight = active;
+    widget4.activeInsight = active;
     if (opts.highlight && active) {
-      void widget.updateComplete.then(() => {
-        widget.highlightActiveInsight();
+      void widget4.updateComplete.then(() => {
+        widget4.highlightActiveInsight();
       });
     }
   }
   setActiveInsightSet(insightSetKey) {
-    const widget = this.#component.getWidget();
-    if (!widget) {
+    const widget4 = this.#component.getWidget();
+    if (!widget4) {
       return;
     }
-    widget.setActiveInsightSet(insightSetKey);
+    widget4.setActiveInsightSet(insightSetKey);
   }
 };
 var AnnotationsView = class extends UI17.Widget.VBox {
