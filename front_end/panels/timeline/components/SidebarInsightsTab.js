@@ -100,6 +100,7 @@ function renderDropdownIcon(insightSetToggled) {
 export class SidebarInsightsTab extends UI.Widget.Widget {
     static createWidgetElement() {
         const widgetElement = document.createElement('devtools-widget');
+        new SidebarInsightsTab(widgetElement);
         return widgetElement;
     }
     #view;
@@ -180,7 +181,7 @@ export class SidebarInsightsTab extends UI.Widget.Widget {
         }
         // Find the right set for this insight via the set key.
         const set = this.element.shadowRoot?.querySelector(`[data-insight-set-key="${this.#activeInsight.insightSetKey}"]`);
-        set?.getWidget()?.highlightActiveInsight();
+        void set?.getWidget()?.highlightActiveInsight();
     }
     performUpdate() {
         if (!this.#parsedTrace?.insights) {
