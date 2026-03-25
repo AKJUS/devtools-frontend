@@ -6817,7 +6817,7 @@ var HeapSnapshotViewportDataGrid = class extends HeapSnapshotSortableDataGrid {
 };
 var HeapSnapshotContainmentDataGrid = class extends HeapSnapshotSortableDataGrid {
   constructor(heapProfilerModel, dataDisplayDelegate, displayName, columns) {
-    columns = columns || [
+    const defaultColumns = [
       { id: "object", title: i18nString11(UIStrings11.object), disclosure: true, sortable: true },
       { id: "distance", title: i18nString11(UIStrings11.distance), width: "70px", sortable: true, fixedWidth: true },
       {
@@ -6836,8 +6836,8 @@ var HeapSnapshotContainmentDataGrid = class extends HeapSnapshotSortableDataGrid
         sort: DataGrid9.DataGrid.Order.Descending
       }
     ];
-    const dataGridParameters = { displayName, columns };
-    super(heapProfilerModel, dataDisplayDelegate, dataGridParameters);
+    columns = columns || defaultColumns;
+    super(heapProfilerModel, dataDisplayDelegate, { displayName, columns });
   }
   async setDataSource(snapshot, nodeIndex, nodeId) {
     this.snapshot = snapshot;
@@ -6929,7 +6929,13 @@ var HeapSnapshotConstructorsDataGrid = class extends HeapSnapshotViewportDataGri
     const columns = [
       { id: "object", title: i18nString11(UIStrings11.constructorString), disclosure: true, sortable: true },
       { id: "distance", title: i18nString11(UIStrings11.distance), width: "70px", sortable: true, fixedWidth: true },
-      { id: "shallowSize", title: i18nString11(UIStrings11.shallowSize), width: "110px", sortable: true, fixedWidth: true },
+      {
+        id: "shallowSize",
+        title: i18nString11(UIStrings11.shallowSize),
+        width: "110px",
+        sortable: true,
+        fixedWidth: true
+      },
       {
         id: "retainedSize",
         title: i18nString11(UIStrings11.retainedSize),
@@ -9471,7 +9477,6 @@ var LiveHeapProfileView = class _LiveHeapProfileView extends UI16.Widget.VBox {
   }
   createDataGrid() {
     const defaultColumnConfig = {
-      id: "",
       title: Common14.UIString.LocalizedEmptyString,
       fixedWidth: true,
       sortable: true,
