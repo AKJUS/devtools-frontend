@@ -243,7 +243,7 @@ const UIStrings = {
 };
 const str_ = i18n.i18n.registerUIStrings('panels/application/FrameDetailsView.ts', UIStrings);
 const i18nString = i18n.i18n.getLocalizedString.bind(undefined, str_);
-const DEFAULT_VIEW = (input, _output, target) => {
+export const DEFAULT_VIEW = (input, _output, target) => {
     if (!input.frame) {
         return;
     }

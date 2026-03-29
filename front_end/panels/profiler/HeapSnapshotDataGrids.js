@@ -115,21 +115,19 @@ class HeapSnapshotSortableDataGridBase extends DataGrid.DataGrid.DataGridImpl {
 }
 export class HeapSnapshotSortableDataGrid extends Common.ObjectWrapper
     .eventMixin(HeapSnapshotSortableDataGridBase) {
-    snapshot;
-    selectedNode;
+    snapshot = null;
+    selectedNode = null;
     heapProfilerModelInternal;
     dataDisplayDelegateInternal;
-    recursiveSortingDepth;
-    populatedAndSorted;
-    nameFilter;
+    recursiveSortingDepth = 0;
+    populatedAndSorted = false;
+    nameFilter = null;
     nodeFilterInternal;
     lastSortColumnId;
     lastSortAscending;
     constructor(heapProfilerModel, dataDisplayDelegate, dataGridParameters) {
         // TODO(allada) This entire class needs to be converted to use the templates in DataGridNode.
         super(dataGridParameters);
-        this.snapshot = null;
-        this.selectedNode = null;
         this.heapProfilerModelInternal = heapProfilerModel;
         this.dataDisplayDelegateInternal = dataDisplayDelegate;
         const tooltips = [
@@ -631,9 +629,9 @@ export var HeapSnapshotRetainmentDataGridEvents;
     /* eslint-enable @typescript-eslint/naming-convention */
 })(HeapSnapshotRetainmentDataGridEvents || (HeapSnapshotRetainmentDataGridEvents = {}));
 export class HeapSnapshotConstructorsDataGrid extends HeapSnapshotViewportDataGrid {
-    profileIndex;
-    objectIdToSelect;
-    nextRequestedFilter;
+    profileIndex = -1;
+    objectIdToSelect = null;
+    nextRequestedFilter = null;
     lastFilter;
     filterInProgress;
     constructor(heapProfilerModel, dataDisplayDelegate) {
@@ -656,11 +654,10 @@ export class HeapSnapshotConstructorsDataGrid extends HeapSnapshotViewportDataGr
                 fixedWidth: true,
             },
         ];
-        super(heapProfilerModel, dataDisplayDelegate, { displayName: i18nString(UIStrings.heapSnapshotConstructors).toString(), columns });
-        // clang-format on
-        this.profileIndex = -1;
-        this.objectIdToSelect = null;
-        this.nextRequestedFilter = null;
+        super(heapProfilerModel, dataDisplayDelegate, {
+            displayName: i18nString(UIStrings.heapSnapshotConstructors).toString(),
+            columns,
+        });
     }
     sortFields(sortColumn, sortAscending) {
         switch (sortColumn) {
@@ -856,7 +853,6 @@ export class AllocationDataGrid extends HeapSnapshotViewportDataGrid {
             { id: 'name', title: i18nString(UIStrings.function), disclosure: true, sortable: true },
         ];
         super(heapProfilerModel, dataDisplayDelegate, { displayName: i18nString(UIStrings.allocation).toString(), columns });
-        // clang-format on
         this.linkifierInternal = new Components.Linkifier.Linkifier();
     }
     get linkifier() {

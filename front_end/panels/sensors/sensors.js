@@ -1020,7 +1020,6 @@ var SensorsView = class extends UI2.Widget.VBox {
   betaElement;
   gammaElement;
   orientationLayer;
-  boxElement;
   boxMatrix;
   mouseDownVector;
   originalBoxMatrix;
@@ -1123,7 +1122,10 @@ var SensorsView = class extends UI2.Widget.VBox {
             <input
               id="latitude-input"
               type="number"
+              min="-90"
+              max="90"
               step="any"
+              required
               .value=${String(location.latitude)}
               name="latitude"
               title=${modifierKeyMessage}
@@ -1133,7 +1135,6 @@ var SensorsView = class extends UI2.Widget.VBox {
         this.latitudeInput = el;
       }
     })}
-              @input=${this.#onLocationInput.bind(this)}
               @change=${this.#onLocationChange.bind(this)}
               @keydown=${this.#onLocationKeyDown.bind(this)}
               @focus=${this.#onLocationFocus.bind(this)}
@@ -1145,7 +1146,10 @@ var SensorsView = class extends UI2.Widget.VBox {
             <input
               id="longitude-input"
               type="number"
+              min="-180"
+              max="180"
               step="any"
+              required
               .value=${String(location.longitude)}
               name="longitude"
               title=${modifierKeyMessage}
@@ -1155,7 +1159,6 @@ var SensorsView = class extends UI2.Widget.VBox {
         this.longitudeInput = el;
       }
     })}
-              @input=${this.#onLocationInput.bind(this)}
               @change=${this.#onLocationChange.bind(this)}
               @keydown=${this.#onLocationKeyDown.bind(this)}
               @focus=${this.#onLocationFocus.bind(this)}
@@ -1166,6 +1169,7 @@ var SensorsView = class extends UI2.Widget.VBox {
             <input
               id="timezone-input"
               type="text"
+              pattern=".*[a-zA-Z].*"
               .value=${location.timezoneId}
               name="timezone"
               jslog=${VisualLogging2.textField("timezone").track({ change: true })}
@@ -1174,7 +1178,6 @@ var SensorsView = class extends UI2.Widget.VBox {
         this.timezoneInput = el;
       }
     })}
-              @input=${this.#onLocationInput.bind(this)}
               @change=${this.#onLocationChange.bind(this)}
               @keydown=${this.#onLocationKeyDown.bind(this)}
               @focus=${this.#onLocationFocus.bind(this)}
@@ -1190,6 +1193,7 @@ var SensorsView = class extends UI2.Widget.VBox {
             <input
               id="locale-input"
               type="text"
+              pattern=".*[a-zA-Z]{2}.*"
               .value=${location.locale}
               name="locale"
               jslog=${VisualLogging2.textField("locale").track({ change: true })}
@@ -1198,7 +1202,6 @@ var SensorsView = class extends UI2.Widget.VBox {
         this.localeInput = el;
       }
     })}
-              @input=${this.#onLocationInput.bind(this)}
               @change=${this.#onLocationChange.bind(this)}
               @keydown=${this.#onLocationKeyDown.bind(this)}
               @focus=${this.#onLocationFocus.bind(this)}
@@ -1215,6 +1218,7 @@ var SensorsView = class extends UI2.Widget.VBox {
             <input
               id="accuracy-input"
               type="number"
+              min="0"
               step="any"
               .value=${String(location.accuracy || SDK2.EmulationModel.Location.DEFAULT_ACCURACY)}
               name="accuracy"
@@ -1224,7 +1228,6 @@ var SensorsView = class extends UI2.Widget.VBox {
         this.accuracyInput = el;
       }
     })}
-              @input=${this.#onLocationInput.bind(this)}
               @change=${this.#onLocationChange.bind(this)}
               @keydown=${this.#onLocationKeyDown.bind(this)}
               @focus=${this.#onLocationFocus.bind(this)}
@@ -1263,35 +1266,27 @@ var SensorsView = class extends UI2.Widget.VBox {
       this.#locationOverrideEnabled = true;
       const coordinates = JSON.parse(value);
       this.#location = new SDK2.EmulationModel.Location(coordinates.lat, coordinates.long, coordinates.timezoneId, coordinates.locale, coordinates.accuracy || SDK2.EmulationModel.Location.DEFAULT_ACCURACY, false);
-      this.#setInputValue(this.latitudeInput, coordinates.lat);
-      this.#setInputValue(this.longitudeInput, coordinates.long);
-      this.#setInputValue(this.timezoneInput, coordinates.timezoneId);
-      this.#setInputValue(this.localeInput, coordinates.locale);
-      this.#setInputValue(this.accuracyInput, String(coordinates.accuracy || SDK2.EmulationModel.Location.DEFAULT_ACCURACY));
+      this.latitudeInput.value = coordinates.lat;
+      this.longitudeInput.value = coordinates.long;
+      this.timezoneInput.value = coordinates.timezoneId;
+      this.localeInput.value = coordinates.locale;
+      this.accuracyInput.value = String(coordinates.accuracy || SDK2.EmulationModel.Location.DEFAULT_ACCURACY);
     }
     this.applyLocation();
     if (value === NonPresetOptions.Custom) {
       this.latitudeInput.focus();
     }
   }
-  #onLocationInput(event) {
-    const input = event.currentTarget;
-    const valid = this.#validateInput(input, input.value);
-    input.classList.toggle("error-input", !valid);
-  }
   #onLocationChange(event) {
     const input = event.currentTarget;
-    const valid = this.#validateInput(input, input.value);
-    input.classList.toggle("error-input", !valid);
-    if (valid) {
+    if (input.checkValidity()) {
       this.applyLocationUserInput();
     }
   }
   #onLocationKeyDown(event) {
     const input = event.currentTarget;
     if (event.key === "Enter") {
-      const valid2 = this.#validateInput(input, input.value);
-      if (valid2) {
+      if (input.checkValidity()) {
         this.applyLocationUserInput();
       }
       event.preventDefault();
@@ -1306,42 +1301,18 @@ var SensorsView = class extends UI2.Widget.VBox {
     if (value === null) {
       return;
     }
-    const stringValue = String(value);
-    const valid = this.#validateInput(input, stringValue);
-    if (valid) {
-      this.#setInputValue(input, stringValue);
+    const prevValue = input.value;
+    input.value = String(value);
+    if (input.checkValidity()) {
+      this.applyLocationUserInput();
+    } else {
+      input.value = prevValue;
     }
     event.preventDefault();
   }
   #onLocationFocus(event) {
     const input = event.currentTarget;
     input.select();
-  }
-  #validateInput(input, value) {
-    if (input === this.latitudeInput) {
-      return SDK2.EmulationModel.Location.latitudeValidator(value);
-    }
-    if (input === this.longitudeInput) {
-      return SDK2.EmulationModel.Location.longitudeValidator(value);
-    }
-    if (input === this.timezoneInput) {
-      return SDK2.EmulationModel.Location.timezoneIdValidator(value);
-    }
-    if (input === this.localeInput) {
-      return SDK2.EmulationModel.Location.localeValidator(value);
-    }
-    if (input === this.accuracyInput) {
-      return SDK2.EmulationModel.Location.accuracyValidator(value).valid;
-    }
-    return false;
-  }
-  #setInputValue(input, value) {
-    if (value === input.value) {
-      return;
-    }
-    const valid = this.#validateInput(input, value);
-    input.classList.toggle("error-input", !valid);
-    input.value = value;
   }
   applyLocationUserInput() {
     const location = SDK2.EmulationModel.Location.parseUserInput(this.latitudeInput.value.trim(), this.longitudeInput.value.trim(), this.timezoneInput.value.trim(), this.localeInput.value.trim(), this.accuracyInput.value.trim());
@@ -1380,11 +1351,11 @@ var SensorsView = class extends UI2.Widget.VBox {
     }
   }
   clearFieldsetElementInputs() {
-    this.#setInputValue(this.latitudeInput, "0");
-    this.#setInputValue(this.longitudeInput, "0");
-    this.#setInputValue(this.timezoneInput, "");
-    this.#setInputValue(this.localeInput, "");
-    this.#setInputValue(this.accuracyInput, SDK2.EmulationModel.Location.DEFAULT_ACCURACY.toString());
+    this.latitudeInput.value = "0";
+    this.longitudeInput.value = "0";
+    this.timezoneInput.value = "";
+    this.localeInput.value = "";
+    this.accuracyInput.value = SDK2.EmulationModel.Location.DEFAULT_ACCURACY.toString();
   }
   createDeviceOrientationSection() {
     const orientationGroup = this.contentElement.createChild("section", "sensors-group");
@@ -1538,11 +1509,6 @@ var SensorsView = class extends UI2.Widget.VBox {
     })}>
               <section
                 class="orientation-box orientation-element"
-                ${Directives.ref((el) => {
-      if (el) {
-        this.boxElement = el;
-      }
-    })}
               >
                 <section class="orientation-front orientation-element"></section>
                 <section class="orientation-top orientation-element"></section>
