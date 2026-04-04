@@ -2,23 +2,11 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 import * as Common from '../../core/common/common.js';
-import * as i18n from '../../core/i18n/i18n.js';
 import * as Platform from '../../core/platform/platform.js';
-const UIStrings = {
-    /**
-     * @description Text in Heap Snapshot Proxy of a profiler tool
-     * @example {functionName} PH1
-     */
-    anErrorOccurredWhenACallToMethod: 'An error occurred when a call to method \'\'{PH1}\'\' was requested',
-};
-const str_ = i18n.i18n.registerUIStrings('panels/profiler/HeapSnapshotProxy.ts', UIStrings);
-const i18nString = i18n.i18n.getLocalizedString.bind(undefined, str_);
 export class HeapSnapshotWorkerProxy extends Common.ObjectWrapper.ObjectWrapper {
     eventHandler;
     nextObjectId = 1;
     nextCallId = 1;
-    // TODO(crbug.com/1172300) Ignored during the jsdoc to ts migration)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     callbacks = new Map();
     previousCallbacks = new Set();
     worker;
@@ -42,9 +30,7 @@ export class HeapSnapshotWorkerProxy extends Common.ObjectWrapper.ObjectWrapper 
     }
     dispose() {
         this.worker.terminate();
-        if (this.interval) {
-            clearInterval(this.interval);
-        }
+        clearInterval(this.interval);
     }
     disposeObject(objectId) {
         this.postMessage({ callId: this.nextCallId++, disposition: 'dispose', objectId });
@@ -134,9 +120,7 @@ export class HeapSnapshotWorkerProxy extends Common.ObjectWrapper.ObjectWrapper 
             return;
         }
         if (data.error) {
-            if (data.errorMethodName) {
-                Common.Console.Console.instance().error(i18nString(UIStrings.anErrorOccurredWhenACallToMethod, { PH1: data.errorMethodName }));
-            }
+            Common.Console.Console.instance().error(`An error occurred when a call to method '${data.errorMethodName}' was requested`);
             Common.Console.Console.instance().error(data['errorCallStack']);
             this.callbacks.delete(data.callId);
             return;
