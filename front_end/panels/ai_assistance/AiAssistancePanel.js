@@ -262,9 +262,8 @@ async function getEmptyStateSuggestions(conversation) {
             ];
         case "accessibility" /* AiAssistanceModel.AiHistoryStorage.ConversationType.ACCESSIBILITY */:
             return [
-                { title: 'What are the accessibility issues on this page?', jslogContext: 'accessibility-default' },
-                { title: 'How can I fix these accessibility issues?', jslogContext: 'accessibility-default' },
-                { title: 'What does this Lighthouse report say about accessibility?', jslogContext: 'accessibility-default' },
+                { title: 'How can I fix accessibility issues on my page?', jslogContext: 'accessibility-default' },
+                { title: 'What accessibility issues exist on my page?', jslogContext: 'accessibility-default' },
             ];
         case "drjones-network-request" /* AiAssistanceModel.AiHistoryStorage.ConversationType.NETWORK */:
             return [
@@ -445,15 +444,13 @@ function defaultView(input, output, target) {
           <div slot="main" class="main-view">
             ${renderState()}
           </div>
-          <div slot="sidebar" class="sidebar-view">
-            ${shouldShowWalkthrough ? html `
-              <devtools-widget ${widget(WalkthroughView, {
+          ${shouldShowWalkthrough ? html `
+            <devtools-widget slot="sidebar" ${widget(WalkthroughView, {
             message: input.props.walkthrough.activeSidebarMessage,
             isLoading: input.props.isLoading && walkthroughIsForLastMessage,
             markdownRenderer: input.props.markdownRenderer,
             onToggle: input.props.walkthrough.onToggle,
         })}></devtools-widget>` : Lit.nothing}
-          </div>
         </devtools-split-view>
       </div>
     `, target);

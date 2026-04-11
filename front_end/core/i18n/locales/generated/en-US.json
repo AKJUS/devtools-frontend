@@ -3207,7 +3207,7 @@
     "message": "This is an experimental AI feature and won’t always get it right. Double check this text before pasting into another tool."
   },
   "panels/ai_assistance/components/ExportForAgentsDialog.ts | exportForAgents": {
-    "message": "Copy for your coding agent"
+    "message": "Copy to coding agent"
   },
   "panels/ai_assistance/components/ExportForAgentsDialog.ts | generatingSummary": {
     "message": "Generating summary…"
@@ -3223,6 +3223,9 @@
   },
   "panels/ai_assistance/components/WalkthroughView.ts | hideThinking": {
     "message": "Hide thinking"
+  },
+  "panels/ai_assistance/components/WalkthroughView.ts | inProgress": {
+    "message": "In progress"
   },
   "panels/ai_assistance/components/WalkthroughView.ts | showAgentWalkthrough": {
     "message": "Show agent walkthrough"
@@ -5396,6 +5399,9 @@
   "panels/application/preloading/components/PreloadingDetailsReportView.ts | detailsFailureReason": {
     "message": "Failure reason"
   },
+  "panels/application/preloading/components/PreloadingDetailsReportView.ts | detailsFormSubmission": {
+    "message": "Form submission"
+  },
   "panels/application/preloading/components/PreloadingDetailsReportView.ts | detailsRuleSet": {
     "message": "Rule set"
   },
@@ -5405,11 +5411,17 @@
   "panels/application/preloading/components/PreloadingDetailsReportView.ts | detailsTargetHint": {
     "message": "Target hint"
   },
+  "panels/application/preloading/components/PreloadingDetailsReportView.ts | no": {
+    "message": "No"
+  },
   "panels/application/preloading/components/PreloadingDetailsReportView.ts | noElementSelected": {
     "message": "No element selected"
   },
   "panels/application/preloading/components/PreloadingDetailsReportView.ts | selectAnElementForMoreDetails": {
     "message": "Select an element for more details"
+  },
+  "panels/application/preloading/components/PreloadingDetailsReportView.ts | yes": {
+    "message": "Yes"
   },
   "panels/application/preloading/components/PreloadingDisabledInfobar.ts | descriptionDisabledByBatterySaver": {
     "message": "Speculative loading is disabled because of the operating system's Battery Saver mode."
@@ -17186,6 +17198,9 @@
   "ui/components/markdown_view/CodeBlock.ts | copy": {
     "message": "Copy code"
   },
+  "ui/components/markdown_view/CodeBlock.ts | copyCodeSnippet": {
+    "message": "Copy {PH1} code snippet"
+  },
   "ui/components/markdown_view/CodeBlock.ts | disclaimer": {
     "message": "Use code snippets with caution"
   },
@@ -18008,6 +18023,12 @@
   "ui/legacy/InspectorDrawerView.ts | closeDrawer": {
     "message": "Close drawer"
   },
+  "ui/legacy/InspectorDrawerView.ts | expandDrawer": {
+    "message": "Expand drawer"
+  },
+  "ui/legacy/InspectorDrawerView.ts | minimizeDrawer": {
+    "message": "Minimize drawer"
+  },
   "ui/legacy/InspectorDrawerView.ts | moreTools": {
     "message": "More Tools"
   },
@@ -18023,8 +18044,14 @@
   "ui/legacy/InspectorView.ts | drawer": {
     "message": "Tool drawer"
   },
+  "ui/legacy/InspectorView.ts | drawerExpanded": {
+    "message": "Drawer expanded"
+  },
   "ui/legacy/InspectorView.ts | drawerHidden": {
     "message": "Drawer hidden"
+  },
+  "ui/legacy/InspectorView.ts | drawerMinimized": {
+    "message": "Drawer minimized"
   },
   "ui/legacy/InspectorView.ts | drawerShown": {
     "message": "Drawer shown"
