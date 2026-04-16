@@ -1063,6 +1063,7 @@ function findFgColorForContrastAPCA(fgColor, bgColor, requiredContrast) {
 }
 var EPSILON = 0.01;
 var WIDE_RANGE_EPSILON = 1;
+var STRICT_EPSILON = 1e-4;
 function equals(a, b, accuracy = EPSILON) {
   if (Array.isArray(a) && Array.isArray(b)) {
     if (a.length !== b.length) {
@@ -1527,7 +1528,7 @@ var LCH = class _LCH {
   // See "powerless" component definitions in
   // https://www.w3.org/TR/css-color-4/#specifying-lab-lch
   isHuePowerless() {
-    return equals(this.c, 0);
+    return equals(this.c, 0, STRICT_EPSILON);
   }
   static fromSpec(spec, text) {
     const L = parsePercentage(spec[0], [0, 100]) ?? parseNumber(spec[0]);
@@ -2452,7 +2453,7 @@ var HSL = class _HSL {
     this.l = clamp(l, { min: 0, max: 1 });
     s = equals(this.l, 0) || equals(this.l, 1) ? 0 : s;
     this.s = clamp(s, { min: 0, max: 1 });
-    h = equals(this.s, 0) ? 0 : h;
+    h = equals(this.s, 0, STRICT_EPSILON) ? 0 : h;
     this.h = normalizeHue(h * 360) / 360;
     this.alpha = clamp(alpha ?? null, { min: 0, max: 1 });
     this.#authoredText = authoredText;
@@ -3530,21 +3531,24 @@ var ObjectWrapper = class {
 function eventMixin(base) {
   console.assert(base !== HTMLElement);
   return class EventHandling extends base {
-    #events = new ObjectWrapper();
+    // Note that the weird name is due to TSC disallowing private/protected fields in
+    // anonmous exported classes. We use a `__` prefix to prevent clashes with `base`.
+    // eslint-disable-next-line @devtools/no-underscored-properties, @typescript-eslint/naming-convention
+    __events = new ObjectWrapper();
     addEventListener(eventType, listener, thisObject) {
-      return this.#events.addEventListener(eventType, listener, thisObject);
+      return this.__events.addEventListener(eventType, listener, thisObject);
     }
     once(eventType) {
-      return this.#events.once(eventType);
+      return this.__events.once(eventType);
     }
     removeEventListener(eventType, listener, thisObject) {
-      this.#events.removeEventListener(eventType, listener, thisObject);
+      this.__events.removeEventListener(eventType, listener, thisObject);
     }
     hasEventListeners(eventType) {
-      return this.#events.hasEventListeners(eventType);
+      return this.__events.hasEventListeners(eventType);
     }
     dispatchEventToListeners(eventType, ...eventData) {
-      this.#events.dispatchEventToListeners(eventType, ...eventData);
+      this.__events.dispatchEventToListeners(eventType, ...eventData);
     }
   };
 }
