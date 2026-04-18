@@ -152,22 +152,46 @@ var AccessibilityAgentMarkdownRenderer = class extends MarkdownRendererWithCodeB
   }
   templateForToken(token) {
     if (token.type === "link" && token.href.startsWith("#")) {
-      if (token.href.startsWith("#path-")) {
-        const path = token.href.replace("#path-", "");
-        return html2`<span>${until(this.#linkifyPath(path, token.text).then((node) => node || token.text), token.text)}</span>`;
-      }
-      let nodeId = void 0;
-      if (token.href.startsWith("#node-")) {
-        nodeId = Number(token.href.replace("#node-", ""));
-      } else if (token.href.startsWith("#")) {
-        nodeId = Number(token.href.replace("#", ""));
-      }
-      if (nodeId) {
-        return html2`<span>${until(this.#linkifyNode(nodeId, token.text).then((node) => node || token.text), token.text)}</span>`;
+      const parsed = this.#parseLink(token.href);
+      if (parsed) {
+        const resultPromise = parsed.type === "path" ? this.#linkifyPath(parsed.path, token.text) : this.#linkifyNode(parsed.nodeId, token.text);
+        return html2`<span>${until(resultPromise.then((node) => node || token.text), token.text)}</span>`;
       }
     }
     return super.templateForToken(token);
   }
+  /**
+   * Parses a link href to determine if it's a node ID or a DOM path.
+   *
+   * The AI agent is instructed to use #node-ID or #path-PATH, but
+   * sometimes it omits the prefixes, in which case we try to detect
+   * paths by looking for `#1,HTML` which is often how paths in LH
+   * start.
+   */
+  #parseLink(href) {
+    if (href.startsWith("#path-")) {
+      return { type: "path", path: href.replace("#path-", "") };
+    }
+    if (href.startsWith("#1,HTML")) {
+      return { type: "path", path: href.slice(1) };
+    }
+    let nodeIdStr = "";
+    if (href.startsWith("#node-")) {
+      nodeIdStr = href.replace("#node-", "");
+    } else if (href.startsWith("#")) {
+      nodeIdStr = href.slice(1);
+    }
+    if (nodeIdStr.trim() !== "") {
+      const nodeId = Number(nodeIdStr);
+      if (Number.isInteger(nodeId)) {
+        return { type: "node", nodeId };
+      }
+    }
+    return null;
+  }
+  /**
+   * Linkifies a node using its backend node ID.
+   */
   async #linkifyNode(backendNodeId, label) {
     if (backendNodeId === void 0) {
       return;
@@ -188,6 +212,9 @@ var AccessibilityAgentMarkdownRenderer = class extends MarkdownRendererWithCodeB
     const linkedNode = PanelsCommon.DOMLinkifier.Linkifier.instance().linkify(node, { textContent: label });
     return linkedNode;
   }
+  /**
+   * Linkifies a node using its full DOM path (e.g. "1,HTML,1,BODY,...").
+   */
   async #linkifyPath(path, label) {
     const target = SDK.TargetManager.TargetManager.instance().primaryPageTarget();
     const domModel = target?.model(SDK.DOMModel.DOMModel);
@@ -5283,7 +5310,7 @@ var DEFAULT_VIEW5 = (input, _output, target) => {
             ${i18nString3(UIStrings3.generatingSummary)}
           </span>
           ` : Lit6.nothing}
-        <textarea readonly .value=${isPrompt && input.state.isPromptLoading ? "" : exportText}></textarea>
+        ${isPrompt ? html8`<textarea class="prompt" readonly .value=${input.state.isPromptLoading ? "" : exportText}></textarea>` : html8`<textarea class="conversation" readonly .value=${exportText}></textarea>`}
       </main>
       <div class="disclaimer">${i18nString3(UIStrings3.disclaimer)}</div>
       <footer>
@@ -5618,12 +5645,13 @@ var ChatView = class extends HTMLElement {
     Host5.userMetrics.actionTaken(Host5.UserMetrics.Action.AiAssistanceDynamicSuggestionClicked);
   };
   async #getSummary() {
-    if (this.#cachedSummary?.markdown === this.#props.conversationMarkdown) {
+    const cacheKey = this.#props.conversationMarkdown.replace(/\*\*Export Timestamp \(UTC\):\*\* .*\n\n/, "");
+    if (this.#cachedSummary?.markdown === cacheKey) {
       return this.#cachedSummary.summary;
     }
     try {
       const summary = await this.#props.generateConversationSummary(this.#props.conversationMarkdown);
-      this.#cachedSummary = { markdown: this.#props.conversationMarkdown, summary };
+      this.#cachedSummary = { markdown: cacheKey, summary };
       return summary;
     } catch (err) {
       console.error(err);
@@ -6149,7 +6177,7 @@ var optInChangeDialog_css_default = `/*
     gap: var(--sys-size-8);
     margin-bottom: var(--sys-size-8);
 
-    h2 {
+    h1 {
       margin: 0;
       color: var(--sys-color-on-surface);
       font: var(--sys-typescale-headline5);
@@ -6171,7 +6199,6 @@ var optInChangeDialog_css_default = `/*
       devtools-icon {
         width: var(--sys-size-9);
         height: var(--sys-size-9);
-        color: var(--sys-color-on-primary);
       }
     }
   }
