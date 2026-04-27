@@ -112,6 +112,7 @@ export declare class Widget<ContentTypeT extends HTMLElement | DocumentFragment 
     static getOrCreateWidget(element: HTMLElement): Widget;
     get contentElement(): ContentTypeT;
     protected set contentElement(contentElement: ContentTypeT);
+    dispatchDOMEvent(event: Event): void;
     markAsRoot(): void;
     parentWidget(): Widget | null;
     children(): Widget[];
@@ -214,13 +215,13 @@ export declare class Widget<ContentTypeT extends HTMLElement | DocumentFragment 
      */
     get updateComplete(): Promise<void>;
 }
-export declare class VBox extends Widget {
+export declare class VBox<ContentTypeT extends HTMLElement | DocumentFragment = HTMLElement> extends Widget<ContentTypeT> {
     /**
      * Constructs a new `VBox` with the given `options`.
      *
      * @param options optional settings to configure the behavior.
      */
-    constructor(options?: WidgetOptions);
+    constructor(options?: WidgetOptions<ContentTypeT>);
     /**
      * Constructs a new `VBox` with the given `options` and attached to the
      * given `element`.
@@ -231,16 +232,16 @@ export declare class VBox extends Widget {
      * @param element an (optional) `HTMLElement` to attach the `VBox` to.
      * @param options optional settings to configure the behavior.
      */
-    constructor(element?: HTMLElement, options?: WidgetOptions);
+    constructor(element?: HTMLElement, options?: WidgetOptions<ContentTypeT>);
     calculateConstraints(): Geometry.Constraints;
 }
-export declare class HBox extends Widget<HTMLElement> {
+export declare class HBox<ContentTypeT extends HTMLElement | DocumentFragment = HTMLElement> extends Widget<ContentTypeT> {
     /**
      * Constructs a new `HBox` with the given `options`.
      *
      * @param options optional settings to configure the behavior.
      */
-    constructor(options?: WidgetOptions);
+    constructor(options?: WidgetOptions<ContentTypeT>);
     /**
      * Constructs a new `HBox` with the given `options` and attached to the
      * given `element`.
@@ -251,7 +252,7 @@ export declare class HBox extends Widget<HTMLElement> {
      * @param element an (optional) `HTMLElement` to attach the `HBox` to.
      * @param options optional settings to configure the behavior.
      */
-    constructor(element?: HTMLElement, options?: WidgetOptions);
+    constructor(element?: HTMLElement, options?: WidgetOptions<ContentTypeT>);
     calculateConstraints(): Geometry.Constraints;
 }
 export declare class VBoxWithResizeCallback extends VBox {

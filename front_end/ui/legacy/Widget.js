@@ -36,10 +36,10 @@ import { cloneCustomElement, createShadowRootWithCoreStyles } from './UIUtils.js
 const { html } = Lit;
 // Remember the original DOM mutation methods here, since we
 // will override them below to sanity check the Widget system.
-const originalAppendChild = Element.prototype.appendChild;
-const originalInsertBefore = Element.prototype.insertBefore;
-const originalRemoveChild = Element.prototype.removeChild;
-const originalRemoveChildren = Element.prototype.removeChildren;
+const originalAppendChild = Node.prototype.appendChild;
+const originalInsertBefore = Node.prototype.insertBefore;
+const originalRemoveChild = Node.prototype.removeChild;
+const originalRemoveChildren = Node.prototype.removeChildren;
 function assert(condition, message) {
     if (!condition) {
         throw new Error(message);
@@ -111,15 +111,14 @@ function runNextUpdate() {
                 widget.addUpdateController(controller);
                 await widget.performUpdate(controller.signal);
             }
-            catch (e) {
-                if (e.name !== 'AbortError') {
-                    throw e;
-                }
-            }
             finally {
                 resolve();
             }
-        })();
+        })().catch(e => {
+            if (e.name !== 'AbortError') {
+                console.error(`${widget.constructor.name}.performUpdate failed: `, e);
+            }
+        });
     }
     currentUpdateQueue.clear();
     queueMicrotask(() => {
@@ -189,11 +188,13 @@ function setUpLifecycleTracking(element) {
             }
             widget = instantiateWidget(element, config);
         }
-        const parent = element.parentElementOrShadowHost();
+        const parent = (element.parentNode instanceof DocumentFragment) ? element.parentNode : element.parentElementOrShadowHost();
         if (!parent) {
             widget.markAsRoot();
         }
-        widget.show(parent, undefined, /* suppressOrphanWidgetError= */ true);
+        else {
+            widget.show(parent, undefined, /* suppressOrphanWidgetError= */ true);
+        }
     };
 }
 export class WidgetElement extends HTMLElement {
@@ -407,6 +408,9 @@ export class Widget {
         if (this.contentElement instanceof HTMLElement) {
             this.contentElement.classList.add('widget');
         }
+        else if (options?.useShadowDom === 'pure') {
+            this.element.classList.add('widget');
+        }
         widgetMap.set(this.element, this);
     }
     /**
@@ -444,6 +448,9 @@ export class Widget {
     }
     set contentElement(contentElement) {
         this.#contentElement = contentElement;
+    }
+    dispatchDOMEvent(event) {
+        this.element.dispatchEvent(event);
     }
     markAsRoot() {
         assert(!this.element.parentElement, 'Attempt to mark as root attached node');
@@ -606,7 +613,7 @@ export class Widget {
             assert(currentParent && widgetMap.get(currentParent) === this.#parentWidget, 'Attempt to show under node belonging to alien widget');
         }
         const wasVisible = this.#visible;
-        if (wasVisible && this.element.parentElement === parentElement) {
+        if (wasVisible && this.element.parentNode === parentElement) {
             return;
         }
         this.#visible = true;
@@ -615,7 +622,7 @@ export class Widget {
         }
         this.element.classList.remove('hidden');
         // Reparent
-        if (this.element.parentElement !== parentElement) {
+        if (this.element.parentNode !== parentElement) {
             if (!this.#externallyManaged) {
                 incrementWidgetCounter(parentElement, this.element);
             }
@@ -969,10 +976,14 @@ export class Widget {
 }
 const storedScrollPositions = new WeakMap();
 export class VBox extends Widget {
-    constructor() {
-        super(...arguments);
+    constructor(elementOrOptions, options) {
+        // @ts-expect-error
+        super(elementOrOptions, options);
         if (this.contentElement instanceof HTMLElement) {
             this.contentElement.classList.add('vbox');
+        }
+        else {
+            this.element.classList.add('vbox');
         }
     }
     calculateConstraints() {
@@ -987,9 +998,16 @@ export class VBox extends Widget {
     }
 }
 export class HBox extends Widget {
-    constructor() {
-        super(...arguments);
-        this.contentElement.classList.add('hbox');
+    constructor(elementOrOptions, options) {
+        // @ts-expect-error
+        super(elementOrOptions, options);
+        if (this.contentElement instanceof HTMLElement) {
+            this.contentElement.classList.add('hbox');
+        }
+        else {
+            this.element.classList.remove('vbox');
+            this.element.classList.add('hbox');
+        }
     }
     calculateConstraints() {
         let constraints = new Geometry.Constraints();
@@ -1034,25 +1052,25 @@ export class WidgetFocusRestorer {
 function domOperationError(funcName) {
     return new Error(`Attempt to modify widget with native DOM method \`${funcName}\``);
 }
-Element.prototype.appendChild = function (node) {
-    if (widgetMap.get(node) && node.parentElement !== this) {
+Node.prototype.appendChild = function (node) {
+    if (widgetMap.get(node) && node.parentNode !== this) {
         throw domOperationError('appendChild');
     }
     return originalAppendChild.call(this, node);
 };
-Element.prototype.insertBefore = function (node, child) {
-    if (widgetMap.get(node) && node.parentElement !== this) {
+Node.prototype.insertBefore = function (node, child) {
+    if (widgetMap.get(node) && node.parentNode !== this) {
         throw domOperationError('insertBefore');
     }
     return originalInsertBefore.call(this, node, child);
 };
-Element.prototype.removeChild = function (child) {
+Node.prototype.removeChild = function (child) {
     if (widgetCounterMap.get(child) || widgetMap.get(child)) {
         throw domOperationError('removeChild');
     }
     return originalRemoveChild.call(this, child);
 };
-Element.prototype.removeChildren = function () {
+Node.prototype.removeChildren = function () {
     if (widgetCounterMap.get(this)) {
         throw domOperationError('removeChildren');
     }
