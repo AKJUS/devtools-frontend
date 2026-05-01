@@ -13,6 +13,7 @@ import * as AiAssistanceModel from '../../../models/ai_assistance/ai_assistance.
 import * as ComputedStyle from '../../../models/computed_style/computed_style.js';
 import * as Trace from '../../../models/trace/trace.js';
 import * as PanelsCommon from '../../../panels/common/common.js';
+import * as TraceBounds from '../../../services/trace_bounds/trace_bounds.js';
 import * as Marked from '../../../third_party/marked/marked.js';
 import * as Buttons from '../../../ui/components/buttons/buttons.js';
 import * as Input from '../../../ui/components/input/input.js';
@@ -188,6 +189,18 @@ const UIStringsNotTranslate = {
      */
     revealLcpBreakdown: 'Reveal LCP breakdown',
     /**
+     * @description Accessible label for the reveal button in the LCP discovery widget.
+     */
+    revealLcpDiscovery: 'Reveal LCP discovery',
+    /**
+     * @description Accessible label for the reveal button in the layout shift culprits widget.
+     */
+    revealClsCulprits: 'Reveal layout shift culprits',
+    /**
+     * @description Accessible label for the reveal button in the render-blocking requests widget.
+     */
+    revealRenderBlockingBreakdown: 'Reveal render-blocking requests',
+    /**
      * @description Accessible label for the reveal button in the LCP element widget.
      */
     revealLcpElement: 'Reveal LCP element',
@@ -207,6 +220,18 @@ const UIStringsNotTranslate = {
      * @description Title for the LCP breakdown widget.
      */
     lcpBreakdown: 'LCP breakdown',
+    /**
+     * @description Title for the LCP discovery widget.
+     */
+    lcpDiscovery: 'LCP discovery',
+    /**
+     * @description Title for the layout shift culprits widget.
+     */
+    clsCulprits: 'Layout shift culprits',
+    /**
+     * @description Title for the render-blocking requests widget.
+     */
+    renderBlockingBreakdown: 'Render-blocking requests',
     /**
      * @description Title for the LCP element widget.
      */
@@ -690,32 +715,64 @@ async function makeStylePropertiesWidget(widgetData) {
         jslogContext: 'standalone-styles',
     };
 }
+const INSIGHT_METADATA = {
+    [Trace.Insights.Types.InsightKeys.LCP_BREAKDOWN]: {
+        component: TimelineInsights.LCPBreakdown.LCPBreakdown,
+        accessibleLabel: UIStringsNotTranslate.revealLcpBreakdown,
+        title: UIStringsNotTranslate.lcpBreakdown,
+        jslog: 'lcp-breakdown-widget',
+    },
+    [Trace.Insights.Types.InsightKeys.RENDER_BLOCKING]: {
+        component: TimelineInsights.RenderBlocking.RenderBlocking,
+        accessibleLabel: UIStringsNotTranslate.revealRenderBlockingBreakdown,
+        title: UIStringsNotTranslate.renderBlockingBreakdown,
+        jslog: 'render-blocking-widget',
+    },
+    [Trace.Insights.Types.InsightKeys.LCP_DISCOVERY]: {
+        component: TimelineInsights.LCPDiscovery.LCPDiscovery,
+        accessibleLabel: UIStringsNotTranslate.revealLcpDiscovery,
+        title: UIStringsNotTranslate.lcpDiscovery,
+        jslog: 'lcp-discovery-widget',
+    },
+    [Trace.Insights.Types.InsightKeys.CLS_CULPRITS]: {
+        component: TimelineInsights.CLSCulprits.CLSCulprits,
+        accessibleLabel: UIStringsNotTranslate.revealClsCulprits,
+        title: UIStringsNotTranslate.clsCulprits,
+        jslog: 'cls-culprits-widget',
+    },
+};
+function renderInsightWidget(component, insight, jslog, accessibleLabel, title, bounds) {
+    const renderedWidget = html `<devtools-widget
+    class=${jslog}
+    ${widget(component, {
+        model: insight,
+        minimal: true,
+        bounds: bounds ?? null,
+    })}></devtools-widget>`;
+    return {
+        renderedWidget,
+        revealable: new TimelineUtils.Helpers.RevealableInsight(insight),
+        accessibleRevealLabel: lockedString(accessibleLabel),
+        title: lockedString(title),
+        jslogContext: jslog,
+    };
+}
 async function makePerfInsightWidget(widgetData) {
-    switch (widgetData.data.insight) {
-        case 'lcp': {
-            const insight = widgetData.data.insightData;
-            if (!insight || !Trace.Insights.Models.LCPBreakdown.isLCPBreakdownInsight(insight)) {
-                return null;
-            }
-            // clang-format off
-            const renderedWidget = html `<devtools-widget
-        class="lcp-breakdown-widget"
-        ${widget(TimelineInsights.LCPBreakdown.LCPBreakdown, {
-                model: insight,
-                minimal: true,
-            })}></devtools-widget>`;
-            // clang-format on
-            return {
-                renderedWidget,
-                revealable: new TimelineUtils.Helpers.RevealableInsight(insight),
-                accessibleRevealLabel: lockedString(UIStringsNotTranslate.revealLcpBreakdown),
-                title: lockedString(UIStringsNotTranslate.lcpBreakdown),
-                jslogContext: 'lcp-breakdown',
-            };
-        }
-        default:
-            return null;
+    const insightKey = widgetData.data.insight;
+    const insight = widgetData.data.insightData;
+    const meta = INSIGHT_METADATA[insightKey];
+    if (!meta) {
+        return null;
     }
+    let bounds;
+    if (insightKey === Trace.Insights.Types.InsightKeys.CLS_CULPRITS) {
+        const traceBounds = TraceBounds.TraceBounds.BoundsManager.instance().state()?.micro.entireTraceBounds;
+        if (!traceBounds) {
+            return null;
+        }
+        bounds = traceBounds;
+    }
+    return renderInsightWidget(meta.component, insight, meta.jslog, meta.accessibleLabel, meta.title, bounds);
 }
 async function makeBottomUpTimelineTreeWidget(widgetData) {
     const bottomUpRootNode = AiAssistanceModel.AIQueries.AIQueries.mainThreadActivityBottomUp(widgetData.data.bounds, widgetData.data.parsedTrace);
@@ -872,8 +929,74 @@ async function makeDomTreeWidget(widgetData) {
  *
  * This allows for a flexible and extensible system where new widget types
  * can be added to the AI responses and rendered in DevTools by adding
- * corresponding \`make...Widget\` functions and handling them here.
+ * corresponding `make...Widget` functions and handling them here.
  */
+/**
+ * Generates a deterministic unique identifier for a given AiWidget based on
+ * its name and identifying data. This signature is used for widget deduplication.
+ */
+export function getWidgetSignature(widget) {
+    switch (widget.name) {
+        case 'COMPUTED_STYLES':
+            return `${widget.name}:${widget.data.backendNodeId}`;
+        case 'CORE_VITALS':
+            return `${widget.name}:${widget.data.insightSetKey}`;
+        case 'STYLE_PROPERTIES':
+            return `${widget.name}:${widget.data.backendNodeId}:${widget.data.selector ?? ''}`;
+        case 'DOM_TREE':
+            return `${widget.name}:${widget.data.root.backendNodeId()}`;
+        case 'PERFORMANCE_TRACE':
+            return `${widget.name}`;
+        case 'PERF_INSIGHT':
+            return `${widget.name}:${widget.data.insight}:${widget.data.insightData.insightKey}:${widget.data.insightData.navigation?.args?.data?.navigationId ?? 'no-nav-id'}`;
+        case 'TIMELINE_RANGE_SUMMARY':
+            return `${widget.name}:${widget.data.track}:${widget.data.bounds.min}-${widget.data.bounds.max}`;
+        case 'BOTTOM_UP_TREE':
+            return `${widget.name}:${widget.data.bounds.min}-${widget.data.bounds.max}`;
+        default:
+            Platform.assertNever(widget, 'Unknown AiWidget name');
+    }
+}
+/**
+ * Returns a new ModelChatMessage where widgets have been deduplicated
+ * across all parts and steps of the message. The first occurrence of each
+ * unique widget (determined by its signature) is preserved.
+ */
+export function getDeduplicatedWidgetsMessage(message) {
+    const seenWidgets = new Set();
+    const filterWidgets = (widgets) => {
+        return widgets.filter(widget => {
+            const signature = getWidgetSignature(widget);
+            if (seenWidgets.has(signature)) {
+                return false;
+            }
+            seenWidgets.add(signature);
+            return true;
+        });
+    };
+    const deduplicatedParts = message.parts.map(part => {
+        if (part.type === 'widget') {
+            return {
+                ...part,
+                widgets: filterWidgets(part.widgets),
+            };
+        }
+        if (part.type === 'step' && part.step.widgets) {
+            return {
+                ...part,
+                step: {
+                    ...part.step,
+                    widgets: filterWidgets(part.step.widgets),
+                },
+            };
+        }
+        return part;
+    });
+    return {
+        ...message,
+        parts: deduplicatedParts,
+    };
+}
 async function renderWidgets(widgets, options = {}) {
     if (!Root.Runtime.hostConfig.devToolsAiAssistanceV2?.enabled || !widgets || widgets.length === 0) {
         return Lit.nothing;
@@ -1183,8 +1306,9 @@ export class ChatMessage extends UI.Widget.Widget {
         this.#evaluateSuggestionsLayout();
     }
     performUpdate() {
+        const message = this.message.entity === "model" /* ChatMessageEntity.MODEL */ ? getDeduplicatedWidgetsMessage(this.message) : this.message;
         this.#view({
-            message: this.message,
+            message,
             isLoading: this.isLoading,
             isReadOnly: this.isReadOnly,
             canShowFeedbackForm: this.canShowFeedbackForm,

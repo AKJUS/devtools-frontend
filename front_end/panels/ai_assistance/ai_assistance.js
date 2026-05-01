@@ -2414,6 +2414,8 @@ var ChatMessage_exports = {};
 __export(ChatMessage_exports, {
   ChatMessage: () => ChatMessage,
   DEFAULT_VIEW: () => DEFAULT_VIEW4,
+  getDeduplicatedWidgetsMessage: () => getDeduplicatedWidgetsMessage,
+  getWidgetSignature: () => getWidgetSignature,
   renderStep: () => renderStep,
   titleForStep: () => titleForStep
 });
@@ -2429,6 +2431,7 @@ import * as AiAssistanceModel5 from "./../../models/ai_assistance/ai_assistance.
 import * as ComputedStyle from "./../../models/computed_style/computed_style.js";
 import * as Trace from "./../../models/trace/trace.js";
 import * as PanelsCommon3 from "./../common/common.js";
+import * as TraceBounds from "./../../services/trace_bounds/trace_bounds.js";
 import * as Marked from "./../../third_party/marked/marked.js";
 import * as Buttons5 from "./../../ui/components/buttons/buttons.js";
 import * as Input3 from "./../../ui/components/input/input.js";
@@ -3093,7 +3096,7 @@ function getButtonLabel(input) {
   const TARGET_LENGTH = 50;
   const { truncatedText, moreCharacters } = smartTruncate(input.prompt, TARGET_LENGTH);
   const promptSuffix = moreCharacters > 0 ? ` (and ${moreCharacters} more characters)` : "";
-  return `${labelBase} for prompt '${truncatedText}'${promptSuffix}`;
+  return `${labelBase} for prompt ${truncatedText}${promptSuffix}`;
 }
 
 // gen/front_end/panels/ai_assistance/components/WalkthroughView.js
@@ -3622,6 +3625,7 @@ var WalkthroughView = class extends UI4.Widget.Widget {
     if (!this.#markdownRenderer) {
       return;
     }
+    const message = this.#message ? getDeduplicatedWidgetsMessage(this.#message) : null;
     this.#view({
       isLoading: this.#isLoading,
       markdownRenderer: this.#markdownRenderer,
@@ -3630,7 +3634,7 @@ var WalkthroughView = class extends UI4.Widget.Widget {
       isInlined: this.#isInlined,
       isExpanded: this.#isExpanded,
       prompt: this.#prompt,
-      message: this.#message,
+      message,
       handleScroll: this.#handleScroll
     }, this.#output, this.contentElement);
     this.#registerResizeObservers();
@@ -3797,6 +3801,18 @@ var UIStringsNotTranslate4 = {
    */
   revealLcpBreakdown: "Reveal LCP breakdown",
   /**
+   * @description Accessible label for the reveal button in the LCP discovery widget.
+   */
+  revealLcpDiscovery: "Reveal LCP discovery",
+  /**
+   * @description Accessible label for the reveal button in the layout shift culprits widget.
+   */
+  revealClsCulprits: "Reveal layout shift culprits",
+  /**
+   * @description Accessible label for the reveal button in the render-blocking requests widget.
+   */
+  revealRenderBlockingBreakdown: "Reveal render-blocking requests",
+  /**
    * @description Accessible label for the reveal button in the LCP element widget.
    */
   revealLcpElement: "Reveal LCP element",
@@ -3816,6 +3832,18 @@ var UIStringsNotTranslate4 = {
    * @description Title for the LCP breakdown widget.
    */
   lcpBreakdown: "LCP breakdown",
+  /**
+   * @description Title for the LCP discovery widget.
+   */
+  lcpDiscovery: "LCP discovery",
+  /**
+   * @description Title for the layout shift culprits widget.
+   */
+  clsCulprits: "Layout shift culprits",
+  /**
+   * @description Title for the render-blocking requests widget.
+   */
+  renderBlockingBreakdown: "Render-blocking requests",
   /**
    * @description Title for the LCP element widget.
    */
@@ -4225,30 +4253,64 @@ async function makeStylePropertiesWidget(widgetData) {
     jslogContext: "standalone-styles"
   };
 }
-async function makePerfInsightWidget(widgetData) {
-  switch (widgetData.data.insight) {
-    case "lcp": {
-      const insight = widgetData.data.insightData;
-      if (!insight || !Trace.Insights.Models.LCPBreakdown.isLCPBreakdownInsight(insight)) {
-        return null;
-      }
-      const renderedWidget = html7`<devtools-widget
-        class="lcp-breakdown-widget"
-        ${widget3(TimelineInsights.LCPBreakdown.LCPBreakdown, {
-        model: insight,
-        minimal: true
-      })}></devtools-widget>`;
-      return {
-        renderedWidget,
-        revealable: new TimelineUtils.Helpers.RevealableInsight(insight),
-        accessibleRevealLabel: lockedString5(UIStringsNotTranslate4.revealLcpBreakdown),
-        title: lockedString5(UIStringsNotTranslate4.lcpBreakdown),
-        jslogContext: "lcp-breakdown"
-      };
-    }
-    default:
-      return null;
+var INSIGHT_METADATA = {
+  [Trace.Insights.Types.InsightKeys.LCP_BREAKDOWN]: {
+    component: TimelineInsights.LCPBreakdown.LCPBreakdown,
+    accessibleLabel: UIStringsNotTranslate4.revealLcpBreakdown,
+    title: UIStringsNotTranslate4.lcpBreakdown,
+    jslog: "lcp-breakdown-widget"
+  },
+  [Trace.Insights.Types.InsightKeys.RENDER_BLOCKING]: {
+    component: TimelineInsights.RenderBlocking.RenderBlocking,
+    accessibleLabel: UIStringsNotTranslate4.revealRenderBlockingBreakdown,
+    title: UIStringsNotTranslate4.renderBlockingBreakdown,
+    jslog: "render-blocking-widget"
+  },
+  [Trace.Insights.Types.InsightKeys.LCP_DISCOVERY]: {
+    component: TimelineInsights.LCPDiscovery.LCPDiscovery,
+    accessibleLabel: UIStringsNotTranslate4.revealLcpDiscovery,
+    title: UIStringsNotTranslate4.lcpDiscovery,
+    jslog: "lcp-discovery-widget"
+  },
+  [Trace.Insights.Types.InsightKeys.CLS_CULPRITS]: {
+    component: TimelineInsights.CLSCulprits.CLSCulprits,
+    accessibleLabel: UIStringsNotTranslate4.revealClsCulprits,
+    title: UIStringsNotTranslate4.clsCulprits,
+    jslog: "cls-culprits-widget"
   }
+};
+function renderInsightWidget(component, insight, jslog, accessibleLabel, title, bounds) {
+  const renderedWidget = html7`<devtools-widget
+    class=${jslog}
+    ${widget3(component, {
+    model: insight,
+    minimal: true,
+    bounds: bounds ?? null
+  })}></devtools-widget>`;
+  return {
+    renderedWidget,
+    revealable: new TimelineUtils.Helpers.RevealableInsight(insight),
+    accessibleRevealLabel: lockedString5(accessibleLabel),
+    title: lockedString5(title),
+    jslogContext: jslog
+  };
+}
+async function makePerfInsightWidget(widgetData) {
+  const insightKey = widgetData.data.insight;
+  const insight = widgetData.data.insightData;
+  const meta = INSIGHT_METADATA[insightKey];
+  if (!meta) {
+    return null;
+  }
+  let bounds;
+  if (insightKey === Trace.Insights.Types.InsightKeys.CLS_CULPRITS) {
+    const traceBounds = TraceBounds.TraceBounds.BoundsManager.instance().state()?.micro.entireTraceBounds;
+    if (!traceBounds) {
+      return null;
+    }
+    bounds = traceBounds;
+  }
+  return renderInsightWidget(meta.component, insight, meta.jslog, meta.accessibleLabel, meta.title, bounds);
 }
 async function makeBottomUpTimelineTreeWidget(widgetData) {
   const bottomUpRootNode = AiAssistanceModel5.AIQueries.AIQueries.mainThreadActivityBottomUp(widgetData.data.bounds, widgetData.data.parsedTrace);
@@ -4383,6 +4445,63 @@ async function makeDomTreeWidget(widgetData) {
     accessibleRevealLabel: lockedString5(UIStringsNotTranslate4.revealLcpElement),
     title: lockedString5(UIStringsNotTranslate4.lcpElement),
     jslogContext: "dom-snapshot"
+  };
+}
+function getWidgetSignature(widget6) {
+  switch (widget6.name) {
+    case "COMPUTED_STYLES":
+      return `${widget6.name}:${widget6.data.backendNodeId}`;
+    case "CORE_VITALS":
+      return `${widget6.name}:${widget6.data.insightSetKey}`;
+    case "STYLE_PROPERTIES":
+      return `${widget6.name}:${widget6.data.backendNodeId}:${widget6.data.selector ?? ""}`;
+    case "DOM_TREE":
+      return `${widget6.name}:${widget6.data.root.backendNodeId()}`;
+    case "PERFORMANCE_TRACE":
+      return `${widget6.name}`;
+    case "PERF_INSIGHT":
+      return `${widget6.name}:${widget6.data.insight}:${widget6.data.insightData.insightKey}:${widget6.data.insightData.navigation?.args?.data?.navigationId ?? "no-nav-id"}`;
+    case "TIMELINE_RANGE_SUMMARY":
+      return `${widget6.name}:${widget6.data.track}:${widget6.data.bounds.min}-${widget6.data.bounds.max}`;
+    case "BOTTOM_UP_TREE":
+      return `${widget6.name}:${widget6.data.bounds.min}-${widget6.data.bounds.max}`;
+    default:
+      Platform5.assertNever(widget6, "Unknown AiWidget name");
+  }
+}
+function getDeduplicatedWidgetsMessage(message) {
+  const seenWidgets = /* @__PURE__ */ new Set();
+  const filterWidgets = (widgets) => {
+    return widgets.filter((widget6) => {
+      const signature = getWidgetSignature(widget6);
+      if (seenWidgets.has(signature)) {
+        return false;
+      }
+      seenWidgets.add(signature);
+      return true;
+    });
+  };
+  const deduplicatedParts = message.parts.map((part) => {
+    if (part.type === "widget") {
+      return {
+        ...part,
+        widgets: filterWidgets(part.widgets)
+      };
+    }
+    if (part.type === "step" && part.step.widgets) {
+      return {
+        ...part,
+        step: {
+          ...part.step,
+          widgets: filterWidgets(part.step.widgets)
+        }
+      };
+    }
+    return part;
+  });
+  return {
+    ...message,
+    parts: deduplicatedParts
   };
 }
 async function renderWidgets(widgets, options = {}) {
@@ -4704,8 +4823,9 @@ var ChatMessage = class extends UI5.Widget.Widget {
     this.#evaluateSuggestionsLayout();
   }
   performUpdate() {
+    const message = this.message.entity === "model" ? getDeduplicatedWidgetsMessage(this.message) : this.message;
     this.#view({
-      message: this.message,
+      message,
       isLoading: this.isLoading,
       isReadOnly: this.isReadOnly,
       canShowFeedbackForm: this.canShowFeedbackForm,
