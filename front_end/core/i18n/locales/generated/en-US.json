@@ -1448,6 +1448,9 @@
   "generated/Deprecation.ts | PrefixedVideoSupportsFullscreen": {
     "message": "HTMLVideoElement.webkitSupportsFullscreen is deprecated. Please use Document.fullscreenEnabled instead."
   },
+  "generated/Deprecation.ts | PreventSvgFilterPaint": {
+    "message": "SVG filters cannot be applied to cross-origin iframes, restricted iframes (e.g., sandboxed), or plugins."
+  },
   "generated/Deprecation.ts | RangeExpand": {
     "message": "Range.expand() is deprecated. Please use Selection.modify() instead."
   },
@@ -6971,6 +6974,9 @@
   "panels/console/ConsoleView.ts | autocompleteFromHistory": {
     "message": "Autocomplete from history"
   },
+  "panels/console/ConsoleView.ts | collapseAll": {
+    "message": "Collapse all"
+  },
   "panels/console/ConsoleView.ts | consoleCleared": {
     "message": "Console cleared"
   },
@@ -7009,6 +7015,9 @@
   },
   "panels/console/ConsoleView.ts | errors": {
     "message": "Errors"
+  },
+  "panels/console/ConsoleView.ts | expandAll": {
+    "message": "Expand all"
   },
   "panels/console/ConsoleView.ts | filteredMessagesInConsole": {
     "message": "{PH1} messages in console"
@@ -8377,6 +8386,9 @@
   },
   "panels/elements/StylePropertyTreeElement.ts | viewComputedValue": {
     "message": "View computed value"
+  },
+  "panels/elements/StylesSidebarPane.ts | aiSuggestionAccepted": {
+    "message": "{PH1} Suggestion accepted."
   },
   "panels/elements/StylesSidebarPane.ts | automaticDarkMode": {
     "message": "Automatic dark mode"
