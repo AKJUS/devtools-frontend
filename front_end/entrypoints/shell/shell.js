@@ -4239,7 +4239,7 @@ UI9.Toolbar.registerToolbarItem({
   order: 101,
   location: "main-toolbar-right"
 });
-Common7.AppProvider.registerAppProvider({
+UI9.AppProvider.registerAppProvider({
   async loadAppProvider() {
     const Main = await loadMainModule();
     return Main.SimpleApp.SimpleAppProvider.instance();
@@ -6032,8 +6032,11 @@ function isPerformanceAgentFeatureAvailable(config) {
 function isFileAgentFeatureAvailable(config) {
   return (config?.aidaAvailability?.enabled && config?.devToolsAiAssistanceFileAgent?.enabled) === true;
 }
+function isStorageAgentFeatureAvailable(config) {
+  return (config?.aidaAvailability?.enabled && config?.devToolsAiAssistanceStorageAgent?.enabled) === true;
+}
 function isAnyFeatureAvailable(config) {
-  return isStylingAgentFeatureAvailable(config) || isNetworkAgentFeatureAvailable(config) || isPerformanceAgentFeatureAvailable(config) || isFileAgentFeatureAvailable(config);
+  return isStylingAgentFeatureAvailable(config) || isNetworkAgentFeatureAvailable(config) || isPerformanceAgentFeatureAvailable(config) || isFileAgentFeatureAvailable(config) || isStorageAgentFeatureAvailable(config);
 }
 UI15.ViewManager.registerViewExtension({
   location: "drawer-view",

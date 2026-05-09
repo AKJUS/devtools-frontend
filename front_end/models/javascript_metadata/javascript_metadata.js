@@ -7029,6 +7029,10 @@ var NativeFunctions = [
     signatures: [["html", "?options"]]
   },
   {
+    name: "matchContainer",
+    signatures: [["query"]]
+  },
+  {
     name: "scrollIntoViewIfNeeded",
     signatures: [["?centerIfNeeded"]]
   },
@@ -7959,10 +7963,6 @@ var NativeFunctions = [
   {
     name: "strokeTextCluster",
     signatures: [["textCluster", "x", "y", "?options"]]
-  },
-  {
-    name: "transferToGPUTexture",
-    signatures: [["options"]]
   },
   {
     name: "beginLayer",
