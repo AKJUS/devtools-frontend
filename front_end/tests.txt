@@ -153,8 +153,6 @@ entrypoints/main/GlobalAiButton.test.js
 entrypoints/main/MainImpl.test.js
 entrypoints/node_app/app/NodeMain.test.js
 entrypoints/wasmparser_worker/wasmparser_worker.test.js
-models/ai_assistance/data_formatters/FileFormatter.test.js
-models/ai_assistance/data_formatters/UnitFormatters.test.js
 models/ai_assistance/AgentProject.test.js
 models/ai_assistance/AiConversation.test.js
 models/ai_assistance/AiHistoryStorage.test.js
@@ -776,6 +774,7 @@ ui/legacy/components/quick_open/FilteredListWidget.test.js
 ui/legacy/components/quick_open/QuickOpen.test.js
 ui/legacy/components/settings_ui/SettingsUI.test.js
 ui/legacy/components/source_frame/BinaryResourceViewFactory.test.js
+ui/legacy/components/source_frame/FontView.test.js
 ui/legacy/components/source_frame/JSONView.test.js
 ui/legacy/components/source_frame/ResourceSourceFrame.test.js
 ui/legacy/components/source_frame/SourceFrame.test.js
