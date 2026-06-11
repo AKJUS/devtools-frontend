@@ -43,6 +43,20 @@ export class ConversationContext {
     async getSuggestions() {
         return;
     }
+    /**
+     * Returns a detailed description of the context item for inclusion in the AI model prompt.
+     * Currently only used by AiAgent2.
+     */
+    async getPromptDetails() {
+        return null;
+    }
+    /**
+     * Returns a list of context details to display to the user in the UI.
+     * Currently only used by AiAgent2.
+     */
+    async getUserFacingDetails() {
+        return null;
+    }
 }
 class CrossOriginError extends Error {
     constructor() {
@@ -123,6 +137,9 @@ export class AiAgent {
      * prevent unvalidated cached data from being replayed in subsequent runs.
      */
     clearCache() {
+    }
+    disableServerSideLogging() {
+        this.#serverSideLoggingEnabled = false;
     }
     popPendingMultimodalInput() {
         return undefined;
@@ -255,14 +272,18 @@ export class AiAgent {
     clearDeclaredFunctions() {
         this.#functionDeclarations.clear();
     }
+    /**
+     * Executed immediately after the current context is populated with the selected
+     * context and before the request is built.
+     */
     async preRun() {
     }
     async *run(initialQuery, options, multimodalInput) {
-        await this.preRun();
         await options.selected?.refresh();
         if (options.selected) {
             this.context = options.selected;
         }
+        await this.preRun();
         const enhancedQuery = await this.enhanceQuery(initialQuery, options.selected, multimodalInput?.type);
         Host.userMetrics.freestylerQueryLength(enhancedQuery.length);
         let query;

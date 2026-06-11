@@ -92,16 +92,14 @@ export class AccessibilityAgent extends AiAgent {
     #javascriptExecutor;
     #changes;
     #createExtensionScope;
-    #currentTurnId = 0;
     constructor(opts) {
         super(opts);
         this.#lighthouseRecording = opts.lighthouseRecording;
         this.#changes = opts.changeManager || new ChangeManager();
         this.#execJs = opts.execJs ?? executeJsCode;
-        this.#createExtensionScope =
-            opts.createExtensionScope ?? ((changes) => {
-                return new ExtensionScope(changes, this.sessionId, this.#getDocumentBodyNode(), this.#currentTurnId);
-            });
+        this.#createExtensionScope = opts.createExtensionScope ?? ((changes) => {
+            return new ExtensionScope(changes, this.sessionId, this.#getDocumentBodyNode());
+        });
         this.#javascriptExecutor = new JavascriptExecutor({
             executionMode: this.executionMode,
             getContextNode: () => this.#getDocumentBodyNode(),
@@ -126,7 +124,6 @@ export class AccessibilityAgent extends AiAgent {
         };
     }
     async preRun() {
-        this.#currentTurnId++;
         const target = SDK.TargetManager.TargetManager.instance().primaryPageTarget();
         const domModel = target?.model(SDK.DOMModel.DOMModel);
         // We need to ensure the document is requested so that #getDocumentBodyNode()
@@ -190,49 +187,7 @@ export class AccessibilityAgent extends AiAgent {
         return node;
     }
     #declareFunctions() {
-        this.declareFunction('executeJavaScript', executeJavaScriptFunction(this.#javascriptExecutor));
-        this.declareFunction('runAccessibilityAudits', {
-            description: 'Triggers new Lighthouse accessibility audits in snapshot mode. Use this if the user has made changes to the page and you want to re-evaluate the accessibility audits.',
-            parameters: {
-                type: 6 /* Host.AidaClient.ParametersTypes.OBJECT */,
-                description: '',
-                nullable: false,
-                properties: {
-                    explanation: {
-                        type: 1 /* Host.AidaClient.ParametersTypes.STRING */,
-                        description: 'Explain why you want to run new audits.',
-                        nullable: false,
-                    },
-                },
-                required: ['explanation'],
-            },
-            displayInfoFromArgs: params => {
-                return {
-                    title: i18n.i18n.lockedString('Running accessibility audits'),
-                    thought: params.explanation,
-                    action: 'runAccessibilityAudits()'
-                };
-            },
-            handler: async (params) => {
-                debugLog('Function call: runAccessibilityAudits', params);
-                if (!this.#lighthouseRecording) {
-                    return { error: 'Lighthouse recording is not available.' };
-                }
-                const report = await this.#lighthouseRecording({
-                    mode: 'snapshot',
-                    categoryIds: ['accessibility'],
-                    isAIControlled: true,
-                });
-                if (!report) {
-                    return { error: 'Failed to run accessibility audits.' };
-                }
-                const audits = new LighthouseFormatter().audits(report, 'accessibility');
-                return {
-                    result: { audits },
-                    widgets: [{ name: 'LIGHTHOUSE_REPORT', data: { report, snapshotReport: true } }],
-                };
-            }
-        });
+        const isImported = this.context?.getItem().isImported;
         this.declareFunction('getLighthouseAudits', {
             description: 'Returns the audits for a specific Lighthouse category. Use this to get more information about the performance, accessibility, best-practices, or seo audits.',
             parameters: {
@@ -264,6 +219,65 @@ export class AccessibilityAgent extends AiAgent {
                 return {
                     result: { audits },
                     widgets: [{ name: 'LIGHTHOUSE_REPORT', data: { report } }],
+                };
+            }
+        });
+        const executeJsDeclaration = executeJavaScriptFunction(this.#javascriptExecutor);
+        this.declareFunction('executeJavaScript', {
+            ...executeJsDeclaration,
+            handler: async (params, options) => {
+                if (isImported) {
+                    return {
+                        error: 'Cannot use this tool on an imported file.',
+                    };
+                }
+                return await executeJsDeclaration.handler(params, options);
+            },
+        });
+        this.declareFunction('runAccessibilityAudits', {
+            description: 'Triggers new Lighthouse accessibility audits in snapshot mode. Use this if the user has made changes to the page and you want to re-evaluate the accessibility audits.',
+            parameters: {
+                type: 6 /* Host.AidaClient.ParametersTypes.OBJECT */,
+                description: '',
+                nullable: false,
+                properties: {
+                    explanation: {
+                        type: 1 /* Host.AidaClient.ParametersTypes.STRING */,
+                        description: 'Explain why you want to run new audits.',
+                        nullable: false,
+                    },
+                },
+                required: ['explanation'],
+            },
+            displayInfoFromArgs: params => {
+                return {
+                    title: i18n.i18n.lockedString('Running accessibility audits'),
+                    thought: params.explanation,
+                    action: 'runAccessibilityAudits()'
+                };
+            },
+            handler: async (params) => {
+                debugLog('Function call: runAccessibilityAudits', params);
+                if (isImported) {
+                    return {
+                        error: 'Cannot use this tool on an imported file.',
+                    };
+                }
+                if (!this.#lighthouseRecording) {
+                    return { error: 'Lighthouse recording is not available.' };
+                }
+                const report = await this.#lighthouseRecording({
+                    mode: 'snapshot',
+                    categoryIds: ['accessibility'],
+                    isAIControlled: true,
+                });
+                if (!report) {
+                    return { error: 'Failed to run accessibility audits.' };
+                }
+                const audits = new LighthouseFormatter().audits(report, 'accessibility');
+                return {
+                    result: { audits },
+                    widgets: [{ name: 'LIGHTHOUSE_REPORT', data: { report, snapshotReport: true } }],
                 };
             }
         });
@@ -305,6 +319,11 @@ export class AccessibilityAgent extends AiAgent {
             },
             handler: async (params) => {
                 debugLog('Function call: getStyles', params);
+                if (isImported) {
+                    return {
+                        error: 'Cannot use this tool on an imported file.',
+                    };
+                }
                 const node = await this.#resolvePathToNode(params.path);
                 if (!node) {
                     return { error: `Could not find the element with path: ${params.path}` };
@@ -366,6 +385,11 @@ export class AccessibilityAgent extends AiAgent {
             },
             handler: async (params) => {
                 debugLog('Function call: getElementAccessibilityDetails', params);
+                if (isImported) {
+                    return {
+                        error: 'Cannot use this tool on an imported file.',
+                    };
+                }
                 const node = await this.#resolvePathToNode(params.path);
                 if (!node) {
                     return { error: `Could not find the element with path: ${params.path}` };

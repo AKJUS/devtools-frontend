@@ -50,6 +50,8 @@ import * as Adorners from '../../ui/components/adorners/adorners.js';
 import * as Buttons from '../../ui/components/buttons/buttons.js';
 import * as RenderCoordinator from '../../ui/components/render_coordinator/render_coordinator.js';
 import * as DataGrid from '../../ui/legacy/components/data_grid/data_grid.js';
+// eslint-disable-next-line @devtools/es-modules-import
+import dataGridAiButtonStyles from '../../ui/legacy/components/data_grid/dataGridAiButton.css.js';
 import * as PerfUI from '../../ui/legacy/components/perf_ui/perf_ui.js';
 import * as Components from '../../ui/legacy/components/utils/utils.js';
 import * as UI from '../../ui/legacy/legacy.js';
@@ -534,6 +536,7 @@ export class NetworkLogView extends Common.ObjectWrapper.eventMixin(UI.Widget.VB
     constructor(filterBar, progressBarContainer, networkLogLargeRowsSetting) {
         super();
         this.registerRequiredCSS(networkLogViewStyles);
+        this.registerRequiredCSS(dataGridAiButtonStyles);
         this.setMinimumSize(50, 64);
         this.element.id = 'network-container';
         this.element.classList.add('no-node-selected');
@@ -2098,7 +2101,11 @@ export class NetworkLogView extends Common.ObjectWrapper.eventMixin(UI.Widget.VB
         // cURL command expected to run on the same platform that DevTools run
         // (it may be different from the inspected page platform).
         const escapeString = platform === 'win' ? escapeStringWin : escapeStringPosix;
-        command.push(escapeString(request.url()).replace(/[[{}\]]/g, '\\$&'));
+        // The shell escaping above protects the *shell* parser, but not curl's own
+        // argv parser: if the (HAR-imported) URL begins with '-', curl will parse
+        // it as an option (e.g. "-K//host/share/file" -> --config UNC path).
+        // Passing the URL via --url forces curl to treat it as a URL operand.
+        command.push('--url ' + escapeString(request.url()).replace(/[[{}\]]/g, '\\$&'));
         let inferredMethod = 'GET';
         const data = [];
         const formData = await request.requestFormData();
