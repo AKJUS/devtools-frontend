@@ -10313,10 +10313,6 @@ export declare namespace Network {
     const enum CookieExemptionReason {
         None = "None",
         UserSetting = "UserSetting",
-        TPCDMetadata = "TPCDMetadata",
-        TPCDDeprecationTrial = "TPCDDeprecationTrial",
-        TopLevelTPCDDeprecationTrial = "TopLevelTPCDDeprecationTrial",
-        TPCDHeuristics = "TPCDHeuristics",
         EnterprisePolicy = "EnterprisePolicy",
         StorageAccess = "StorageAccess",
         TopLevelStorageAccess = "TopLevelStorageAccess",
@@ -13546,7 +13542,6 @@ export declare namespace Page {
         DigitalCredentialsGet = "digital-credentials-get",
         DirectSockets = "direct-sockets",
         DirectSocketsMulticast = "direct-sockets-multicast",
-        DirectSocketsPrivate = "direct-sockets-private",
         DisplayCapture = "display-capture",
         DocumentDomain = "document-domain",
         EncryptedMedia = "encrypted-media",
