@@ -127,6 +127,9 @@ export const generatedPropertyValues: {
     "accent-color": {
         values: string[];
     };
+    "align-self": {
+        values: string[];
+    };
     "alignment-baseline": {
         values: string[];
     };
@@ -218,6 +221,9 @@ export const generatedPropertyValues: {
         values: string[];
     };
     "border-collapse": {
+        values: string[];
+    };
+    "border-image": {
         values: string[];
     };
     "border-image-repeat": {
@@ -373,7 +379,13 @@ export const generatedPropertyValues: {
     contain: {
         values: string[];
     };
+    "contain-intrinsic-block-size": {
+        values: string[];
+    };
     "contain-intrinsic-height": {
+        values: string[];
+    };
+    "contain-intrinsic-inline-size": {
         values: string[];
     };
     "contain-intrinsic-width": {
@@ -649,6 +661,9 @@ export const generatedPropertyValues: {
     isolation: {
         values: string[];
     };
+    "justify-self": {
+        values: string[];
+    };
     left: {
         values: string[];
     };
@@ -736,6 +751,15 @@ export const generatedPropertyValues: {
     "max-width": {
         values: string[];
     };
+    "min-height": {
+        values: string[];
+    };
+    "min-inline-size": {
+        values: string[];
+    };
+    "min-width": {
+        values: string[];
+    };
     "mix-blend-mode": {
         values: string[];
     };
@@ -758,6 +782,9 @@ export const generatedPropertyValues: {
         values: string[];
     };
     "origin-trial-test-property": {
+        values: string[];
+    };
+    outline: {
         values: string[];
     };
     "outline-color": {
@@ -787,6 +814,9 @@ export const generatedPropertyValues: {
     overlay: {
         values: string[];
     };
+    "overscroll-behavior": {
+        values: string[];
+    };
     "overscroll-behavior-x": {
         values: string[];
     };
@@ -794,6 +824,9 @@ export const generatedPropertyValues: {
         values: string[];
     };
     page: {
+        values: string[];
+    };
+    "page-break-before": {
         values: string[];
     };
     "page-margin-safety": {
