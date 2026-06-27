@@ -1343,6 +1343,7 @@ export declare namespace Audits {
         JwksHttpNotFound = "JwksHttpNotFound",
         JwksInvalidResponse = "JwksInvalidResponse",
         TokenVerificationSdJwtUnsupportedHeaderAlg = "TokenVerificationSdJwtUnsupportedHeaderAlg",
+        TokenVerificationSdJwtInvalidTyp = "TokenVerificationSdJwtInvalidTyp",
         TokenVerificationSdJwtMissingIss = "TokenVerificationSdJwtMissingIss",
         TokenVerificationSdJwtMissingIat = "TokenVerificationSdJwtMissingIat",
         TokenVerificationSdJwtMissingCnf = "TokenVerificationSdJwtMissingCnf",
@@ -12988,6 +12989,56 @@ export declare namespace Overlay {
         outlineColor?: DOM.RGBA;
     }
     /**
+     * Supported display cutout shapes.
+     */
+    const enum DisplayCutoutShape {
+        Pill = "pill",
+        Notch = "notch",
+        Circle = "circle",
+        Rectangle = "rectangle"
+    }
+    /**
+     * Configuration for a display cutout.
+     */
+    interface DisplayCutoutConfig {
+        /**
+         * A rectangle representing the cutout bounds.
+         */
+        rect: DOM.Rect;
+        /**
+         * Shape used to draw the cutout.
+         */
+        shape: DisplayCutoutShape;
+        /**
+         * Border radius for rounded cutout shapes.
+         */
+        borderRadius?: integer;
+        /**
+         * Upper shoulder radius for notch cutout shapes.
+         */
+        upperRadius?: integer;
+        /**
+         * Lower transition radius for notch cutout shapes.
+         */
+        lowerRadius?: integer;
+        /**
+         * Center x coordinate for circle cutout shapes.
+         */
+        cx?: integer;
+        /**
+         * Center y coordinate for circle cutout shapes.
+         */
+        cy?: integer;
+        /**
+         * Radius for circle cutout shapes.
+         */
+        radius?: integer;
+        /**
+         * The cutout fill color (default: black).
+         */
+        contentColor?: DOM.RGBA;
+    }
+    /**
      * Configuration for Window Controls Overlay
      */
     interface WindowControlsOverlayConfig {
@@ -13313,6 +13364,12 @@ export declare namespace Overlay {
          * hinge data, null means hideHinge
          */
         hingeConfig?: HingeConfig;
+    }
+    interface SetShowDisplayCutoutRequest {
+        /**
+         * display cutout data, null means hide display cutout
+         */
+        displayCutoutConfig?: DisplayCutoutConfig;
     }
     interface SetShowIsolatedElementsRequest {
         /**
