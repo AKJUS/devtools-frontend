@@ -278,6 +278,10 @@ var generatedProperties = [
   },
   {
     "inherited": true,
+    "keywords": [
+      "before",
+      "after"
+    ],
     "name": "-webkit-ruby-position"
   },
   {
@@ -2212,8 +2216,7 @@ var generatedProperties = [
       "layout",
       "style",
       "paint",
-      "inline-size",
-      "block-size"
+      "inline-size"
     ],
     "name": "contain"
   },
@@ -4495,7 +4498,43 @@ var generatedProperties = [
       "end",
       "self-start",
       "self-end",
-      "all"
+      "span-all",
+      "span-left",
+      "span-right",
+      "span-x-start",
+      "span-x-end",
+      "self-x-start",
+      "self-x-end",
+      "span-self-x-start",
+      "span-self-x-end",
+      "span-top",
+      "span-bottom",
+      "span-y-start",
+      "span-y-end",
+      "self-y-start",
+      "self-y-end",
+      "span-self-y-start",
+      "span-self-y-end",
+      "block-start",
+      "block-end",
+      "span-block-start",
+      "span-block-end",
+      "inline-start",
+      "inline-end",
+      "span-inline-start",
+      "span-inline-end",
+      "self-block-start",
+      "self-block-end",
+      "span-self-block-start",
+      "span-self-block-end",
+      "self-inline-start",
+      "self-inline-end",
+      "span-self-inline-start",
+      "span-self-inline-end",
+      "span-start",
+      "span-end",
+      "span-self-start",
+      "span-self-end"
     ],
     "name": "position-area"
   },
@@ -6145,6 +6184,12 @@ var generatedPropertyValues = {
       "visual"
     ]
   },
+  "-webkit-ruby-position": {
+    "values": [
+      "before",
+      "after"
+    ]
+  },
   "-webkit-text-combine": {
     "values": [
       "none",
@@ -6974,8 +7019,7 @@ var generatedPropertyValues = {
       "layout",
       "style",
       "paint",
-      "inline-size",
-      "block-size"
+      "inline-size"
     ]
   },
   "contain-intrinsic-block-size": {
@@ -8286,7 +8330,43 @@ var generatedPropertyValues = {
       "end",
       "self-start",
       "self-end",
-      "all"
+      "span-all",
+      "span-left",
+      "span-right",
+      "span-x-start",
+      "span-x-end",
+      "self-x-start",
+      "self-x-end",
+      "span-self-x-start",
+      "span-self-x-end",
+      "span-top",
+      "span-bottom",
+      "span-y-start",
+      "span-y-end",
+      "self-y-start",
+      "self-y-end",
+      "span-self-y-start",
+      "span-self-y-end",
+      "block-start",
+      "block-end",
+      "span-block-start",
+      "span-block-end",
+      "inline-start",
+      "inline-end",
+      "span-inline-start",
+      "span-inline-end",
+      "self-block-start",
+      "self-block-end",
+      "span-self-block-start",
+      "span-self-block-end",
+      "self-inline-start",
+      "self-inline-end",
+      "span-self-inline-start",
+      "span-self-inline-end",
+      "span-start",
+      "span-end",
+      "span-self-start",
+      "span-self-end"
     ]
   },
   "position-try-fallbacks": {

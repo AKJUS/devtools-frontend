@@ -288,6 +288,9 @@ export const generatedPropertyValues: {
     "-webkit-rtl-ordering": {
         values: string[];
     };
+    "-webkit-ruby-position": {
+        values: string[];
+    };
     "-webkit-text-combine": {
         values: string[];
     };
