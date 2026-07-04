@@ -3,29 +3,17 @@
 // found in the LICENSE file.
 import * as Common from '../../core/common/common.js';
 import * as Platform from '../../core/platform/platform.js';
-import * as Root from '../../core/root/root.js';
 import * as SDK from '../../core/sdk/sdk.js';
 export class AutofillManager extends Common.ObjectWrapper.ObjectWrapper {
     #address = '';
     #filledFields = [];
     #matches = [];
     #autofillModel = null;
-    constructor(targetManager) {
+    #frameManager;
+    constructor(targetManager, frameManager = SDK.FrameManager.FrameManager.instance()) {
         super();
+        this.#frameManager = frameManager;
         targetManager.addModelListener(SDK.AutofillModel.AutofillModel, "AddressFormFilled" /* SDK.AutofillModel.Events.ADDRESS_FORM_FILLED */, this.#addressFormFilled, this, { scoped: true });
-    }
-    static instance(opts = {
-        forceNew: null,
-        targetManager: null,
-    }) {
-        const { forceNew, targetManager } = opts;
-        if (!Root.DevToolsContext.globalInstance().has(AutofillManager) || forceNew) {
-            if (!targetManager) {
-                throw new Error('Missing targetManager for AutofillManager');
-            }
-            Root.DevToolsContext.globalInstance().set(AutofillManager, new AutofillManager(targetManager));
-        }
-        return Root.DevToolsContext.globalInstance().get(AutofillManager);
     }
     async #addressFormFilled({ data }) {
         this.#autofillModel = data.autofillModel;
@@ -50,7 +38,7 @@ export class AutofillManager extends Common.ObjectWrapper.ObjectWrapper {
     }
     highlightFilledField(filledField) {
         const backendNodeId = filledField.fieldId;
-        const target = SDK.FrameManager.FrameManager.instance().getFrame(filledField.frameId)?.resourceTreeModel().target();
+        const target = this.#frameManager.getFrame(filledField.frameId)?.resourceTreeModel().target();
         if (target) {
             const deferredNode = new SDK.DOMModel.DeferredDOMNode(target, backendNodeId);
             const domModel = target.model(SDK.DOMModel.DOMModel);
