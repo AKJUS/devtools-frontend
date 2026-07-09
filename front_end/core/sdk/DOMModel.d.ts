@@ -8,7 +8,7 @@ import { RemoteObject } from './RemoteObject.js';
 import { RuntimeModel } from './RuntimeModel.js';
 import { SDKModel } from './SDKModel.js';
 import { type Target } from './Target.js';
-import { TargetManager } from './TargetManager.js';
+import type { TargetManager } from './TargetManager.js';
 /** Keep this list in sync with https://w3c.github.io/aria/#state_prop_def **/
 export declare const ARIA_ATTRIBUTES: Set<string>;
 export declare enum DOMNodeEvents {
@@ -164,6 +164,7 @@ export declare class DOMNode extends Common.ObjectWrapper.ObjectWrapper<DOMNodeE
     copyTo(targetNode: DOMNode, anchorNode: DOMNode | null, callback?: ((arg0: string | null, arg1: DOMNode | null) => void)): void;
     moveTo(targetNode: DOMNode, anchorNode: DOMNode | null, callback?: ((arg0: string | null, arg1: DOMNode | null) => void)): void;
     isXMLNode(): boolean;
+    isCustomElement(): boolean;
     setMarker(name: string, value: unknown): void;
     marker<T>(name: string): T | null;
     getMarkerKeysForTest(): string[];
@@ -231,7 +232,7 @@ export declare class DOMModel extends SDKModel<EventTypes> {
     runtimeModel(): RuntimeModel;
     cssModel(): CSSModel;
     overlayModel(): OverlayModel;
-    static cancelSearch(targetManager?: TargetManager): void;
+    static cancelSearch(targetManager: TargetManager): void;
     private scheduleMutationEvent;
     private onDocumentOpened;
     requestDocument(): Promise<DOMDocument | null>;
