@@ -3577,7 +3577,7 @@ var NavigatorView = class _NavigatorView extends UI8.Widget.VBox {
   groupByAuthored;
   groupByDomain;
   groupByFolder;
-  constructor(jslogContext, enableAuthoredGrouping) {
+  constructor(jslogContext, enableAuthoredGrouping, networkProjectManager = Bindings3.NetworkProject.NetworkProjectManager.instance()) {
     super({
       jslog: `${VisualLogging5.pane(jslogContext).track({ resize: true })}`,
       useShadowDom: true
@@ -3618,8 +3618,8 @@ var NavigatorView = class _NavigatorView extends UI8.Widget.VBox {
     SDK5.TargetManager.TargetManager.instance().observeTargets(this);
     this.resetWorkspace(Workspace6.Workspace.WorkspaceImpl.instance());
     this.#workspace.uiSourceCodes().forEach(this.addUISourceCode.bind(this));
-    Bindings3.NetworkProject.NetworkProjectManager.instance().addEventListener("FrameAttributionAdded", this.frameAttributionAdded, this);
-    Bindings3.NetworkProject.NetworkProjectManager.instance().addEventListener("FrameAttributionRemoved", this.frameAttributionRemoved, this);
+    networkProjectManager.addEventListener("FrameAttributionAdded", this.frameAttributionAdded, this);
+    networkProjectManager.addEventListener("FrameAttributionRemoved", this.frameAttributionRemoved, this);
   }
   static treeElementOrder(treeElement) {
     if (boostOrderForNode.has(treeElement)) {
@@ -4000,7 +4000,7 @@ var NavigatorView = class _NavigatorView extends UI8.Widget.VBox {
           overlayModel.highlightFrame(frame.id);
         }
       } else {
-        SDK5.OverlayModel.OverlayModel.hideDOMNodeHighlight();
+        SDK5.OverlayModel.OverlayModel.hideDOMNodeHighlight(SDK5.TargetManager.TargetManager.instance());
       }
     }
     return frameNode;

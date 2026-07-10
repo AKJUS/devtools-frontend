@@ -871,7 +871,6 @@ export class AiAssistancePanel extends UI.Panel.Panel {
             isReadOnly: false,
             aidaClient: this.#aidaClient,
             changeManager: this.#changeManager,
-            isExternal: false,
             performanceRecordAndReload: this.#handlePerformanceRecordAndReload.bind(this),
             onInspectElement: this.#handleInspectElement.bind(this),
             networkTimeCalculator: NetworkPanel.NetworkPanel.NetworkPanel.instance().networkLogView.timeCalculator(),
@@ -896,7 +895,6 @@ export class AiAssistancePanel extends UI.Panel.Panel {
                         isReadOnly: false,
                         aidaClient: this.#aidaClient,
                         changeManager: this.#changeManager,
-                        isExternal: false,
                         performanceRecordAndReload: this.#handlePerformanceRecordAndReload.bind(this),
                         onInspectElement: this.#handleInspectElement.bind(this),
                         networkTimeCalculator: NetworkPanel.NetworkPanel.NetworkPanel.instance().networkLogView.timeCalculator(),
@@ -1310,7 +1308,6 @@ export class AiAssistancePanel extends UI.Panel.Panel {
                 isReadOnly: false,
                 aidaClient: this.#aidaClient,
                 changeManager: this.#changeManager,
-                isExternal: false,
                 performanceRecordAndReload: this.#handlePerformanceRecordAndReload.bind(this),
                 onInspectElement: this.#handleInspectElement.bind(this),
                 networkTimeCalculator: NetworkPanel.NetworkPanel.NetworkPanel.instance().networkLogView.timeCalculator(),
@@ -1334,14 +1331,21 @@ export class AiAssistancePanel extends UI.Panel.Panel {
         }
     }
     #populateHistoryMenu(contextMenu) {
-        const historicalConversations = AiAssistanceModel.AiHistoryStorage.AiHistoryStorage.instance().getHistory().map(serializedConversation => AiAssistanceModel.AiConversation.AiConversation.fromSerializedConversation(serializedConversation));
-        for (const conversation of historicalConversations.reverse()) {
-            if (conversation.isEmpty || !conversation.title) {
+        const history = AiAssistanceModel.AiHistoryStorage.AiHistoryStorage.instance().getHistory();
+        const activeId = this.#conversation?.id;
+        for (const serialized of [...history].reverse()) {
+            const isConversationEmpty = serialized.history.length === 0;
+            if (isConversationEmpty) {
                 continue;
             }
-            contextMenu.defaultSection().appendCheckboxItem(conversation.title, () => {
+            const title = AiAssistanceModel.AiConversation.AiConversation.titleForSerialized(serialized);
+            if (!title) {
+                continue;
+            }
+            contextMenu.defaultSection().appendCheckboxItem(title, () => {
+                const conversation = AiAssistanceModel.AiConversation.AiConversation.fromSerializedConversation(serialized);
                 void this.#openHistoricConversation(conversation);
-            }, { checked: (this.#conversation?.id === conversation.id), jslogContext: 'freestyler.history-item' });
+            }, { checked: activeId === serialized.id, jslogContext: 'freestyler.history-item' });
         }
         const historyEmpty = contextMenu.defaultSection().items.length === 0;
         if (historyEmpty) {

@@ -3927,6 +3927,10 @@ var UIStringsNotTranslate4 = {
    */
   systemError: "Something unforeseen happened and I can no longer continue. Try your request again and see if that resolves the issue. If this keeps happening, update Chrome to the latest version.",
   /**
+   * @description The error message when the user is out of quota or rate limited.
+   */
+  quotaError: "You reached your limit for AI assistance requests. Try again later.",
+  /**
    * @description The error message when the LLM gets stuck in a loop (max steps reached).
    */
   maxStepsError: "Seems like I am stuck with the investigation. It would be better if you start over.",
@@ -5247,6 +5251,9 @@ function renderError(message) {
       case "unknown":
       case "block":
         errorMessage = UIStringsNotTranslate4.systemError;
+        break;
+      case "quota":
+        errorMessage = UIStringsNotTranslate4.quotaError;
         break;
       case "max-steps":
         errorMessage = UIStringsNotTranslate4.maxStepsError;
@@ -8325,7 +8332,6 @@ var AiAssistancePanel = class _AiAssistancePanel extends UI11.Panel.Panel {
       isReadOnly: false,
       aidaClient: this.#aidaClient,
       changeManager: this.#changeManager,
-      isExternal: false,
       performanceRecordAndReload: this.#handlePerformanceRecordAndReload.bind(this),
       onInspectElement: this.#handleInspectElement.bind(this),
       networkTimeCalculator: NetworkPanel.NetworkPanel.NetworkPanel.instance().networkLogView.timeCalculator(),
@@ -8348,7 +8354,6 @@ var AiAssistancePanel = class _AiAssistancePanel extends UI11.Panel.Panel {
             isReadOnly: false,
             aidaClient: this.#aidaClient,
             changeManager: this.#changeManager,
-            isExternal: false,
             performanceRecordAndReload: this.#handlePerformanceRecordAndReload.bind(this),
             onInspectElement: this.#handleInspectElement.bind(this),
             networkTimeCalculator: NetworkPanel.NetworkPanel.NetworkPanel.instance().networkLogView.timeCalculator(),
@@ -8743,7 +8748,6 @@ var AiAssistancePanel = class _AiAssistancePanel extends UI11.Panel.Panel {
         isReadOnly: false,
         aidaClient: this.#aidaClient,
         changeManager: this.#changeManager,
-        isExternal: false,
         performanceRecordAndReload: this.#handlePerformanceRecordAndReload.bind(this),
         onInspectElement: this.#handleInspectElement.bind(this),
         networkTimeCalculator: NetworkPanel.NetworkPanel.NetworkPanel.instance().networkLogView.timeCalculator(),
@@ -8766,14 +8770,21 @@ var AiAssistancePanel = class _AiAssistancePanel extends UI11.Panel.Panel {
     }
   }
   #populateHistoryMenu(contextMenu) {
-    const historicalConversations = AiAssistanceModel9.AiHistoryStorage.AiHistoryStorage.instance().getHistory().map((serializedConversation) => AiAssistanceModel9.AiConversation.AiConversation.fromSerializedConversation(serializedConversation));
-    for (const conversation of historicalConversations.reverse()) {
-      if (conversation.isEmpty || !conversation.title) {
+    const history = AiAssistanceModel9.AiHistoryStorage.AiHistoryStorage.instance().getHistory();
+    const activeId = this.#conversation?.id;
+    for (const serialized of [...history].reverse()) {
+      const isConversationEmpty = serialized.history.length === 0;
+      if (isConversationEmpty) {
         continue;
       }
-      contextMenu.defaultSection().appendCheckboxItem(conversation.title, () => {
+      const title = AiAssistanceModel9.AiConversation.AiConversation.titleForSerialized(serialized);
+      if (!title) {
+        continue;
+      }
+      contextMenu.defaultSection().appendCheckboxItem(title, () => {
+        const conversation = AiAssistanceModel9.AiConversation.AiConversation.fromSerializedConversation(serialized);
         void this.#openHistoricConversation(conversation);
-      }, { checked: this.#conversation?.id === conversation.id, jslogContext: "freestyler.history-item" });
+      }, { checked: activeId === serialized.id, jslogContext: "freestyler.history-item" });
     }
     const historyEmpty = contextMenu.defaultSection().items.length === 0;
     if (historyEmpty) {

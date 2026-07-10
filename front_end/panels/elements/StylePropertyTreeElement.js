@@ -1600,7 +1600,7 @@ export class AnchorFunctionRenderer extends rendererBase(SDK.CSSPropertyParserMa
             anchorNode?.highlight();
         };
         const onMouseLeave = () => {
-            SDK.OverlayModel.OverlayModel.hideDOMNodeHighlight();
+            SDK.OverlayModel.OverlayModel.hideDOMNodeHighlight(SDK.TargetManager.TargetManager.instance());
         };
         if (identifier) {
             render(
