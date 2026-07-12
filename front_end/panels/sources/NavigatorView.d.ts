@@ -33,7 +33,7 @@ export declare class NavigatorView extends UI.Widget.VBox implements SDK.TargetM
     private groupByAuthored?;
     private groupByDomain?;
     private groupByFolder?;
-    constructor(jslogContext: string, enableAuthoredGrouping?: boolean, networkProjectManager?: Bindings.NetworkProject.NetworkProjectManager);
+    constructor(jslogContext: string, networkProjectManager: Bindings.NetworkProject.NetworkProjectManager, enableAuthoredGrouping?: boolean);
     private static treeElementOrder;
     static appendSearchItem(contextMenu: UI.ContextMenu.ContextMenu, path: string): void;
     private static treeElementsCompare;
