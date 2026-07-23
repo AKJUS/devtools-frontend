@@ -33,7 +33,6 @@ export class Settings {
             const setting = isRegex && typeof evaluatedDefaultValue === 'string' ?
                 this.createRegExpSetting(settingName, evaluatedDefaultValue, undefined, storageType) :
                 this.createSetting(settingName, evaluatedDefaultValue, storageType);
-            setting.setTitleFunction(registration.title);
             setting.setRegistration(registration);
             this.registerModuleSetting(setting);
         }
@@ -328,8 +327,6 @@ export class Setting {
     defaultValue;
     eventSupport;
     storage;
-    #titleFunction;
-    #title;
     #registration = null;
     #requiresUserAction;
     #value;
@@ -353,6 +350,14 @@ export class Setting {
     setSerializer(serializer) {
         this.#serializer = serializer;
     }
+    descriptor() {
+        return {
+            name: this.name,
+            type: this.type() ?? "boolean" /* SettingType.BOOLEAN */,
+            defaultValue: this.defaultValue,
+            storageType: this.#registration?.storageType,
+        };
+    }
     addChangeListener(listener, thisObject) {
         return this.eventSupport.addEventListener(this.name, listener, thisObject);
     }
@@ -360,21 +365,10 @@ export class Setting {
         this.eventSupport.removeEventListener(this.name, listener, thisObject);
     }
     title() {
-        if (this.#title) {
-            return this.#title;
-        }
-        if (this.#titleFunction) {
-            return this.#titleFunction();
+        if (this.#registration?.title) {
+            return this.#registration.title();
         }
         return '';
-    }
-    setTitleFunction(titleFunction) {
-        if (titleFunction) {
-            this.#titleFunction = titleFunction;
-        }
-    }
-    setTitle(title) {
-        this.#title = title;
     }
     setRequiresUserAction(requiresUserAction) {
         this.#requiresUserAction = requiresUserAction;

@@ -192,7 +192,7 @@
     "message": "Connection error"
   },
   "core/host/ResourceLoader.ts | decodingDataUrlFailed": {
-    "message": "Decoding Data URL failed"
+    "message": "Decoding data URL failed"
   },
   "core/host/ResourceLoader.ts | dnsResolverError": {
     "message": "DNS resolver error"
@@ -342,7 +342,7 @@
     "message": "(binary)"
   },
   "core/sdk/NetworkRequest.ts | blockedReasonInvalidDomain": {
-    "message": "This attempt to set a cookie via a Set-Cookie header was blocked because its Domain attribute was invalid with regards to the current host url."
+    "message": "This attempt to set a cookie via a Set-Cookie header was blocked because its Domain attribute was invalid with regards to the current host URL."
   },
   "core/sdk/NetworkRequest.ts | blockedReasonInvalidPrefix": {
     "message": "This attempt to set a cookie via a Set-Cookie header was blocked because it used the \"__Secure-\" or \"__Host-\" prefix in its name and broke the additional rules applied to cookies with these prefixes as defined in https://tools.ietf.org/html/draft-west-cookie-prefixes-05."
@@ -369,7 +369,7 @@
     "message": "This cookie is allowed by Chrome Enterprise policy. Learn more: goo.gle/ce-3pc"
   },
   "core/sdk/NetworkRequest.ts | exemptionReasonScheme": {
-    "message": "This cookie is allowed by the top-level url scheme"
+    "message": "This cookie is allowed by the top-level URL scheme"
   },
   "core/sdk/NetworkRequest.ts | exemptionReasonStorageAccessAPI": {
     "message": "This cookie is allowed by the Storage Access API. Learn more: goo.gle/saa"
@@ -384,7 +384,7 @@
     "message": "This cookie was blocked because it was too large. The combined size of the name and value must be less than or equal to 4096 characters."
   },
   "core/sdk/NetworkRequest.ts | notOnPath": {
-    "message": "This cookie was blocked because its path was not an exact match for or a superdirectory of the request url’s path."
+    "message": "This cookie was blocked because its path was not an exact match for or a superdirectory of the request URL’s path."
   },
   "core/sdk/NetworkRequest.ts | sameSiteLax": {
     "message": "This cookie was blocked because it had the \"SameSite=Lax\" attribute and the request was made from a different site and was not initiated by a top-level navigation."
@@ -411,7 +411,7 @@
     "message": "This cookie was blocked because it had the \"Secure\" attribute and the connection was not secure."
   },
   "core/sdk/NetworkRequest.ts | setcookieHeaderIsIgnoredIn": {
-    "message": "Set-Cookie header is ignored in response from url: {PH1}. The combined size of the name and value must be less than or equal to 4096 characters."
+    "message": "Set-Cookie header is ignored in response from URL: {PH1}. The combined size of the name and value must be less than or equal to 4096 characters."
   },
   "core/sdk/NetworkRequest.ts | theSchemeOfThisConnectionIsNot": {
     "message": "The scheme of this connection is not allowed to store cookies."
@@ -558,7 +558,7 @@
     "message": "Do not pause on exceptions"
   },
   "core/sdk/sdk-meta.ts | doNotPreserveLogUponNavigation": {
-    "message": "Do not preserve log upon navigation"
+    "message": "Don’t keep log on navigation"
   },
   "core/sdk/sdk-meta.ts | doNotShowGridNamedAreas": {
     "message": "Do not show grid named areas"
@@ -738,7 +738,7 @@
     "message": "Pause on exceptions"
   },
   "core/sdk/sdk-meta.ts | preserveLogUponNavigation": {
-    "message": "Preserve log upon navigation"
+    "message": "Keep log on navigation"
   },
   "core/sdk/sdk-meta.ts | print": {
     "message": "print"
@@ -1111,9 +1111,6 @@
   },
   "entrypoints/main/main-meta.ts | dontMatchChromeColorSchemeCommand": {
     "message": "Don’t match Chrome color scheme"
-  },
-  "entrypoints/main/main-meta.ts | earnBadges": {
-    "message": "Earn badges"
   },
   "entrypoints/main/main-meta.ts | enableCtrlShortcutToSwitchPanels": {
     "message": "Use Ctrl + 1-9 to switch panels"
@@ -1544,6 +1541,9 @@
   "generated/Deprecation.ts | XSLT": {
     "message": "XSLTProcessor and XSLT Processing Instructions have been deprecated by all browsers. These features will be removed from this browser soon."
   },
+  "models/badges/badges-meta.ts | earnBadges": {
+    "message": "Earn badges"
+  },
   "models/bindings/ContentProviderBasedProject.ts | unknownErrorLoadingFile": {
     "message": "Unknown error loading file"
   },
@@ -1572,7 +1572,7 @@
     "message": "LiveEdit failed: {PH1}"
   },
   "models/crux-manager/CrUXManager.ts | fieldOverrideWarning": {
-    "message": "Field metrics are configured for a different URL than the current page."
+    "message": "Field metrics are for a different URL than the current page."
   },
   "models/emulation/DeviceModeModel.ts | devicePixelRatioMustBeANumberOr": {
     "message": "Device pixel ratio must be a number or blank."
@@ -1770,25 +1770,28 @@
     "message": "HTTP Unencoded Digest specification"
   },
   "models/live-metrics/LiveMetrics.ts | lcpEmulationWarning": {
-    "message": "Simulating a new device after the page loads can affect LCP. Reload the page after simulating a new device for accurate LCP data."
+    "message": "Simulating a device after the page loads can affect LCP. Reload the page for accurate LCP."
   },
   "models/live-metrics/LiveMetrics.ts | lcpVisibilityWarning": {
-    "message": "LCP value may be inflated because the page started loading in the background."
+    "message": "LCP may be inflated because the page started loading in the background."
   },
   "models/logs/logs-meta.ts | clear": {
     "message": "clear"
   },
-  "models/logs/logs-meta.ts | doNotPreserveLogOnPageReload": {
-    "message": "Do not preserve log on page reload / navigation"
+  "models/logs/logs-meta.ts | doNotKeepLogOnPageReload": {
+    "message": "Don’t keep log on page reload / navigation"
+  },
+  "models/logs/logs-meta.ts | keep": {
+    "message": "keep"
+  },
+  "models/logs/logs-meta.ts | keepLog": {
+    "message": "Keep log"
+  },
+  "models/logs/logs-meta.ts | keepLogOnPageReload": {
+    "message": "Keep log on page reload / navigation"
   },
   "models/logs/logs-meta.ts | preserve": {
     "message": "preserve"
-  },
-  "models/logs/logs-meta.ts | preserveLog": {
-    "message": "Preserve log"
-  },
-  "models/logs/logs-meta.ts | preserveLogOnPageReload": {
-    "message": "Preserve log on page reload / navigation"
   },
   "models/logs/logs-meta.ts | recordNetworkLog": {
     "message": "Record network log"
@@ -4749,7 +4752,7 @@
     "message": "Deletion reason"
   },
   "panels/application/DeviceBoundSessionsView.ts | doNotClearLogOnPageReload": {
-    "message": "Do not clear log on page reload/navigation."
+    "message": "Don’t clear log on page reload/navigation"
   },
   "panels/application/DeviceBoundSessionsView.ts | emptyScopeSpecificationDomain": {
     "message": "Empty scope specification domain"
@@ -4944,7 +4947,7 @@
     "message": "Persistent HTTP error"
   },
   "panels/application/DeviceBoundSessionsView.ts | preserveLog": {
-    "message": "Preserve log"
+    "message": "Keep log"
   },
   "panels/application/DeviceBoundSessionsView.ts | proxyError": {
     "message": "Proxy error"
@@ -6756,7 +6759,7 @@
     "message": "{PH1} (from source map)"
   },
   "panels/changes/ChangesView.ts | changesViewDescription": {
-    "message": "On this page you can track code changes made within DevTools."
+    "message": "Track code changes made within DevTools."
   },
   "panels/changes/ChangesView.ts | noChanges": {
     "message": "No changes yet"
@@ -7715,6 +7718,12 @@
   "panels/elements/AccessibilityTreeView.ts | copy": {
     "message": "Copy"
   },
+  "panels/elements/AccessibilityTreeView.ts | scrollIntoView": {
+    "message": "Scroll into view"
+  },
+  "panels/elements/AccessibilityTreeView.ts | switchToDomTree": {
+    "message": "Switch to DOM tree"
+  },
   "panels/elements/ClassesPaneWidget.ts | addNewClass": {
     "message": "Add new class"
   },
@@ -7942,6 +7951,9 @@
   },
   "panels/elements/elements-meta.ts | eventListeners": {
     "message": "Event Listeners"
+  },
+  "panels/elements/elements-meta.ts | frameworkListeners": {
+    "message": "Framework listeners"
   },
   "panels/elements/elements-meta.ts | hideElement": {
     "message": "Hide element"
@@ -8284,6 +8296,9 @@
   },
   "panels/elements/ElementsTreeElement.ts | styleScrollbars": {
     "message": "Style scrollbars"
+  },
+  "panels/elements/ElementsTreeElement.ts | switchToAccessibilityTree": {
+    "message": "Switch to accessibility tree"
   },
   "panels/elements/ElementsTreeElement.ts | thisElementWasIdentifiedAsAnAd": {
     "message": "This element was identified as an ad"
@@ -8754,7 +8769,7 @@
     "message": "Console message"
   },
   "panels/explain/components/ConsoleInsight.ts | error": {
-    "message": "DevTools has encountered an error"
+    "message": "DevTools encountered an error"
   },
   "panels/explain/components/ConsoleInsight.ts | errorBody": {
     "message": "Something went wrong. Try again."
@@ -8802,7 +8817,7 @@
     "message": "Related content"
   },
   "panels/explain/components/ConsoleInsight.ts | reloadRecommendation": {
-    "message": "Reload the page to capture related network request data for this message in order to create a better insight."
+    "message": "Reload the page to capture related network request data for this message to get a better insight."
   },
   "panels/explain/components/ConsoleInsight.ts | report": {
     "message": "Report legal issue"
@@ -8820,13 +8835,13 @@
     "message": "Sign in to use this feature"
   },
   "panels/explain/components/ConsoleInsight.ts | stackTrace": {
-    "message": "Stacktrace"
+    "message": "Stack trace"
   },
   "panels/explain/components/ConsoleInsight.ts | timedOut": {
     "message": "Generating a response took too long. Please try again."
   },
   "panels/explain/components/ConsoleInsight.ts | turnOnInSettings": {
-    "message": "Turn on {PH1} to receive AI assistance for understanding and addressing console warnings and errors."
+    "message": "Turn on {PH1} to use AI assistance for understanding and addressing console warnings and errors."
   },
   "panels/explain/explain-meta.ts | enableConsoleInsights": {
     "message": "Understand console messages with AI"
@@ -9272,6 +9287,9 @@
   "panels/js_timeline/js_timeline-meta.ts | timelineShowAllEvents": {
     "message": "Show all events"
   },
+  "panels/layer_viewer/layer_viewer-meta.ts | paints": {
+    "message": "Paints"
+  },
   "panels/layer_viewer/layer_viewer-meta.ts | panOrRotateDown": {
     "message": "Pan or rotate down"
   },
@@ -9286,6 +9304,9 @@
   },
   "panels/layer_viewer/layer_viewer-meta.ts | resetView": {
     "message": "Reset view"
+  },
+  "panels/layer_viewer/layer_viewer-meta.ts | slowScrollRects": {
+    "message": "Slow scroll rects"
   },
   "panels/layer_viewer/layer_viewer-meta.ts | switchToPanMode": {
     "message": "Switch to pan mode"
@@ -9380,17 +9401,11 @@
   "panels/layer_viewer/Layers3DView.ts | noLayerInformation": {
     "message": "No layers detected yet"
   },
-  "panels/layer_viewer/Layers3DView.ts | paints": {
-    "message": "Paints"
-  },
   "panels/layer_viewer/Layers3DView.ts | resetView": {
     "message": "Reset View"
   },
   "panels/layer_viewer/Layers3DView.ts | showPaintProfiler": {
     "message": "Show Paint Profiler"
-  },
-  "panels/layer_viewer/Layers3DView.ts | slowScrollRects": {
-    "message": "Slow scroll rects"
   },
   "panels/layer_viewer/Layers3DView.ts | webglSupportIsDisabledInYour": {
     "message": "WebGL support is disabled in your browser."
@@ -9452,8 +9467,38 @@
   "panels/layers/LayersPanel.ts | profiler": {
     "message": "Profiler"
   },
+  "panels/lighthouse/lighthouse-meta.ts | accessibility": {
+    "message": "Accessibility"
+  },
+  "panels/lighthouse/lighthouse-meta.ts | agenticBrowsing": {
+    "message": "Agentic browsing"
+  },
+  "panels/lighthouse/lighthouse-meta.ts | bestPractices": {
+    "message": "Best practices"
+  },
+  "panels/lighthouse/lighthouse-meta.ts | clearStorage": {
+    "message": "Clear storage"
+  },
+  "panels/lighthouse/lighthouse-meta.ts | device": {
+    "message": "Apply mobile emulation"
+  },
+  "panels/lighthouse/lighthouse-meta.ts | enableSampling": {
+    "message": "Enable JS sampling"
+  },
+  "panels/lighthouse/lighthouse-meta.ts | mode": {
+    "message": "Lighthouse mode"
+  },
+  "panels/lighthouse/lighthouse-meta.ts | performance": {
+    "message": "Performance"
+  },
+  "panels/lighthouse/lighthouse-meta.ts | seo": {
+    "message": "SEO"
+  },
   "panels/lighthouse/lighthouse-meta.ts | showLighthouse": {
     "message": "Show Lighthouse"
+  },
+  "panels/lighthouse/lighthouse-meta.ts | throttling": {
+    "message": "Throttling method"
   },
   "panels/lighthouse/LighthouseController.ts | accessibility": {
     "message": "Accessibility"
@@ -11241,7 +11286,7 @@
     "message": "Type"
   },
   "panels/network/NetworkLogViewColumns.ts | url": {
-    "message": "Url"
+    "message": "URL"
   },
   "panels/network/NetworkLogViewColumns.ts | waterfall": {
     "message": "Waterfall"
@@ -11274,7 +11319,7 @@
     "message": "Disable cache while DevTools is open"
   },
   "panels/network/NetworkPanel.ts | doNotClearLogOnPageReload": {
-    "message": "Do not clear log on page reload / navigation"
+    "message": "Don’t clear log on page reload / navigation"
   },
   "panels/network/NetworkPanel.ts | exportHar": {
     "message": "Export HAR (either sanitized or with sensitive data)"
@@ -11313,7 +11358,7 @@
     "message": "Open in Network panel (missing request)"
   },
   "panels/network/NetworkPanel.ts | preserveLog": {
-    "message": "Preserve log"
+    "message": "Keep log"
   },
   "panels/network/NetworkPanel.ts | recordingFrames": {
     "message": "Recording frames…"
@@ -14571,7 +14616,7 @@
     "message": "{n, plural, =1 {Enable breakpoint} other {Enable all breakpoints in line}}"
   },
   "panels/sources/DebuggerPlugin.ts | errorLoading": {
-    "message": "Error loading url {PH1}: {PH2}"
+    "message": "Error loading URL {PH1}: {PH2}"
   },
   "panels/sources/DebuggerPlugin.ts | neverPauseHere": {
     "message": "Never pause here"
@@ -14611,6 +14656,9 @@
   },
   "panels/sources/FilteredUISourceCodeListProvider.ts | sIgnoreListed": {
     "message": "{PH1} (ignore listed)"
+  },
+  "panels/sources/FilteredUISourceCodeListProvider.ts | workspace": {
+    "message": "Workspace"
   },
   "panels/sources/GoToLineQuickOpen.ts | currentLineSTypeALineNumber": {
     "message": "Type a line number between 1 and {PH1} to navigate to"
@@ -16241,14 +16289,44 @@
   "panels/timeline/timeline-meta.ts | chromeFrameInLayersView": {
     "message": "Chrome frame in Layers view"
   },
+  "panels/timeline/timeline-meta.ts | dimThirdParties": {
+    "message": "Dim 3rd parties"
+  },
+  "panels/timeline/timeline-meta.ts | disableJavascriptSamples": {
+    "message": "Disable JavaScript samples"
+  },
+  "panels/timeline/timeline-meta.ts | documents": {
+    "message": "Documents"
+  },
+  "panels/timeline/timeline-meta.ts | enableAdvancedPaint": {
+    "message": "Enable advanced paint instrumentation (slow)"
+  },
+  "panels/timeline/timeline-meta.ts | enableSelectorStats": {
+    "message": "Enable CSS selector stats (slow)"
+  },
+  "panels/timeline/timeline-meta.ts | gpuMemory": {
+    "message": "GPU memory"
+  },
+  "panels/timeline/timeline-meta.ts | jsHeap": {
+    "message": "JS heap"
+  },
+  "panels/timeline/timeline-meta.ts | listeners": {
+    "message": "Listeners"
+  },
   "panels/timeline/timeline-meta.ts | loadProfile": {
     "message": "Load profile…"
+  },
+  "panels/timeline/timeline-meta.ts | memory": {
+    "message": "Memory"
   },
   "panels/timeline/timeline-meta.ts | nextFrame": {
     "message": "Next frame"
   },
   "panels/timeline/timeline-meta.ts | nextRecording": {
     "message": "Next recording"
+  },
+  "panels/timeline/timeline-meta.ts | nodes": {
+    "message": "Nodes"
   },
   "panels/timeline/timeline-meta.ts | performance": {
     "message": "Performance"
@@ -16267,6 +16345,15 @@
   },
   "panels/timeline/timeline-meta.ts | saveProfile": {
     "message": "Save profile…"
+  },
+  "panels/timeline/timeline-meta.ts | screenshotCapture": {
+    "message": "Screenshot capture"
+  },
+  "panels/timeline/timeline-meta.ts | screenshots": {
+    "message": "Screenshots"
+  },
+  "panels/timeline/timeline-meta.ts | showCustomtracks": {
+    "message": "Show custom tracks"
   },
   "panels/timeline/timeline-meta.ts | showPerformance": {
     "message": "Show Performance"
@@ -16445,23 +16532,11 @@
   "panels/timeline/TimelinePanel.ts | CpuThrottlingIsEnabled": {
     "message": "- CPU throttling is enabled"
   },
-  "panels/timeline/TimelinePanel.ts | dimThirdParties": {
-    "message": "Dim 3rd parties"
-  },
-  "panels/timeline/TimelinePanel.ts | disableJavascriptSamples": {
-    "message": "Disable JavaScript samples"
-  },
   "panels/timeline/TimelinePanel.ts | disablesJavascriptSampling": {
     "message": "Disables JavaScript sampling, reduces overhead when running against mobile devices"
   },
   "panels/timeline/TimelinePanel.ts | dropTimelineFileOrUrlHere": {
     "message": "Drop trace file or URL here"
-  },
-  "panels/timeline/TimelinePanel.ts | enableAdvancedPaint": {
-    "message": "Enable advanced paint instrumentation (slow)"
-  },
-  "panels/timeline/TimelinePanel.ts | enableSelectorStats": {
-    "message": "Enable CSS selector stats (slow)"
   },
   "panels/timeline/TimelinePanel.ts | encodingTraceForDownload": {
     "message": "Encoding…"
@@ -16496,9 +16571,6 @@
   "panels/timeline/TimelinePanel.ts | loadTrace": {
     "message": "Load trace…"
   },
-  "panels/timeline/TimelinePanel.ts | memory": {
-    "message": "Memory"
-  },
   "panels/timeline/TimelinePanel.ts | network": {
     "message": "Network:"
   },
@@ -16523,8 +16595,17 @@
   "panels/timeline/TimelinePanel.ts | recordingFailed": {
     "message": "Recording failed"
   },
-  "panels/timeline/TimelinePanel.ts | screenshots": {
-    "message": "Screenshots"
+  "panels/timeline/TimelinePanel.ts | screenshotPresetDefault": {
+    "message": "500 x 500 px, up to 450 frames"
+  },
+  "panels/timeline/TimelinePanel.ts | screenshotPresetLarge": {
+    "message": "1000 x 1000 px, up to 100 frames"
+  },
+  "panels/timeline/TimelinePanel.ts | screenshotPresetMedium": {
+    "message": "250 x 250 px, up to 1800 frames"
+  },
+  "panels/timeline/TimelinePanel.ts | screenshotPresetTiny": {
+    "message": "100 x 100 px, up to 11250 frames"
   },
   "panels/timeline/TimelinePanel.ts | selectionCleared": {
     "message": "Selection cleared"
@@ -16534,9 +16615,6 @@
   },
   "panels/timeline/TimelinePanel.ts | shortcutsDialogTitle": {
     "message": "Keyboard shortcuts for flamechart"
-  },
-  "panels/timeline/TimelinePanel.ts | showCustomtracks": {
-    "message": "Show custom tracks"
   },
   "panels/timeline/TimelinePanel.ts | showDataAddedByExtensions": {
     "message": "Show data added by extensions of the Performance panel"
@@ -17028,7 +17106,7 @@
     "message": "[ unknown node ]"
   },
   "panels/timeline/TimelineUIUtils.ts | url": {
-    "message": "Url"
+    "message": "URL"
   },
   "panels/timeline/TimelineUIUtils.ts | warning": {
     "message": "Warning"

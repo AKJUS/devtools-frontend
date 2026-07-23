@@ -224,7 +224,7 @@ __export(config_exports, {
 });
 import * as Common from "./../../../core/common/common.js";
 import * as i18n from "./../../../core/i18n/i18n.js";
-import * as TextUtils from "./../../../models/text_utils/text_utils.js";
+import * as TextUtils from "./../../../core/text_utils/text_utils.js";
 import * as CM3 from "./../../../third_party/codemirror.next/codemirror.next.js";
 import { Icon } from "./../../kit/kit.js";
 import * as UI from "./../../legacy/legacy.js";
@@ -2472,7 +2472,8 @@ async function completeExpressionInScope() {
   if (!selectedFrame) {
     return result;
   }
-  const scopes = await Promise.all(selectedFrame.scopeChain().map((scope) => SourceMapScopes.NamesResolver.resolveScopeInObject(scope).getAllProperties(false, false)));
+  const debuggerWorkspaceBinding = Bindings.DebuggerWorkspaceBinding.DebuggerWorkspaceBinding.instance();
+  const scopes = await Promise.all(selectedFrame.scopeChain().map((scope) => SourceMapScopes.NamesResolver.resolveScopeInObject(scope, debuggerWorkspaceBinding).getAllProperties(false, false)));
   for (const scope of scopes) {
     for (const property of scope.properties || []) {
       result.add({

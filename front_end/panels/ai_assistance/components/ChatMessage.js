@@ -9,10 +9,10 @@ import * as i18n from '../../../core/i18n/i18n.js';
 import * as Platform from '../../../core/platform/platform.js';
 import * as Root from '../../../core/root/root.js';
 import * as SDK from '../../../core/sdk/sdk.js';
+import * as TextUtils from '../../../core/text_utils/text_utils.js';
 import * as AiAssistanceModel from '../../../models/ai_assistance/ai_assistance.js';
 import * as ComputedStyle from '../../../models/computed_style/computed_style.js';
 import * as Formatter from '../../../models/formatter/formatter.js';
-import * as TextUtils from '../../../models/text_utils/text_utils.js';
 import * as Trace from '../../../models/trace/trace.js';
 import * as Workspace from '../../../models/workspace/workspace.js';
 import * as PanelsCommon from '../../../panels/common/common.js';
@@ -111,6 +111,10 @@ const UIStringsNotTranslate = {
      * @description The error message when the LLM selects context from a different origin.
      */
     crossOriginError: 'I have selected the new context but you will have to start a new chat.',
+    /**
+     * @description The error message when the request payload is too large.
+     */
+    payloadTooLargeError: 'The request payload is too large. Please try a smaller image or a screenshot.',
     /**
      * @description Displayed when the user stop the response
      */
@@ -1549,6 +1553,9 @@ function renderError(message) {
                 break;
             case "cross-origin" /* AiAssistanceModel.AiAgent.ErrorType.CROSS_ORIGIN */:
                 errorMessage = UIStringsNotTranslate.crossOriginError;
+                break;
+            case "payload-too-large" /* AiAssistanceModel.AiAgent.ErrorType.PAYLOAD_TOO_LARGE */:
+                errorMessage = UIStringsNotTranslate.payloadTooLargeError;
                 break;
             case "abort" /* AiAssistanceModel.AiAgent.ErrorType.ABORT */:
                 return html `<p class="aborted" jslog=${VisualLogging.section('aborted')}>${lockedString(UIStringsNotTranslate.stoppedResponse)}</p>`;

@@ -2,20 +2,24 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 import * as SDK from '../../core/sdk/sdk.js';
-import * as TextUtils from '../text_utils/text_utils.js';
+import * as TextUtils from '../../core/text_utils/text_utils.js';
 import * as Workspace from '../workspace/workspace.js';
 import { CSSWorkspaceBinding } from './CSSWorkspaceBinding.js';
 import { DebuggerWorkspaceBinding } from './DebuggerWorkspaceBinding.js';
 import { LiveLocationPool, LiveLocationWithPool } from './LiveLocation.js';
 export class PresentationSourceFrameMessageManager {
     #targetToMessageHelperMap = new WeakMap();
-    constructor() {
-        SDK.TargetManager.TargetManager.instance().observeModels(SDK.DebuggerModel.DebuggerModel, this);
-        SDK.TargetManager.TargetManager.instance().observeModels(SDK.CSSModel.CSSModel, this);
+    #targetManager;
+    #workspace;
+    constructor(targetManager, workspace) {
+        this.#workspace = workspace;
+        this.#targetManager = targetManager;
+        targetManager.observeModels(SDK.DebuggerModel.DebuggerModel, this);
+        targetManager.observeModels(SDK.CSSModel.CSSModel, this);
     }
     modelAdded(model) {
         const target = model.target();
-        const helper = this.#targetToMessageHelperMap.get(target) ?? new PresentationSourceFrameMessageHelper();
+        const helper = this.#targetToMessageHelperMap.get(target) ?? new PresentationSourceFrameMessageHelper(this.#workspace);
         if (model instanceof SDK.DebuggerModel.DebuggerModel) {
             helper.setDebuggerModel(model);
         }
@@ -34,19 +38,19 @@ export class PresentationSourceFrameMessageManager {
         void helper?.addMessage(message, source);
     }
     clear() {
-        for (const target of SDK.TargetManager.TargetManager.instance().targets()) {
+        for (const target of this.#targetManager.targets()) {
             const helper = this.#targetToMessageHelperMap.get(target);
             helper?.clear();
         }
     }
 }
 export class PresentationConsoleMessageManager {
-    #sourceFrameMessageManager = new PresentationSourceFrameMessageManager();
-    constructor() {
-        SDK.TargetManager.TargetManager.instance().addModelListener(SDK.ConsoleModel.ConsoleModel, SDK.ConsoleModel.Events.MessageAdded, event => this.consoleMessageAdded(event.data));
-        SDK.ConsoleModel.ConsoleModel.allMessagesUnordered(SDK.TargetManager.TargetManager.instance())
-            .forEach(this.consoleMessageAdded, this);
-        SDK.TargetManager.TargetManager.instance().addModelListener(SDK.ConsoleModel.ConsoleModel, SDK.ConsoleModel.Events.ConsoleCleared, () => this.#sourceFrameMessageManager.clear());
+    #sourceFrameMessageManager;
+    constructor(targetManager, workspace) {
+        this.#sourceFrameMessageManager = new PresentationSourceFrameMessageManager(targetManager, workspace);
+        targetManager.addModelListener(SDK.ConsoleModel.ConsoleModel, SDK.ConsoleModel.Events.MessageAdded, event => this.consoleMessageAdded(event.data));
+        SDK.ConsoleModel.ConsoleModel.allMessagesUnordered(targetManager).forEach(this.consoleMessageAdded, this);
+        targetManager.addModelListener(SDK.ConsoleModel.ConsoleModel, SDK.ConsoleModel.Events.ConsoleCleared, () => this.#sourceFrameMessageManager.clear());
     }
     consoleMessageAdded(consoleMessage) {
         const runtimeModel = consoleMessage.runtimeModel();
@@ -65,9 +69,11 @@ export class PresentationSourceFrameMessageHelper {
     #cssModel;
     #presentationMessages = new Map();
     #locationPool;
-    constructor() {
+    #workspace;
+    constructor(workspace) {
+        this.#workspace = workspace;
         this.#locationPool = new LiveLocationPool();
-        Workspace.Workspace.WorkspaceImpl.instance().addEventListener(Workspace.Workspace.Events.UISourceCodeAdded, this.#uiSourceCodeAdded.bind(this));
+        this.#workspace.addEventListener(Workspace.Workspace.Events.UISourceCodeAdded, this.#uiSourceCodeAdded.bind(this));
     }
     setDebuggerModel(debuggerModel) {
         if (this.#debuggerModel) {
@@ -108,7 +114,7 @@ export class PresentationSourceFrameMessageHelper {
         if (!source.url) {
             return null;
         }
-        const uiSourceCode = Workspace.Workspace.WorkspaceImpl.instance().uiSourceCodeForURL(source.url);
+        const uiSourceCode = this.#workspace.uiSourceCodeForURL(source.url);
         if (!uiSourceCode) {
             return null;
         }
