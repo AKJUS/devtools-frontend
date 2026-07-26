@@ -313,7 +313,7 @@ export class CSSMatchedStyles {
             nodeStyles.push(style);
         }
         // Inline style takes precedence over regular and inherited rules.
-        if (inlinePayload && this.#node.nodeType() === Node.ELEMENT_NODE) {
+        if (inlinePayload && this.#node.nodeType() === 1 /* NodeType.ELEMENT_NODE */) {
             const style = new CSSStyleDeclaration(this.#cssModel, null, inlinePayload, Type.Inline);
             this.#nodeForStyle.set(style, this.#node);
             nodeStyles.push(style);
@@ -690,9 +690,6 @@ export class CSSMatchedStyles {
         const nestingSelectors = rule.nestingSelectors?.slice(nestingIndex + 1) ?? [];
         const matchCascade = (cascade) => {
             for (const style of cascade.styles()) {
-                if (this.isInherited(style)) {
-                    continue;
-                }
                 const parentRule = style.parentRule;
                 if (!(parentRule instanceof CSSStyleRule)) {
                     continue;

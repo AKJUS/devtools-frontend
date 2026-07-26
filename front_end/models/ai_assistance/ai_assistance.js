@@ -1443,7 +1443,8 @@ var AiAgent_exports = {};
 __export(AiAgent_exports, {
   AiAgent: () => AiAgent,
   ConversationContext: () => ConversationContext,
-  MAX_STEPS: () => MAX_STEPS
+  MAX_STEPS: () => MAX_STEPS,
+  aidaErrorToErrorType: () => aidaErrorToErrorType
 });
 import * as Host4 from "./../../core/host/host.js";
 import * as Root4 from "./../../core/root/root.js";
@@ -1806,16 +1807,7 @@ var AiAgent = class {
         }
       } catch (err) {
         debugLog("Error calling the AIDA API", err);
-        let error = "unknown";
-        if (err instanceof Host4.AidaClient.AidaAbortError) {
-          error = "abort";
-        } else if (err instanceof Host4.AidaClient.AidaBlockError) {
-          error = "block";
-        } else if (err instanceof Host4.AidaClient.AidaQuotaError || err instanceof Error && err.message.toLowerCase().includes("quota")) {
-          error = "quota";
-        } else if (err instanceof Host4.AidaClient.AidaPayloadTooLargeError || err instanceof Error && /payload size exceeds the limit/i.test(err.message)) {
-          error = "payload-too-large";
-        }
+        const error = aidaErrorToErrorType(err);
         yield this.#createErrorResponse(error);
         break;
       }
@@ -2101,6 +2093,21 @@ function sanitizeSuggestions(suggestions) {
     return void 0;
   }
   return sanitized;
+}
+function aidaErrorToErrorType(err) {
+  if (err instanceof Host4.AidaClient.AidaAbortError) {
+    return "abort";
+  }
+  if (err instanceof Host4.AidaClient.AidaBlockError) {
+    return "block";
+  }
+  if (err instanceof Host4.AidaClient.AidaQuotaError) {
+    return "quota";
+  }
+  if (err instanceof Host4.AidaClient.AidaPayloadTooLargeError) {
+    return "payload-too-large";
+  }
+  return "unknown";
 }
 
 // gen/front_end/models/ai_assistance/contexts/DOMNodeContext.js
@@ -3826,6 +3833,7 @@ __export(PerformanceTraceContext_exports, {
 import * as Common8 from "./../../core/common/common.js";
 import * as SDK10 from "./../../core/sdk/sdk.js";
 import * as Tracing from "./../../services/tracing/tracing.js";
+import * as Bindings2 from "./../bindings/bindings.js";
 import * as SourceMapScopes from "./../source_map_scopes/source_map_scopes.js";
 import * as Trace6 from "./../trace/trace.js";
 
@@ -4349,13 +4357,21 @@ var PerformanceTraceFormatter = class {
   #deviceScope;
   resolveFunctionCode;
   #cruxManager;
-  constructor(focus, deviceScope = null, cruxManager = CrUXManager.CrUXManager.instance()) {
+  constructor(focus, deviceScope = null, cruxManager) {
     this.#focus = focus;
     this.#parsedTrace = focus.parsedTrace;
     this.#insightSet = focus.primaryInsightSet;
     this.#eventsSerializer = focus.eventsSerializer;
     this.#deviceScope = deviceScope;
-    this.#cruxManager = cruxManager;
+    if (cruxManager) {
+      this.#cruxManager = cruxManager;
+    } else {
+      try {
+        this.#cruxManager = CrUXManager.CrUXManager.instance();
+      } catch {
+        this.#cruxManager = null;
+      }
+    }
   }
   serializeEvent(event) {
     const key = this.#eventsSerializer.keyForEvent(event);
@@ -4373,7 +4389,14 @@ var PerformanceTraceFormatter = class {
       return [];
     }
     try {
-      const cruxScope = this.#deviceScope ? { pageScope: "url", deviceScope: this.#deviceScope } : this.#cruxManager.getSelectedScope();
+      let cruxScope;
+      if (this.#deviceScope) {
+        cruxScope = { pageScope: "url", deviceScope: this.#deviceScope };
+      } else if (this.#cruxManager) {
+        cruxScope = this.#cruxManager.getSelectedScope();
+      } else {
+        return [];
+      }
       const parts = [];
       const fieldMetrics = Trace3.Insights.Common.getFieldMetricsForInsightSet(insightSet, this.#parsedTrace.metadata, cruxScope);
       const fieldLcp = fieldMetrics?.lcp;
@@ -6257,23 +6280,25 @@ function getPerformanceAgentFocusFromModel(model) {
 
 // gen/front_end/models/ai_assistance/contexts/PerformanceTraceContext.js
 var PerformanceTraceContext = class _PerformanceTraceContext extends ConversationContext {
-  static fromParsedTrace(parsedTrace, targetManager = SDK10.TargetManager.TargetManager.instance(), freshRecordingTracker = Tracing.FreshRecording.Tracker.instance()) {
-    return new _PerformanceTraceContext(AgentFocus.fromParsedTrace(parsedTrace), targetManager, freshRecordingTracker);
+  static fromParsedTrace(parsedTrace, targetManager = SDK10.TargetManager.TargetManager.instance(), freshRecordingTracker = Tracing.FreshRecording.Tracker.instance(), debuggerWorkspaceBinding = Bindings2.DebuggerWorkspaceBinding.DebuggerWorkspaceBinding.instance()) {
+    return new _PerformanceTraceContext(AgentFocus.fromParsedTrace(parsedTrace), targetManager, freshRecordingTracker, debuggerWorkspaceBinding);
   }
-  static fromInsight(parsedTrace, insight, targetManager = SDK10.TargetManager.TargetManager.instance(), freshRecordingTracker = Tracing.FreshRecording.Tracker.instance()) {
-    return new _PerformanceTraceContext(AgentFocus.fromInsight(parsedTrace, insight), targetManager, freshRecordingTracker);
+  static fromInsight(parsedTrace, insight, targetManager = SDK10.TargetManager.TargetManager.instance(), freshRecordingTracker = Tracing.FreshRecording.Tracker.instance(), debuggerWorkspaceBinding = Bindings2.DebuggerWorkspaceBinding.DebuggerWorkspaceBinding.instance()) {
+    return new _PerformanceTraceContext(AgentFocus.fromInsight(parsedTrace, insight), targetManager, freshRecordingTracker, debuggerWorkspaceBinding);
   }
-  static fromCallTree(callTree, targetManager = SDK10.TargetManager.TargetManager.instance(), freshRecordingTracker = Tracing.FreshRecording.Tracker.instance()) {
-    return new _PerformanceTraceContext(AgentFocus.fromCallTree(callTree), targetManager, freshRecordingTracker);
+  static fromCallTree(callTree, targetManager = SDK10.TargetManager.TargetManager.instance(), freshRecordingTracker = Tracing.FreshRecording.Tracker.instance(), debuggerWorkspaceBinding = Bindings2.DebuggerWorkspaceBinding.DebuggerWorkspaceBinding.instance()) {
+    return new _PerformanceTraceContext(AgentFocus.fromCallTree(callTree), targetManager, freshRecordingTracker, debuggerWorkspaceBinding);
   }
   #focus;
   #targetManager;
   #freshRecordingTracker;
-  constructor(focus, targetManager = SDK10.TargetManager.TargetManager.instance(), freshRecordingTracker = Tracing.FreshRecording.Tracker.instance()) {
+  #debuggerWorkspaceBinding;
+  constructor(focus, targetManager = SDK10.TargetManager.TargetManager.instance(), freshRecordingTracker = Tracing.FreshRecording.Tracker.instance(), debuggerWorkspaceBinding = Bindings2.DebuggerWorkspaceBinding.DebuggerWorkspaceBinding.instance()) {
     super();
     this.#focus = focus;
     this.#targetManager = targetManager;
     this.#freshRecordingTracker = freshRecordingTracker;
+    this.#debuggerWorkspaceBinding = debuggerWorkspaceBinding;
   }
   /**
    * Returns a PerformanceTraceFormatter configured to resolve function
@@ -6292,7 +6317,7 @@ var PerformanceTraceContext = class _PerformanceTraceContext extends Conversatio
       if (!target || !isFresh) {
         return null;
       }
-      return await SourceMapScopes.FunctionCodeResolver.getFunctionCodeFromLocation(target, url, line, column, { contextLength: 200, contextLineLength: 5, appendProfileData: true });
+      return await SourceMapScopes.FunctionCodeResolver.getFunctionCodeFromLocation(target, url, line, column, this.#debuggerWorkspaceBinding, { contextLength: 200, contextLineLength: 5, appendProfileData: true });
     };
     return formatter;
   }

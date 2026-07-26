@@ -5859,7 +5859,8 @@ __export(StylePropertiesSection_exports, {
   KeyframePropertiesSection: () => KeyframePropertiesSection,
   PositionTryRuleSection: () => PositionTryRuleSection,
   RegisteredPropertiesSection: () => RegisteredPropertiesSection,
-  StylePropertiesSection: () => StylePropertiesSection
+  StylePropertiesSection: () => StylePropertiesSection,
+  constructResolvedSelector: () => constructResolvedSelector
 });
 import "./../../ui/legacy/legacy.js";
 import * as Common3 from "./../../core/common/common.js";
@@ -6138,7 +6139,11 @@ var StylePropertiesSection = class _StylePropertiesSection {
     this.selectorElement.classList.add("selector");
     this.selectorElement.textContent = headerText;
     selectorContainer.appendChild(this.selectorElement);
-    this.selectorElement.addEventListener("mouseenter", this.onMouseEnterSelector.bind(this), false);
+    this.selectorElement.addEventListener("mouseenter", () => {
+      if (this.styleInternal.parentRule instanceof SDK6.CSSRule.CSSStyleRule) {
+        this.onMouseEnterSelector(this.styleInternal.parentRule);
+      }
+    }, false);
     this.selectorElement.addEventListener("mouseleave", this.onMouseOutSelector.bind(this), false);
     this.#specificityTooltips = selectorContainer.createChild("span");
     if (headerText.length > 0 || !(rule instanceof SDK6.CSSRule.CSSStyleRule)) {
@@ -6457,19 +6462,30 @@ var StylePropertiesSection = class _StylePropertiesSection {
     }
     SDK6.OverlayModel.OverlayModel.hideDOMNodeHighlight(SDK6.TargetManager.TargetManager.instance());
   }
-  onMouseEnterSelector() {
+  onMouseEnterSelector(rule, nestingIndex) {
     if (this.hoverTimer) {
       clearTimeout(this.hoverTimer);
     }
-    this.hoverTimer = window.setTimeout(this.highlight.bind(this), 300);
+    const selectorList = constructResolvedSelector(rule, nestingIndex);
+    if (!selectorList) {
+      return;
+    }
+    this.hoverTimer = setTimeout(this.highlight.bind(this, void 0, selectorList), 300);
   }
-  highlight(mode = "all") {
+  /**
+   * Highlights the DOM node associated with this style section in the page overlay.
+   * Use `selectorList` to highlight elements matching a specific parent/ancestor
+   * rule or selector.
+   *
+   * @param mode Highlight mode (defaults to `'all'`).
+   * @param selectorList Parent selector string to highlight.
+   */
+  highlight(mode = "all", selectorList) {
     SDK6.OverlayModel.OverlayModel.hideDOMNodeHighlight(SDK6.TargetManager.TargetManager.instance());
     const node = this.stylesContainer.node();
     if (!node) {
       return;
     }
-    const selectorList = this.styleInternal.parentRule && this.styleInternal.parentRule instanceof SDK6.CSSRule.CSSStyleRule ? this.styleInternal.parentRule.selectorText() : void 0;
     node.domModel().overlayModel().highlightInOverlay({ node, selectorList }, mode);
   }
   firstSibling() {
@@ -6843,6 +6859,8 @@ var StylePropertiesSection = class _StylePropertiesSection {
         matchingSelectors[matchingIndex] = true;
       }
       const selectorElement = container.createChild("span", "selector");
+      selectorElement.addEventListener("mouseenter", () => this.onMouseEnterSelector(parentRule), false);
+      selectorElement.addEventListener("mouseleave", this.onMouseOutSelector.bind(this), false);
       const specificityContainer = container.createChild("span");
       this.renderSelectorsToElement(parentRule.selectors, matchingSelectors, this.elementToSelectorIndex, selectorElement, specificityContainer);
       const openBrace = container.createChild("span", "sidebar-pane-open-brace");
@@ -6850,6 +6868,8 @@ var StylePropertiesSection = class _StylePropertiesSection {
       return container;
     }
     const nestingElement = document.createElement("div");
+    nestingElement.addEventListener("mouseenter", () => this.onMouseEnterSelector(rule, nestingIndex), false);
+    nestingElement.addEventListener("mouseleave", this.onMouseOutSelector.bind(this), false);
     nestingElement.textContent = `${nestingSelector} {`;
     return nestingElement;
   }
@@ -7151,7 +7171,7 @@ var StylePropertiesSection = class _StylePropertiesSection {
     }
   }
   markSelectorHighlights() {
-    const selectors = this.selectorElement.getElementsByClassName("simple-selector");
+    const selectors = this.element.getElementsByClassName("simple-selector");
     const regex = this.stylesContainer.filterRegex();
     for (let i = 0; i < selectors.length; ++i) {
       const selectorMatchesFilter = regex?.test(selectors[i].textContent || "");
@@ -7730,6 +7750,29 @@ var HighlightPseudoStylePropertiesSection = class extends StylePropertiesSection
     return false;
   }
 };
+function constructResolvedSelector(rule, nestingIndex) {
+  if (!(rule instanceof SDK6.CSSRule.CSSStyleRule)) {
+    return void 0;
+  }
+  const nestingSelectors = rule.nestingSelectors;
+  if (!nestingSelectors) {
+    return nestingIndex === void 0 ? rule.selectorText() : void 0;
+  }
+  if (nestingIndex !== void 0 && (nestingIndex < 0 || nestingIndex >= nestingSelectors.length)) {
+    return void 0;
+  }
+  const selectorText = nestingIndex !== void 0 ? nestingSelectors[nestingIndex] : rule.selectorText();
+  const parentIndex = nestingIndex !== void 0 ? nestingIndex + 1 : 0;
+  const parentSelector = constructResolvedSelector(rule, parentIndex);
+  if (!parentSelector) {
+    return selectorText;
+  }
+  const sanitizedParent = parentSelector.replace(/::[a-zA-Z-]+/g, "").trim();
+  if (selectorText.includes("&")) {
+    return selectorText.replaceAll("&", `:is(${sanitizedParent})`);
+  }
+  return `:is(${sanitizedParent}) ${selectorText.trim()}`;
+}
 
 // gen/front_end/panels/elements/StylePropertyHighlighter.js
 var StylePropertyHighlighter_exports = {};
@@ -7846,15 +7889,26 @@ var StylesAiCodeCompletionProvider = class _StylesAiCodeCompletionProvider {
   #aiCodeCompletionConfig;
   getCompletionHint;
   setAiAutoCompletion;
-  #boundOnUpdateAiCodeCompletionState = this.#updateAiCodeCompletionState.bind(this);
+  #boundOnAidaAvailabilityChange = (ev) => {
+    this.#updateAiCodeCompletionStateWithAvailability(ev.data);
+  };
+  #boundOnSettingChange = () => {
+    const aidaAvailability = Host3.AidaClient.HostConfigTracker.instance().aidaAvailability;
+    if (aidaAvailability !== void 0) {
+      this.#updateAiCodeCompletionStateWithAvailability(aidaAvailability);
+    }
+  };
   constructor(aiCodeCompletionConfig) {
     if (!AiCodeCompletion.AiCodeCompletion.AiCodeCompletion.isAiCodeCompletionStylesAvailable()) {
       throw new Error("AI code completion feature in Styles is not available.");
     }
     this.#aiCodeCompletionConfig = aiCodeCompletionConfig;
-    Host3.AidaClient.HostConfigTracker.instance().addEventListener("aidaAvailabilityChanged", this.#boundOnUpdateAiCodeCompletionState);
-    this.#aiCodeCompletionSetting.addChangeListener(this.#boundOnUpdateAiCodeCompletionState);
-    void this.#updateAiCodeCompletionState();
+    Host3.AidaClient.HostConfigTracker.instance().addEventListener("aidaAvailabilityChanged", this.#boundOnAidaAvailabilityChange);
+    this.#aiCodeCompletionSetting.addChangeListener(this.#boundOnSettingChange);
+    const initialAvailability = Host3.AidaClient.HostConfigTracker.instance().aidaAvailability;
+    if (initialAvailability !== void 0) {
+      this.#updateAiCodeCompletionStateWithAvailability(initialAvailability);
+    }
   }
   static createInstance(aiCodeCompletionConfig) {
     return new _StylesAiCodeCompletionProvider(aiCodeCompletionConfig);
@@ -7883,8 +7937,7 @@ var StylesAiCodeCompletionProvider = class _StylesAiCodeCompletionProvider {
     this.#aiCodeCompletion = void 0;
     this.#aiCodeCompletionConfig?.onFeatureDisabled();
   }
-  async #updateAiCodeCompletionState() {
-    const aidaAvailability = await Host3.AidaClient.AidaClient.checkAccessPreconditions();
+  #updateAiCodeCompletionStateWithAvailability(aidaAvailability) {
     const isAvailable = aidaAvailability === "available";
     const devtoolsLocale = i18n15.DevToolsLocale.DevToolsLocale.instance().locale;
     const isEnabled = AiCodeCompletion.AiCodeCompletion.AiCodeCompletion.isAiCodeCompletionStylesEnabled(devtoolsLocale) && this.#aiCodeCompletionSetting.get();
@@ -8572,6 +8625,7 @@ var StylesSidebarPane = class _StylesSidebarPane extends Common5.ObjectWrapper.e
   #shouldRenderLazily = false;
   #lazyRenderObserver;
   #lazyRenderCallbacks = /* @__PURE__ */ new WeakMap();
+  #elementsForSyncViewportCheck = [];
   #updateId = 0;
   constructor(computedStyleModel) {
     super(computedStyleModel, { delegatesFocus: true, useShadowDom: true, classes: ["flex-none"] });
@@ -9149,6 +9203,7 @@ var StylesSidebarPane = class _StylesSidebarPane extends Common5.ObjectWrapper.e
       return;
     }
     const focusedIndex = this.focusedSectionIndex();
+    this.#elementsForSyncViewportCheck = [];
     this.linkifier.reset();
     const prevSections = this.sectionBlocks.map((block) => block.sections).flat();
     const node = this.node();
@@ -9193,6 +9248,7 @@ var StylesSidebarPane = class _StylesSidebarPane extends Common5.ObjectWrapper.e
       }
     }
     this.sectionsContainer.contentElement.appendChild(fragment);
+    this.#performSyncViewportCheck();
     if (elementToFocus) {
       elementToFocus.focus();
     }
@@ -9681,7 +9737,47 @@ var StylesSidebarPane = class _StylesSidebarPane extends Common5.ObjectWrapper.e
       }, { rootMargin: "100px" });
     }
     this.#lazyRenderCallbacks.set(element, callback);
+    this.#elementsForSyncViewportCheck.push(element);
     this.#lazyRenderObserver.observe(element);
+  }
+  #performSyncViewportCheck() {
+    if (!this.#shouldRenderLazily || this.#elementsForSyncViewportCheck.length === 0) {
+      this.#elementsForSyncViewportCheck = [];
+      return;
+    }
+    const scrollContainer = this.contentElement.parentElement;
+    if (!scrollContainer) {
+      this.#elementsForSyncViewportCheck = [];
+      return;
+    }
+    const { top, bottom } = scrollContainer.getBoundingClientRect();
+    if (bottom === top) {
+      this.#elementsForSyncViewportCheck = [];
+      return;
+    }
+    const viewportTop = top - 100;
+    const viewportBottom = bottom + 100;
+    const visibleElements = [];
+    for (const element of this.#elementsForSyncViewportCheck) {
+      if (!element.isConnected || !this.#lazyRenderCallbacks.has(element)) {
+        continue;
+      }
+      const rect = element.getBoundingClientRect();
+      if (rect.top > viewportBottom) {
+        break;
+      }
+      if (rect.bottom >= viewportTop) {
+        visibleElements.push(element);
+      }
+    }
+    this.#elementsForSyncViewportCheck = [];
+    for (const element of visibleElements) {
+      const callback = this.#lazyRenderCallbacks.get(element);
+      if (callback) {
+        callback();
+        this.untrackForLazyRendering(element);
+      }
+    }
   }
   shouldRenderLazily() {
     return this.#shouldRenderLazily;
