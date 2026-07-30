@@ -210,9 +210,6 @@ export interface HostConfigAnimationStylesInStylesTab {
 export interface HostConfigJpegXlImageFormat {
     enabled: boolean;
 }
-export interface HostConfigAiAssistanceV2 {
-    enabled: boolean;
-}
 interface AiGeneratedTimelineLabels {
     enabled: boolean;
 }
@@ -277,6 +274,9 @@ interface DevToolsAdsPanel {
 interface DevToolsPlusButton {
     enabled: boolean;
 }
+interface DevToolsInstrumentationBreakpoints {
+    enabled: boolean;
+}
 /**
  * The host configuration that we expect from the DevTools back-end.
  *
@@ -302,7 +302,6 @@ export type HostConfig = Platform.TypeScriptUtilities.RecursivePartial<{
     devToolsAiAssistancePerformanceAgent: HostConfigAiAssistancePerformanceAgent;
     devToolsAiAssistanceAccessibilityAgent: HostConfigAiAssistanceAccessibilityAgent;
     devToolsAiAssistanceStorageAgent: HostConfigAiAssistanceStorageAgent;
-    devToolsAiAssistanceV2: HostConfigAiAssistanceV2;
     devToolsAiV2Architecture: DevToolsAiV2Architecture;
     devToolsAiCodeCompletion: HostConfigAiCodeCompletion;
     devToolsAiCodeGeneration: HostConfigAiCodeGeneration;
@@ -334,6 +333,7 @@ export type HostConfig = Platform.TypeScriptUtilities.RecursivePartial<{
     devToolsAdsPanel: DevToolsAdsPanel;
     devToolsUseGcaApi: UseGcaApi;
     devToolsPlusButton: DevToolsPlusButton;
+    devToolsInstrumentationBreakpoints: DevToolsInstrumentationBreakpoints;
     extensionsOnChromeUrls: ExtensionsOnChromeUrls;
 }>;
 /**

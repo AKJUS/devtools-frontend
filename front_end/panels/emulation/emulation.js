@@ -37,8 +37,10 @@ import * as Common3 from "./../../core/common/common.js";
 import * as Host2 from "./../../core/host/host.js";
 import * as i18n5 from "./../../core/i18n/i18n.js";
 import * as Platform3 from "./../../core/platform/platform.js";
+import * as TextUtils from "./../../core/text_utils/text_utils.js";
 import * as EmulationModel2 from "./../../models/emulation/emulation.js";
 import * as Geometry from "./../../models/geometry/geometry.js";
+import * as Workspace from "./../../models/workspace/workspace.js";
 import * as UI3 from "./../../ui/legacy/legacy.js";
 import { Directives as Directives3, html as html3, nothing as nothing2, render as render3 } from "./../../ui/lit/lit.js";
 import * as VisualLogging3 from "./../../ui/visual_logging/visual_logging.js";
@@ -470,6 +472,7 @@ var DeviceModeToolbar = class extends UI.Widget.Widget {
   wasShown() {
     super.wasShown();
     this.performUpdate();
+    this.restore();
   }
   performUpdate() {
     if (!this.model) {
@@ -2001,7 +2004,7 @@ function resizerRef(resizer, onConnect) {
     }
   };
 }
-var DEFAULT_DEVICE_MODE_VIEW = (input, output, target) => {
+var DEFAULT_DEVICE_MODE_VIEW = (input, _output, target) => {
   const sizes = [320, 375, 425, 768, 1024, 1440, 2560];
   const titles = [
     i18nString3(UIStrings3.mobileS),
@@ -2013,10 +2016,7 @@ var DEFAULT_DEVICE_MODE_VIEW = (input, output, target) => {
     "4K"
   ];
   render3(html3`
-    <devtools-widget ${UI3.Widget.widget(DeviceModeToolbar, { model: input.model })}
-       ${UI3.Widget.widgetRef(DeviceModeToolbar, (t) => {
-    output.toolbar = t;
-  })}></devtools-widget>
+    ${UI3.Widget.widget(DeviceModeToolbar, { model: input.model })}
     <div class=${classMap2({
     "device-mode-content-clip": true,
     vbox: true,
@@ -2069,37 +2069,44 @@ var DEFAULT_DEVICE_MODE_VIEW = (input, output, target) => {
                @load=${() => input.onScreenImageLoaded(true)}
                @error=${() => input.onScreenImageLoaded(false)}>
           <div class="device-mode-resizer device-mode-bottom-right-resizer"
+               ?hidden=${!input.resizable}
                jslog=${VisualLogging3.slider("device-mode-resizer").track({ drag: true })}
                ${ref(input.bottomRightResizerRef)}>
             <div></div>
           </div>
           <div class="device-mode-resizer device-mode-bottom-left-resizer"
+               ?hidden=${!input.resizable}
                jslog=${VisualLogging3.slider("device-mode-resizer").track({ drag: true })}
                ${ref(input.bottomLeftResizerRef)}>
             <div></div>
           </div>
           <div class="device-mode-resizer device-mode-right-resizer"
+               ?hidden=${!input.resizable}
                jslog=${VisualLogging3.slider("device-mode-resizer").track({ drag: true })}
                ${ref(input.rightResizerRef)}>
             <div></div>
           </div>
           <div class="device-mode-resizer device-mode-left-resizer"
+               ?hidden=${!input.resizable}
                jslog=${VisualLogging3.slider("device-mode-resizer").track({ drag: true })}
                ${ref(input.leftResizerRef)}>
             <div></div>
           </div>
           <div class="device-mode-resizer device-mode-bottom-resizer"
+               ?hidden=${!input.resizable}
                jslog=${VisualLogging3.slider("device-mode-resizer").track({ drag: true })}
                title=${i18nString3(UIStrings3.doubleclickForFullHeight)}
                ${ref(input.bottomResizerRef)}
                @dblclick=${input.onDoubleclickBottomResizer}>
             <div></div>
           </div>
-          <div class="device-mode-page-area" ${ref((el) => {
-    if (el instanceof HTMLElement) {
-      output.pageArea = el;
-    }
-  })}><slot></slot></div>
+          <div class="device-mode-page-area"
+               style=${styleMap(input.cachedCssVisiblePageRect ? {
+    left: `${input.cachedCssVisiblePageRect.left}px`,
+    top: `${input.cachedCssVisiblePageRect.top}px`,
+    width: `${input.cachedCssVisiblePageRect.width}px`,
+    height: `${input.cachedCssVisiblePageRect.height}px`
+  } : {})}><slot></slot></div>
         </div>
         ${input.showRulers ? html3`
           <devtools-widget class="device-mode-ruler-top device-mode-ruler"
@@ -2121,41 +2128,27 @@ var DEFAULT_DEVICE_MODE_VIEW = (input, output, target) => {
         ` : nothing2}
       </div>
     </div>
-  `, target);
+  `, target, {
+    container: {
+      classes: ["device-mode-view"]
+    }
+  });
 };
 var DeviceModeView = class extends UI3.Widget.VBox {
   wrapperInstance;
   model;
   showMediaInspectorSetting;
   showRulersSetting;
-  pageArea;
-  rightResizerElement;
-  leftResizerElement;
-  bottomResizerElement;
-  bottomRightResizerElement;
-  bottomLeftResizerElement;
   bottomRightResizer = this.createResizer(2, 1);
   bottomLeftResizer = this.createResizer(-2, 1);
   rightResizer = this.createResizer(2, 0);
   leftResizer = this.createResizer(-2, 0);
   bottomResizer = this.createResizer(0, 1);
-  bottomRightResizerRef = resizerRef(this.bottomRightResizer, (el) => {
-    this.bottomRightResizerElement = el;
-  });
-  bottomLeftResizerRef = resizerRef(this.bottomLeftResizer, (el) => {
-    this.bottomLeftResizerElement = el;
-  });
-  rightResizerRef = resizerRef(this.rightResizer, (el) => {
-    this.rightResizerElement = el;
-  });
-  leftResizerRef = resizerRef(this.leftResizer, (el) => {
-    this.leftResizerElement = el;
-  });
-  bottomResizerRef = resizerRef(this.bottomResizer, (el) => {
-    this.bottomResizerElement = el;
-  });
-  cachedResizable;
-  toolbar;
+  bottomRightResizerRef = resizerRef(this.bottomRightResizer);
+  bottomLeftResizerRef = resizerRef(this.bottomLeftResizer);
+  rightResizerRef = resizerRef(this.rightResizer);
+  leftResizerRef = resizerRef(this.leftResizer);
+  bottomResizerRef = resizerRef(this.bottomResizer);
   slowPositionStart;
   resizeStart;
   cachedCssScreenRect;
@@ -2164,8 +2157,6 @@ var DeviceModeView = class extends UI3.Widget.VBox {
   cachedMediaInspectorVisible;
   cachedShowRulers;
   cachedScale;
-  handleWidth;
-  handleHeight;
   #outlineImageLoaded = false;
   #lastOutlineImageSrc;
   #screenImageLoaded = false;
@@ -2175,7 +2166,6 @@ var DeviceModeView = class extends UI3.Widget.VBox {
     super({ useShadowDom: true });
     this.#view = view;
     this.setMinimumSize(150, 150);
-    this.element.classList.add("device-mode-view");
     this.registerRequiredCSS(deviceModeView_css_default);
     this.model = EmulationModel2.DeviceModeModel.DeviceModeModel.instance();
     this.model.addEventListener("Updated", this.updateUI, this);
@@ -2203,10 +2193,12 @@ var DeviceModeView = class extends UI3.Widget.VBox {
       outlineImageLoaded: this.#outlineImageLoaded,
       screenImage: this.model.screenImage(),
       screenImageLoaded: this.#screenImageLoaded,
+      resizable: this.model.type() === EmulationModel2.DeviceModeModel.Type.Responsive,
       showRulers: this.showRulersSetting.get() && this.model.type() !== EmulationModel2.DeviceModeModel.Type.None,
       showMediaInspector: this.showMediaInspectorSetting.get() && this.model.type() !== EmulationModel2.DeviceModeModel.Type.None,
       scale: this.model.scale(),
       cachedCssScreenRect: this.cachedCssScreenRect,
+      cachedCssVisiblePageRect: this.cachedCssVisiblePageRect,
       cachedOutlineRect: this.cachedOutlineRect,
       onApplyPresetSize: (width, e) => {
         this.model.emulate(EmulationModel2.DeviceModeModel.Type.Responsive, null, null);
@@ -2227,7 +2219,7 @@ var DeviceModeView = class extends UI3.Widget.VBox {
       onOutlineImageLoaded: (success) => this.onOutlineImageLoaded(success),
       onScreenImageLoaded: (success) => this.onScreenImageLoaded(success)
     };
-    this.#view(input, this, this.contentElement);
+    this.#view(input, void 0, this.contentElement);
   }
   onOutlineImageLoaded(success) {
     if (this.#outlineImageLoaded !== success) {
@@ -2298,12 +2290,6 @@ var DeviceModeView = class extends UI3.Widget.VBox {
     Host2.userMetrics.actionTaken(Host2.UserMetrics.Action.ResizedViewInResponsiveMode);
   }
   updateUI() {
-    function applyRect(element, rect) {
-      element.style.left = rect.left + "px";
-      element.style.top = rect.top + "px";
-      element.style.width = rect.width + "px";
-      element.style.height = rect.height + "px";
-    }
     if (!this.isShowing()) {
       return;
     }
@@ -2318,7 +2304,6 @@ var DeviceModeView = class extends UI3.Widget.VBox {
     }
     const cssVisiblePageRect = this.model.visiblePageRect().scale(1 / zoomFactor);
     if (!this.cachedCssVisiblePageRect || !cssVisiblePageRect.isEqual(this.cachedCssVisiblePageRect)) {
-      applyRect(this.pageArea, cssVisiblePageRect);
       callDoResize = true;
       this.cachedCssVisiblePageRect = cssVisiblePageRect;
     }
@@ -2329,15 +2314,6 @@ var DeviceModeView = class extends UI3.Widget.VBox {
         callDoResize = true;
         this.cachedOutlineRect = outlineRect;
       }
-    }
-    const resizable = this.model.type() === EmulationModel2.DeviceModeModel.Type.Responsive;
-    if (resizable !== this.cachedResizable) {
-      this.rightResizerElement.classList.toggle("hidden", !resizable);
-      this.leftResizerElement.classList.toggle("hidden", !resizable);
-      this.bottomResizerElement.classList.toggle("hidden", !resizable);
-      this.bottomRightResizerElement.classList.toggle("hidden", !resizable);
-      this.bottomLeftResizerElement.classList.toggle("hidden", !resizable);
-      this.cachedResizable = resizable;
     }
     const mediaInspectorVisible = this.showMediaInspectorSetting.get() && this.model.type() !== EmulationModel2.DeviceModeModel.Type.None;
     if (mediaInspectorVisible !== this.cachedMediaInspectorVisible) {
@@ -2355,7 +2331,6 @@ var DeviceModeView = class extends UI3.Widget.VBox {
       this.cachedScale = this.model.scale();
     }
     this.requestUpdate();
-    this.toolbar.requestUpdate();
     if (callDoResize) {
       this.doResize();
     }
@@ -2379,24 +2354,14 @@ var DeviceModeView = class extends UI3.Widget.VBox {
     }
     const zoomFactor = UI3.ZoomManager.ZoomManager.instance().zoomFactor();
     const rect = contentArea.getBoundingClientRect();
+    const handleWidth = this.contentElement.querySelector(".device-mode-right-resizer")?.offsetWidth || 20;
+    const handleHeight = this.contentElement.querySelector(".device-mode-bottom-resizer")?.offsetHeight || 20;
     const availableSize = new Geometry.Size(Math.max(rect.width * zoomFactor, 1), Math.max(rect.height * zoomFactor, 1));
-    const preferredSize = new Geometry.Size(Math.max((rect.width - 2 * (this.handleWidth || 0)) * zoomFactor, 1), Math.max((rect.height - (this.handleHeight || 0)) * zoomFactor, 1));
+    const preferredSize = new Geometry.Size(Math.max((rect.width - 2 * handleWidth) * zoomFactor, 1), Math.max((rect.height - handleHeight) * zoomFactor, 1));
     this.model.setAvailableSize(availableSize, preferredSize);
   }
-  measureHandles() {
-    const hidden = this.rightResizerElement.classList.contains("hidden");
-    this.rightResizerElement.classList.toggle("hidden", false);
-    this.bottomResizerElement.classList.toggle("hidden", false);
-    this.handleWidth = this.rightResizerElement.offsetWidth;
-    this.handleHeight = this.bottomResizerElement.offsetHeight;
-    this.rightResizerElement.classList.toggle("hidden", hidden);
-    this.bottomResizerElement.classList.toggle("hidden", hidden);
-  }
   zoomChanged() {
-    delete this.handleWidth;
-    delete this.handleHeight;
     if (this.isShowing()) {
-      this.measureHandles();
       this.contentAreaResized();
     }
   }
@@ -2407,8 +2372,6 @@ var DeviceModeView = class extends UI3.Widget.VBox {
   }
   wasShown() {
     super.wasShown();
-    this.measureHandles();
-    this.toolbar.restore();
   }
   willHide() {
     super.willHide();
@@ -2432,9 +2395,12 @@ var DeviceModeView = class extends UI3.Widget.VBox {
       const visiblePageRect = this.model.visiblePageRect().scale(scale);
       const contentLeft = screenRect.left + visiblePageRect.left - outlineRect.left;
       const contentTop = screenRect.top + visiblePageRect.top - outlineRect.top;
-      const canvas = document.createElement("canvas");
-      canvas.width = Math.floor(outlineRect.width);
-      canvas.height = Math.min(1 << 14, Math.floor(outlineRect.height));
+      const canvas = new OffscreenCanvas(
+        Math.floor(outlineRect.width),
+        // Cap the height to not hit the GPU limit.
+        // https://crbug.com/1260828
+        Math.min(1 << 14, Math.floor(outlineRect.height))
+      );
       const ctx = canvas.getContext("2d", { willReadFrequently: true });
       if (!ctx) {
         throw new Error("Could not get 2d context from canvas.");
@@ -2447,7 +2413,7 @@ var DeviceModeView = class extends UI3.Widget.VBox {
         await this.paintImage(ctx, this.model.screenImage(), screenRect.relativeTo(outlineRect));
       }
       ctx.drawImage(pageImage, Math.floor(contentLeft), Math.floor(contentTop));
-      this.saveScreenshot(canvas);
+      void this.saveScreenshot(canvas);
     };
   }
   async captureFullSizeScreenshot() {
@@ -2468,16 +2434,19 @@ var DeviceModeView = class extends UI3.Widget.VBox {
     const pageImage = new Image();
     pageImage.src = "data:image/png;base64," + screenshot;
     pageImage.onload = () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = pageImage.naturalWidth;
-      canvas.height = Math.min(1 << 14, Math.floor(pageImage.naturalHeight));
+      const canvas = new OffscreenCanvas(
+        pageImage.naturalWidth,
+        // Cap the height to not hit the GPU limit.
+        // https://crbug.com/1260828
+        Math.min(1 << 14, Math.floor(pageImage.naturalHeight))
+      );
       const ctx = canvas.getContext("2d", { willReadFrequently: true });
       if (!ctx) {
         throw new Error("Could not get 2d context for base64 screenshot.");
       }
       ctx.imageSmoothingEnabled = false;
       ctx.drawImage(pageImage, 0, 0);
-      this.saveScreenshot(canvas);
+      void this.saveScreenshot(canvas);
     };
   }
   paintImage(ctx, src, rect) {
@@ -2492,7 +2461,7 @@ var DeviceModeView = class extends UI3.Widget.VBox {
       };
     });
   }
-  saveScreenshot(canvas) {
+  async saveScreenshot(canvas) {
     const url = this.model.inspectedURL();
     let fileName = "";
     if (url) {
@@ -2503,15 +2472,28 @@ var DeviceModeView = class extends UI3.Widget.VBox {
     if (device && this.model.type() === EmulationModel2.DeviceModeModel.Type.Device) {
       fileName += `(${device.title})`;
     }
-    const link = document.createElement("a");
-    link.download = fileName + ".png";
-    canvas.toBlob((blob) => {
-      if (blob === null) {
-        return;
-      }
-      link.href = URL.createObjectURL(blob);
-      link.click();
+    fileName += ".png";
+    const blob = await canvas.convertToBlob({ type: "image/png" });
+    const dataUrl = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
     });
+    const base64 = dataUrl.slice(dataUrl.indexOf(",") + 1);
+    const contentData = new TextUtils.ContentData.ContentData(
+      base64,
+      /* isBase64=*/
+      true,
+      "image/png"
+    );
+    await Workspace.FileManager.FileManager.instance().save(
+      fileName,
+      contentData,
+      /* forceSaveAs=*/
+      true
+    );
+    Workspace.FileManager.FileManager.instance().close(fileName);
   }
 };
 var DEFAULT_RULER_VIEW = (input, output, target) => {
@@ -2719,6 +2701,7 @@ var ActionDelegate = class {
             throw new Error(`Unable to get box model of the node: ${new Error().stack}`);
           }
           const nodeBorderQuad = nodeBoxModel.border;
+          const { minX, maxX, minY, maxY } = getQuadBoundingBox(nodeBorderQuad);
           const metrics = await node.domModel().target().pageAgent().invoke_getLayoutMetrics();
           if (metrics.getError()) {
             throw new Error(`Unable to get metrics: ${new Error().stack}`);
@@ -2727,10 +2710,10 @@ var ActionDelegate = class {
           const scrollY = metrics.cssVisualViewport.pageY;
           const { x: oopifOffsetX, y: oopifOffsetY } = await getOopifOffset(node.domModel().target());
           const clip = {
-            x: oopifOffsetX + scrollX + nodeBorderQuad[0],
-            y: oopifOffsetY + scrollY + nodeBorderQuad[1],
-            width: nodeBoxModel.width,
-            height: nodeBoxModel.height,
+            x: oopifOffsetX + scrollX + minX,
+            y: oopifOffsetY + scrollY + minY,
+            width: maxX - minX,
+            height: maxY - minY,
             scale: 1
           };
           const zoom = metrics.cssVisualViewport.zoom ?? 1;
@@ -2791,6 +2774,13 @@ async function getOopifOffset(target) {
     x: iframeContentX + scrollX + parentOffset.x,
     y: iframeContentY + scrollY + parentOffset.y
   };
+}
+function getQuadBoundingBox(quad) {
+  const minX = Math.min(quad[0], quad[2], quad[4], quad[6]);
+  const maxX = Math.max(quad[0], quad[2], quad[4], quad[6]);
+  const minY = Math.min(quad[1], quad[3], quad[5], quad[7]);
+  const maxY = Math.max(quad[1], quad[3], quad[5], quad[7]);
+  return { minX, maxX, minY, maxY };
 }
 
 // gen/front_end/panels/emulation/InspectedPagePlaceholder.js

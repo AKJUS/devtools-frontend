@@ -17,17 +17,23 @@ export declare abstract class ResourceChunkView<Chunk> extends UI.Widget.VBox {
     private currentSelectedNode?;
     readonly request: SDK.NetworkRequest.NetworkRequest;
     private readonly messageFilterSetting;
+    private sidebarWidget;
     abstract getRequestChunks(): Chunk[];
     abstract createGridItem(chunk: Chunk): DataGridItem;
     abstract chunkFilter(chunk: Chunk): boolean;
     constructor(request: SDK.NetworkRequest.NetworkRequest, messageFilterSettingKey: string, splitWidgetSettingKey: string, dataGridDisplayName: Common.UIString.LocalizedString, filterUsingRegexHint: Common.UIString.LocalizedString);
+    private onRowContextMenu;
     getColumns(): DataGrid.DataGrid.ColumnDescriptor[];
     chunkAdded(chunk: Chunk): void;
     private clearChunks;
-    private updateFilterSetting;
+    private onFilterTypeChanged;
+    private onFilterTextChanged;
     private applyFilter;
     private onChunkSelected;
     private onChunkDeselected;
+    updateSidebar(): Promise<void>;
+    private updateSidebarWidget;
+    performUpdate(): void;
     refresh(): void;
     private sortItems;
     getDataGridForTest(): DataGrid.SortableDataGrid.SortableDataGrid<unknown>;
@@ -40,4 +46,5 @@ export declare abstract class DataGridItem extends DataGrid.SortableDataGrid.Sor
     abstract binaryView(): BinaryResourceView | null;
     abstract getTime(): number;
     abstract dataText(): string;
+    abstract readonly isTextFrame: boolean;
 }

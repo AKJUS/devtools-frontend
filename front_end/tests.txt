@@ -477,6 +477,7 @@ panels/elements/WebCustomData.test.js
 panels/emulation/AdvancedApp.test.js
 panels/emulation/DeviceModeToolbar.test.js
 panels/emulation/DeviceModeView.test.js
+panels/emulation/DeviceModeWrapper.test.js
 panels/emulation/MediaQueryInspector.test.js
 panels/event_listeners/EventListenersView.test.js
 panels/explain/components/ConsoleInsight.test.js
@@ -570,6 +571,7 @@ panels/sensors/LocationsSettingsTab.test.js
 panels/sensors/SensorsView.test.js
 panels/settings/AISettingsTab.test.js
 panels/settings/EditFileSystemView.test.js
+panels/settings/FrameworkIgnoreListSettingsTab.test.js
 panels/settings/WorkspaceSettingsTab.test.js
 panels/settings/components/SyncSection.test.js
 panels/settings/emulation/components/UserAgentClientHintsForm.test.js
