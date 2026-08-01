@@ -43,8 +43,8 @@ export interface Option {
 }
 export declare class ExperimentsSupport {
     #private;
-    allConfigurableExperiments(): Array<Experiment | HostExperiment>;
-    registerHostExperiment(params: {
+    allConfigurableExperiments(): Experiment[];
+    register(params: {
         name: ExperimentName;
         title: string;
         aboutFlag: string;
@@ -52,34 +52,17 @@ export declare class ExperimentsSupport {
         requiresChromeRestart: boolean;
         docLink?: Platform.DevToolsPath.UrlString;
         readonly feedbackLink?: Platform.DevToolsPath.UrlString;
-    }): HostExperiment;
-    register(experimentName: ExperimentName, experimentTitle: string, docLink?: string, feedbackLink?: string): void;
+    }): Experiment;
     isEnabled(experimentName: ExperimentName): boolean;
     getValueFromStorage(experimentName: ExperimentName): boolean | undefined;
     setEnabled(experimentName: ExperimentName, enabled: boolean): void;
-    enableExperimentsByDefault(experimentNames: ExperimentName[]): void;
-    setServerEnabledExperiments(experiments: string[]): void;
     enableForTest(experimentName: ExperimentName): void;
     disableForTest(experimentName: ExperimentName): void;
     isEnabledForTest(experimentName: ExperimentName): boolean;
     clearForTest(): void;
-    cleanUpStaleExperiments(): void;
+    removeAllExperimentsFromLocalStorage(): void;
 }
-/**
- * @deprecated Experiments should not be used anymore, instead use base::Feature.
- * See docs/contributing/settings-experiments-features.md
- */
 export declare class Experiment {
-    #private;
-    name: ExperimentName;
-    title: string;
-    docLink?: Platform.DevToolsPath.UrlString;
-    readonly feedbackLink?: Platform.DevToolsPath.UrlString;
-    constructor(experiments: ExperimentsSupport, name: ExperimentName, title: string, docLink: Platform.DevToolsPath.UrlString, feedbackLink: Platform.DevToolsPath.UrlString);
-    isEnabled(): boolean;
-    setEnabled(enabled: boolean): void;
-}
-export declare class HostExperiment {
     #private;
     name: ExperimentName;
     title: string;
@@ -191,12 +174,6 @@ export interface HostConfigVeLogging {
     enabled: boolean;
     testing: boolean;
 }
-/**
- * @see https://goo.gle/devtools-json-design
- */
-export interface HostConfigWellKnown {
-    enabled: boolean;
-}
 export interface HostConfigPrivacyUI {
     enabled: boolean;
 }
@@ -307,7 +284,6 @@ export type HostConfig = Platform.TypeScriptUtilities.RecursivePartial<{
     devToolsAiCodeGeneration: HostConfigAiCodeGeneration;
     devToolsAiCodeCompletionStyles: HostConfigAiCodeCompletionStyles;
     devToolsVeLogging: HostConfigVeLogging;
-    devToolsWellKnown: HostConfigWellKnown;
     /**
      * OffTheRecord here indicates that the user's profile is either incognito,
      * or guest mode, rather than a "normal" profile.

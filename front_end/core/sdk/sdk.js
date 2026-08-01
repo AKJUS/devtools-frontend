@@ -18281,9 +18281,6 @@ var Target = class extends ProtocolClient.InspectorBackend.TargetBase {
           this.#capabilitiesMask |= 8192;
         }
         break;
-      case Type2.SHARED_STORAGE_WORKLET:
-        this.#capabilitiesMask = 4 | 8 | 2048 | 524288;
-        break;
       case Type2.Worker:
         this.#capabilitiesMask = 4 | 8 | 16 | 32 | 131072 | 262144 | 256 | 524288;
         if (parentTarget?.type() !== Type2.FRAME) {
@@ -18450,7 +18447,6 @@ var Type2;
   Type3["ServiceWorker"] = "service-worker";
   Type3["Worker"] = "worker";
   Type3["SHARED_WORKER"] = "shared-worker";
-  Type3["SHARED_STORAGE_WORKLET"] = "shared-storage-worklet";
   Type3["NODE"] = "node";
   Type3["BROWSER"] = "browser";
   Type3["AUCTION_WORKLET"] = "auction-worklet";
@@ -19099,8 +19095,8 @@ var PageResourceLoader = class _PageResourceLoader extends Common11.ObjectWrappe
     const eligibleForLoadFromTarget = this.getLoadThroughTargetSetting().get() && parsedURL && parsedURL.scheme !== "file" && parsedURL.scheme !== "data" && parsedURL.scheme !== "devtools" && initiator.target;
     Host2.userMetrics.developerResourceScheme(this.getDeveloperResourceScheme(parsedURL));
     if (eligibleForLoadFromTarget) {
-      let mustEnforceCSP = false;
       const isHttp = parsedURL.scheme === "http" || parsedURL.scheme === "https";
+      let mustEnforceCSP = isHttp;
       if (isHttp && initiator.target) {
         const networkManager = initiator.target.model(NetworkManager);
         if (networkManager) {
@@ -19108,14 +19104,9 @@ var PageResourceLoader = class _PageResourceLoader extends Common11.ObjectWrappe
           if (!status && initiator.frameId) {
             status = await networkManager.getSecurityIsolationStatus(null);
           }
-          if (status?.csp) {
-            for (const csp of status.csp) {
-              const directives = csp.effectiveDirectives;
-              if (directives.includes("connect-src") || directives.includes("default-src")) {
-                mustEnforceCSP = true;
-                break;
-              }
-            }
+          if (status) {
+            const csps = status.csp ?? [];
+            mustEnforceCSP = csps.some((csp) => csp.effectiveDirectives.includes("connect-src") || csp.effectiveDirectives.includes("default-src"));
           }
         }
       }
@@ -34489,8 +34480,6 @@ var ChildTargetManager = class _ChildTargetManager extends SDKModel {
       type = Type2.WORKLET;
     } else if (targetInfo.type === "shared_worker") {
       type = Type2.SHARED_WORKER;
-    } else if (targetInfo.type === "shared_storage_worklet") {
-      type = Type2.SHARED_STORAGE_WORKLET;
     } else if (targetInfo.type === "service_worker") {
       type = Type2.ServiceWorker;
     } else if (targetInfo.type === "auction_worklet") {
@@ -34624,7 +34613,8 @@ import * as Root11 from "./../root/root.js";
 var RehydratingConnection_exports = {};
 __export(RehydratingConnection_exports, {
   RehydratingConnectionTransport: () => RehydratingConnectionTransport,
-  RehydratingSession: () => RehydratingSession
+  RehydratingSession: () => RehydratingSession,
+  isTraceUrlAllowed: () => isTraceUrlAllowed
 });
 import * as Common33 from "./../common/common.js";
 import * as i18n27 from "./../i18n/i18n.js";
@@ -35012,12 +35002,37 @@ var UIStrings12 = {
 };
 var str_12 = i18n27.i18n.registerUIStrings("core/sdk/RehydratingConnection.ts", UIStrings12);
 var i18nString12 = i18n27.i18n.getLocalizedString.bind(void 0, str_12);
+function isTraceUrlAllowed(traceUrl) {
+  let url;
+  try {
+    url = new URL(traceUrl, window.location.href);
+  } catch {
+    return false;
+  }
+  if (url.protocol === "devtools:") {
+    return true;
+  }
+  if (url.origin === window.location.origin) {
+    return true;
+  }
+  if (url.protocol === "http:" || url.protocol === "https:") {
+    const host = url.hostname.toLowerCase();
+    return host === "localhost" || host === "127.0.0.1" || host === "[::1]";
+  }
+  return false;
+}
 var RehydratingConnectionTransport = class {
   rehydratingConnectionState = 1;
   onDisconnect = null;
   onMessage = null;
   trace = null;
   sessions = /* @__PURE__ */ new Map();
+  /**
+   * Set to the in-flight `traceURL` fetch (including its hydration/error handling) so tests can await
+   * the load deterministically. Stays `undefined` when loading via message passing, or when a
+   * disallowed URL is rejected without fetching.
+   */
+  fetchPromiseForTest;
   #onConnectionLost;
   #rehydratingWindow = window;
   #onReceiveHostWindowPayloadBound = this.onReceiveHostWindowPayload.bind(this);
@@ -35037,9 +35052,15 @@ var RehydratingConnectionTransport = class {
       }
     }
     if (traceUrl) {
-      void fetch(traceUrl).then((r) => r.arrayBuffer()).then((b) => Common33.Gzip.arrayBufferToString(b)).then((traceJson) => {
+      if (!isTraceUrlAllowed(traceUrl)) {
+        this.#onConnectionLost(i18nString12(UIStrings12.errorLoadingLog));
+        return true;
+      }
+      this.fetchPromiseForTest = fetch(traceUrl).then((r) => r.arrayBuffer()).then((b) => Common33.Gzip.arrayBufferToString(b)).then(async (traceJson) => {
         const trace = new TraceObject(JSON.parse(traceJson));
-        void this.startHydration(trace);
+        await this.startHydration(trace);
+      }).catch(() => {
+        this.#onConnectionLost(i18nString12(UIStrings12.errorLoadingLog));
       });
       return true;
     }
@@ -36470,12 +36491,10 @@ var EmulationModel = class extends SDKModel {
     const autoDarkModeSetting = settings.moduleSetting("emulate-auto-dark-mode");
     autoDarkModeSetting.addChangeListener(() => {
       const enabled = autoDarkModeSetting.get();
-      mediaFeaturePrefersColorSchemeSetting.setDisabled(enabled);
       mediaFeaturePrefersColorSchemeSetting.set(enabled ? "dark" : "");
       void this.emulateAutoDarkMode(enabled);
     });
     if (autoDarkModeSetting.get()) {
-      mediaFeaturePrefersColorSchemeSetting.setDisabled(true);
       mediaFeaturePrefersColorSchemeSetting.set("dark");
       void this.emulateAutoDarkMode(true);
     }
@@ -37857,9 +37876,6 @@ var EventBreakpointsManager = class _EventBreakpointsManager {
     this.createInstrumentationBreakpoints("script", [
       "scriptFirstStatement",
       "scriptBlockedByCSP"
-    ]);
-    this.createInstrumentationBreakpoints("shared-storage-worklet", [
-      "sharedStorageWorkletScriptFirstStatement"
     ]);
     this.createInstrumentationBreakpoints("timer", [
       "setTimeout",

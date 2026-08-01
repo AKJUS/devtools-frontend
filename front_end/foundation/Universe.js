@@ -65,7 +65,7 @@ export class Universe {
         }
         const pageResourceLoader = new SDK.PageResourceLoader.PageResourceLoader(targetManager, settings, multitargetNetworkManager, null);
         context.set(SDK.PageResourceLoader.PageResourceLoader, pageResourceLoader);
-        const projectSettingsModel = new ProjectSettings.ProjectSettingsModel.ProjectSettingsModel(options.hostConfig, pageResourceLoader, targetManager);
+        const projectSettingsModel = new ProjectSettings.ProjectSettingsModel.ProjectSettingsModel(pageResourceLoader, targetManager);
         context.set(ProjectSettings.ProjectSettingsModel.ProjectSettingsModel, projectSettingsModel);
         const automaticFileSystemManager = new Persistence.AutomaticFileSystemManager.AutomaticFileSystemManager(options.inspectorFrontendHost, projectSettingsModel);
         context.set(Persistence.AutomaticFileSystemManager.AutomaticFileSystemManager, automaticFileSystemManager);
@@ -117,7 +117,7 @@ export class Universe {
         context.set(IssuesManager.IssuesManager.IssuesManager, issuesManager);
         const javaScriptMetadata = new JavaScriptMetadata.JavaScriptMetadata.JavaScriptMetadataImpl();
         context.set(JavaScriptMetadata.JavaScriptMetadata.JavaScriptMetadataImpl, javaScriptMetadata);
-        const liveMetrics = new LiveMetrics.LiveMetrics(targetManager, deviceModeModel);
+        const liveMetrics = new LiveMetrics.LiveMetrics(targetManager, settings, deviceModeModel);
         context.set(LiveMetrics.LiveMetrics, liveMetrics);
         const userBadges = new Badges.UserBadges(settings, gdpClient, options.inspectorFrontendHost);
         context.set(Badges.UserBadges, userBadges);
