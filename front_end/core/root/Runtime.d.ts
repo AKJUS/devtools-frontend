@@ -187,10 +187,13 @@ export interface HostConfigAnimationStylesInStylesTab {
 export interface HostConfigJpegXlImageFormat {
     enabled: boolean;
 }
+export interface HostConfigSourceMapScopesInSourcesPanel {
+    enabled: boolean;
+}
 interface AiGeneratedTimelineLabels {
     enabled: boolean;
 }
-interface AllowPopoverForcing {
+interface AllowInterestForcing {
     enabled: boolean;
 }
 interface GlobalAiButton {
@@ -292,8 +295,9 @@ export type HostConfig = Platform.TypeScriptUtilities.RecursivePartial<{
     devToolsEnableOriginBoundCookies: HostConfigEnableOriginBoundCookies;
     devToolsAnimationStylesInStylesTab: HostConfigAnimationStylesInStylesTab;
     devToolsJpegXlImageFormat: HostConfigJpegXlImageFormat;
+    devToolsSourceMapScopesInSourcesPanel: HostConfigSourceMapScopesInSourcesPanel;
     devToolsAiGeneratedTimelineLabels: AiGeneratedTimelineLabels;
-    devToolsAllowPopoverForcing: AllowPopoverForcing;
+    devToolsAllowInterestForcing: AllowInterestForcing;
     devToolsGlobalAiButton: GlobalAiButton;
     devToolsGdpProfiles: GdpProfiles;
     devToolsGdpProfilesAvailability: GdpProfilesAvailability;

@@ -2845,11 +2845,11 @@ var FlexGridRenderer = class extends rendererBase(SDK5.CSSPropertyParserMatchers
     function getSwatchType(layoutType) {
       switch (layoutType) {
         case "flex":
-          return 6;
+          return Host.UserMetrics.SwatchType.FLEX;
         case "grid":
-          return 5;
+          return Host.UserMetrics.SwatchType.GRID;
         case "grid-lanes":
-          return 12;
+          return Host.UserMetrics.SwatchType.GRID_LANES;
       }
     }
     const button = StyleEditorWidget.createTriggerButton(this.#stylesContainer, this.#treeElement.section(), getEditorClass(match.layoutType), getButtonTitle(match.layoutType), key2);
@@ -2899,10 +2899,7 @@ var CSSWideKeywordRenderer = class extends rendererBase(SDK5.CSSPropertyParserMa
 };
 function handleVarDefinitionActivate(variable, stylesContainer) {
   Host.userMetrics.actionTaken(Host.UserMetrics.Action.CustomPropertyLinkClicked);
-  Host.userMetrics.swatchActivated(
-    0
-    /* Host.UserMetrics.SwatchType.VAR_LINK */
-  );
+  Host.userMetrics.swatchActivated(Host.UserMetrics.SwatchType.VAR_LINK);
   if (typeof variable === "string") {
     stylesContainer.jumpToProperty(variable) || stylesContainer.jumpToProperty("initial-value", variable, REGISTERED_PROPERTY_SECTION_NAME);
   } else if (variable.declaration instanceof SDK5.CSSProperty.CSSProperty) {
@@ -3108,10 +3105,7 @@ var AttributeRenderer = class extends rendererBase(SDK5.CSSPropertyParserMatcher
       return;
     }
     Host.userMetrics.actionTaken(Host.UserMetrics.Action.AttributeLinkClicked);
-    Host.userMetrics.swatchActivated(
-      11
-      /* Host.UserMetrics.SwatchType.ATTR_LINK */
-    );
+    Host.userMetrics.swatchActivated(Host.UserMetrics.SwatchType.ATTR_LINK);
     ElementsPanel.instance().highlightNodeAttribute(node, attribute);
   }
 };
@@ -3285,10 +3279,7 @@ var ColorRenderer = class _ColorRenderer extends rendererBase(SDK5.CSSPropertyPa
         void treeElement.applyStyleText(treeElement.renderedPropertyText(), false);
       };
       swatch.addEventListener(InlineEditor2.ColorSwatch.ClickEvent.eventName, () => {
-        Host.userMetrics.swatchActivated(
-          2
-          /* Host.UserMetrics.SwatchType.COLOR */
-        );
+        Host.userMetrics.swatchActivated(Host.UserMetrics.SwatchType.COLOR);
       });
       swatch.addEventListener(InlineEditor2.ColorSwatch.ColorChangedEvent.eventName, onColorChanged);
       swatch.addEventListener(InlineEditor2.ColorSwatch.ColorFormatChangedEvent.eventName, onColorFormatChanged);
@@ -3577,10 +3568,7 @@ var AngleRenderer = class extends rendererBase(SDK5.CSSPropertyParserMatchers.An
       if (data.open) {
         treeElement.stylesContainer().hideAllPopovers();
         treeElement.stylesContainer().activeCSSAngle = cssAngle;
-        Host.userMetrics.swatchActivated(
-          7
-          /* Host.UserMetrics.SwatchType.ANGLE */
-        );
+        Host.userMetrics.swatchActivated(Host.UserMetrics.SwatchType.ANGLE);
       }
       section5.element.classList.toggle("has-open-popover", data.open);
       treeElement.stylesContainer().setEditingStyle(data.open);
@@ -3614,7 +3602,7 @@ var LinkableNameRenderer = class extends rendererBase(SDK5.CSSPropertyParserMatc
       case "animation-name":
         return {
           jslogContext: "css-animation-name",
-          metric: 1,
+          metric: Host.UserMetrics.SwatchType.ANIMATION_NAME_LINK,
           ruleBlock: "@keyframes",
           isDefined: Boolean(this.#matchedStyles.keyframes().find((kf) => kf.name().text === match.text))
         };
@@ -3639,7 +3627,7 @@ var LinkableNameRenderer = class extends rendererBase(SDK5.CSSPropertyParserMatc
       case "position-try-fallbacks":
         return {
           jslogContext: "css-position-try",
-          metric: 10,
+          metric: Host.UserMetrics.SwatchType.POSITION_TRY_LINK,
           ruleBlock: "@position-try",
           isDefined: Boolean(this.#matchedStyles.positionTryRules().find((pt) => pt.name().text === match.text))
         };
@@ -3707,10 +3695,7 @@ var BezierRenderer = class extends rendererBase(SDK5.CSSPropertyParserMatchers.B
     icon.setAttribute("jslog", `${VisualLogging3.showStyleEditor("bezier")}`);
     icon.tabIndex = -1;
     icon.addEventListener("click", () => {
-      Host.userMetrics.swatchActivated(
-        3
-        /* Host.UserMetrics.SwatchType.ANIMATION_TIMING */
-      );
+      Host.userMetrics.swatchActivated(Host.UserMetrics.SwatchType.ANIMATION_TIMING);
     });
     const bezierText = document.createElement("span");
     bezierText.append(...nodes);
@@ -3989,10 +3974,7 @@ var ShadowRenderer = class extends rendererBase(SDK5.CSSPropertyParserMatchers.S
       const swatch = new InlineEditor2.Swatches.CSSShadowSwatch(model);
       swatch.setAttribute("jslog", `${VisualLogging3.showStyleEditor("css-shadow").track({ click: true })}`);
       swatch.iconElement().addEventListener("click", () => {
-        Host.userMetrics.swatchActivated(
-          4
-          /* Host.UserMetrics.SwatchType.SHADOW */
-        );
+        Host.userMetrics.swatchActivated(Host.UserMetrics.SwatchType.SHADOW);
       });
       const contents = document.createElement("span");
       model.renderContents(contents);
@@ -9746,7 +9728,7 @@ var StylesSidebarPane = class _StylesSidebarPane extends Common5.ObjectWrapper.e
       this.#elementsForSyncViewportCheck = [];
       return;
     }
-    const scrollContainer = this.contentElement.parentElement;
+    const scrollContainer = this.element.parentElement;
     if (!scrollContainer) {
       this.#elementsForSyncViewportCheck = [];
       return;
@@ -12546,6 +12528,14 @@ var UIStrings13 = {
    */
   stopForceOpenPopover: "Stop keeping this popover open",
   /**
+   * @description ARIA label for an elements tree adorner
+   */
+  forceShowInterest: "Trigger interest on this element",
+  /**
+   * @description ARIA label for an elements tree adorner
+   */
+  stopForceShowInterest: "Cancel interest on this element",
+  /**
    * @description Label of the adorner for flex elements in the Elements panel
    */
   enableFlexMode: "Enable flex mode",
@@ -13084,7 +13074,7 @@ function maybeRenderAdAdorner(input) {
   `;
 }
 var DEFAULT_VIEW4 = (input, output, target) => {
-  const hasAdorners = !!input.adProvenance || input.showContainerAdorner || input.showFlexAdorner || input.showGridAdorner || input.showGridLanesAdorner || input.showMediaAdorner || input.showPopoverAdorner || input.showTopLayerAdorner || input.showViewSourceAdorner || input.showScrollAdorner || input.showScrollSnapAdorner || input.showSlotAdorner || input.showStartingStyleAdorner || input.showCustomElementAdorner;
+  const hasAdorners = !!input.adProvenance || input.showContainerAdorner || input.showFlexAdorner || input.showGridAdorner || input.showGridLanesAdorner || input.showMediaAdorner || input.showPopoverAdorner || input.showInterestAdorner || input.showTopLayerAdorner || input.showViewSourceAdorner || input.showScrollAdorner || input.showScrollSnapAdorner || input.showSlotAdorner || input.showStartingStyleAdorner || input.showCustomElementAdorner;
   const gutterContainerClasses = {
     "has-decorations": input.decorations.length || input.descendantDecorations.length,
     "gutter-container": true,
@@ -13218,6 +13208,20 @@ var DEFAULT_VIEW4 = (input, output, target) => {
           ${adornerRef()}>
           <span>${ElementsComponents5.AdornerManager.RegisteredAdorners.POPOVER}</span>
         </devtools-adorner>` : nothing4}
+        ${input.showInterestAdorner ? html11`<devtools-adorner
+          class=clickable
+          role=button
+          toggleable=true
+          tabindex=0
+          .name=${ElementsComponents5.AdornerManager.RegisteredAdorners.INTEREST}
+          jslog=${VisualLogging8.adorner(ElementsComponents5.AdornerManager.RegisteredAdorners.INTEREST).track({ click: true })}
+          active=${input.interestAdornerActive}
+          aria-label=${input.interestAdornerActive ? i18nString12(UIStrings13.stopForceShowInterest) : i18nString12(UIStrings13.forceShowInterest)}
+          @click=${input.onInterestAdornerClick}
+          @keydown=${handleAdornerKeydown(input.onInterestAdornerClick)}
+          ${adornerRef()}>
+          <span>${ElementsComponents5.AdornerManager.RegisteredAdorners.INTEREST}</span>
+        </devtools-adorner>` : nothing4}
         ${input.showTopLayerAdorner ? html11`<devtools-adorner
           class=clickable
           role=button
@@ -13330,6 +13334,7 @@ var ElementsTreeElement = class _ElementsTreeElement extends UI14.TreeOutline.Tr
   #flexAdornerActive = false;
   #gridAdornerActive = false;
   #popoverAdornerActive = false;
+  #interestAdornerActive = false;
   #scrollSnapAdornerActive = false;
   #startingStyleAdornerActive = false;
   #layout = null;
@@ -13453,10 +13458,12 @@ var ElementsTreeElement = class _ElementsTreeElement extends UI14.TreeOutline.Tr
       showGridAdorner: Boolean(this.#layout?.isGrid) && !this.isClosingTag(),
       showGridLanesAdorner: Boolean(this.#layout?.isGridLanes) && !this.isClosingTag(),
       showMediaAdorner: this.node().isMediaNode() && !this.isClosingTag(),
-      showPopoverAdorner: Boolean(Root4.Runtime.hostConfig.devToolsAllowPopoverForcing?.enabled) && Boolean(this.node().attributes().find((attr) => attr.name === "popover")) && !this.isClosingTag(),
+      showPopoverAdorner: Boolean(this.node().attributes().find((attr) => attr.name === "popover")) && !this.isClosingTag(),
+      showInterestAdorner: Boolean(Root4.Runtime.hostConfig.devToolsAllowInterestForcing?.enabled) && Boolean(this.node().attributes().find((attr) => attr.name === "interesttarget" || attr.name === "interestfor")) && !this.isClosingTag(),
       showTopLayerAdorner: this.node().topLayerIndex() !== -1 && !this.isClosingTag(),
       gridAdornerActive: this.#gridAdornerActive,
       popoverAdornerActive: this.#popoverAdornerActive,
+      interestAdornerActive: this.#interestAdornerActive,
       isSubgrid: Boolean(this.#layout?.isSubgrid),
       showViewSourceAdorner: this.nodeInternal.isRootNode() && isOpeningTag(this.tagTypeContext),
       showScrollAdorner: (this.node().nodeName() === "HTML" && this.node().ownerDocument?.isScrollable() || this.node().nodeName() !== "#document" && this.node().isScrollable()) && !this.isClosingTag(),
@@ -13496,6 +13503,8 @@ var ElementsTreeElement = class _ElementsTreeElement extends UI14.TreeOutline.Tr
       } : (event) => this.#onMediaAdornerClick(event),
       onPopoverAdornerClick: this.treeOutline?.disableEdits ? () => {
       } : (event) => this.#onPopoverAdornerClick(event),
+      onInterestAdornerClick: this.treeOutline?.disableEdits ? () => {
+      } : (event) => this.#onInterestAdornerClick(event),
       onScrollSnapAdornerClick: this.treeOutline?.disableEdits ? () => {
       } : (event) => this.#onScrollSnapAdornerClick(event),
       onTopLayerAdornerClick: this.treeOutline?.disableEdits ? () => {
@@ -13800,9 +13809,11 @@ var ElementsTreeElement = class _ElementsTreeElement extends UI14.TreeOutline.Tr
       showGridLanesAdorner: false,
       showMediaAdorner: false,
       showPopoverAdorner: false,
+      showInterestAdorner: false,
       showTopLayerAdorner: false,
       gridAdornerActive: false,
       popoverAdornerActive: false,
+      interestAdornerActive: false,
       isSubgrid: false,
       showViewSourceAdorner: false,
       showScrollAdorner: false,
@@ -13832,6 +13843,8 @@ var ElementsTreeElement = class _ElementsTreeElement extends UI14.TreeOutline.Tr
       onMediaAdornerClick: () => {
       },
       onPopoverAdornerClick: () => {
+      },
+      onInterestAdornerClick: () => {
       },
       onScrollSnapAdornerClick: () => {
       },
@@ -14271,7 +14284,7 @@ var ElementsTreeElement = class _ElementsTreeElement extends UI14.TreeOutline.Tr
     this.populateExpandRecursively(contextMenu);
     contextMenu.viewSection().appendItem(i18nString12(UIStrings13.collapseChildren), this.collapseChildren.bind(this), { jslogContext: "collapse-children" });
     contextMenu.viewSection().appendItem(i18nString12(UIStrings13.switchToAccessibilityTree), () => ElementsPanel.instance().toggleAccessibilityTree(), { jslogContext: "switch-to-accessibility-tree" });
-    const deviceModeWrapperAction = new Emulation.DeviceModeWrapper.ActionDelegate();
+    const deviceModeWrapperAction = new Emulation.DeviceModeView.ActionDelegate();
     contextMenu.viewSection().appendItem(i18nString12(UIStrings13.captureNodeScreenshot), deviceModeWrapperAction.handleAction.bind(null, UI14.Context.Context.instance(), "emulation.capture-node-screenshot"), { jslogContext: "emulation.capture-node-screenshot" });
     if (this.nodeInternal.frameOwnerFrameId()) {
       contextMenu.viewSection().appendItem(i18nString12(UIStrings13.showFrameDetails), () => {
@@ -14963,6 +14976,20 @@ var ElementsTreeElement = class _ElementsTreeElement extends UI14.TreeOutline.Tr
     await node.domModel().agent.invoke_forceShowPopover({ nodeId, enable: !this.#popoverAdornerActive });
     this.#popoverAdornerActive = !this.#popoverAdornerActive;
     if (this.#popoverAdornerActive) {
+      Badges3.UserBadges.instance().recordAction(Badges3.BadgeAction.MODERN_DOM_BADGE_CLICKED);
+    }
+    this.performUpdate();
+  }
+  async #onInterestAdornerClick(event) {
+    event.stopPropagation();
+    const node = this.node();
+    const nodeId = node.id;
+    if (!nodeId) {
+      return;
+    }
+    await node.domModel().agent.invoke_forceShowInterest({ nodeId, enable: !this.#interestAdornerActive });
+    this.#interestAdornerActive = !this.#interestAdornerActive;
+    if (this.#interestAdornerActive) {
       Badges3.UserBadges.instance().recordAction(Badges3.BadgeAction.MODERN_DOM_BADGE_CLICKED);
     }
     this.performUpdate();
