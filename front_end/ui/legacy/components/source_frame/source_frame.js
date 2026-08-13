@@ -72,9 +72,9 @@ import * as Root from "./../../../../core/root/root.js";
 import * as SDK from "./../../../../core/sdk/sdk.js";
 import * as TextUtils from "./../../../../core/text_utils/text_utils.js";
 import * as Formatter from "./../../../../models/formatter/formatter.js";
-import * as PanelCommon from "./../../../../panels/common/common.js";
 import * as CodeMirror from "./../../../../third_party/codemirror.next/codemirror.next.js";
 import * as CodeHighlighter from "./../../../components/code_highlighter/code_highlighter.js";
+import * as Dialogs from "./../../../components/dialogs/dialogs.js";
 import * as TextEditor from "./../../../components/text_editor/text_editor.js";
 import * as VisualLogging from "./../../../visual_logging/visual_logging.js";
 import * as UI from "./../../legacy.js";
@@ -320,7 +320,7 @@ var SourceFrameImpl = class extends Common.ObjectWrapper.eventMixin(UI.View.Simp
     return true;
   }
   async showSelfXssWarning() {
-    const allowPasting = await PanelCommon.TypeToAllowDialog.show({
+    const allowPasting = await Dialogs.TypeToAllowDialog.TypeToAllowDialog.show({
       jslogContext: {
         dialog: "self-xss-warning",
         input: "allow-pasting"
@@ -1831,6 +1831,7 @@ var JSONView = class _JSONView extends UI6.Widget.VBox {
   set parsedJSON(parsedJSON) {
     if (this.objectTree) {
       this.objectTree.removeEventListener("children-changed", this.#onChildrenChanged, this);
+      this.objectTree.removeEventListener("expanded-changed", this.#onChildrenChanged, this);
     }
     this.#parsedJSON = parsedJSON;
     this.objectTree = null;
@@ -1905,6 +1906,7 @@ var JSONView = class _JSONView extends UI6.Widget.VBox {
       this.objectTree.expanded = true;
     }
     this.objectTree.addEventListener("children-changed", this.#onChildrenChanged, this);
+    this.objectTree.addEventListener("expanded-changed", this.#onChildrenChanged, this);
   }
   #onChildrenChanged() {
     this.requestUpdate();
@@ -1935,13 +1937,14 @@ var JSONView = class _JSONView extends UI6.Widget.VBox {
       this.search.updateSearchableView(this.searchableView);
     }
   }
-  performSearch(searchConfig, shouldJump, jumpBackwards) {
+  async performSearch(searchConfig, shouldJump, jumpBackwards) {
     this.initialize();
     this.onSearchCanceled();
     const searchRegex = searchConfig.toSearchRegex(true).regex;
     if (!this.objectTree) {
       return;
     }
+    await this.objectTree.populateChildrenIfNeeded();
     this.search.search(this.objectTree, jumpBackwards ?? false, (node, closeTag) => {
       if (closeTag || !searchRegex) {
         return [];

@@ -2,10 +2,17 @@ import { ExecuteJavaScriptTool } from './ExecuteJavaScript.js';
 import { GetElementAccessibilityDetailsTool } from './GetElementAccessibilityDetails.js';
 import { GetLighthouseAuditsTool } from './GetLighthouseAudits.js';
 import { GetNetworkRequestDetailsTool } from './GetNetworkRequestDetails.js';
+import { GetSourceContentTool } from './GetSourceContent.js';
 import { GetStylesTool } from './GetStyles.js';
+import { GetTraceEventByKeyTool } from './GetTraceEventByKey.js';
+import { GetTraceMainThreadSummaryTool } from './GetTraceMainThreadSummary.js';
+import { GetTraceNetworkSummaryTool } from './GetTraceNetworkSummary.js';
 import { ListNetworkRequestsTool } from './ListNetworkRequests.js';
+import { ListPageOriginsTool } from './ListPageOrigins.js';
+import { ListSourcesTool } from './ListSources.js';
 import { RecordPerformanceTraceTool } from './RecordPerformanceTrace.js';
 import { ResolveDevtoolsNodePathTool } from './ResolveDevtoolsNodePath.js';
+import { SelectTraceEventByKeyTool } from './SelectTraceEventByKey.js';
 import { type AllToolsCapabilities, type Tool, type ToolArgs } from './Tool.js';
 /**
  * Plain object registry containing concrete instantiated tools.
@@ -24,6 +31,13 @@ export declare const TOOLS: {
     resolveDevtoolsNodePath: ResolveDevtoolsNodePathTool;
     getElementAccessibilityDetails: GetElementAccessibilityDetailsTool;
     recordPerformanceTrace: RecordPerformanceTraceTool;
+    listPageOrigins: ListPageOriginsTool;
+    getTraceEventByKey: GetTraceEventByKeyTool;
+    selectTraceEventByKey: SelectTraceEventByKeyTool;
+    listSources: ListSourcesTool;
+    getSourceContent: GetSourceContentTool;
+    getTraceMainThreadSummary: GetTraceMainThreadSummaryTool;
+    getTraceNetworkSummary: GetTraceNetworkSummaryTool;
 };
 /**
  * Registry class for registering and querying AI Assistance Tools.

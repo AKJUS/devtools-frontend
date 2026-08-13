@@ -18211,9 +18211,9 @@ var LayoutPane = class _LayoutPane extends UI18.Widget.Widget {
       const mappedSetting = {
         type: settingType,
         name: setting.name,
-        title: uiDescriptor?.title || setting.title()
+        title: uiDescriptor?.title ?? ""
       };
-      const options = uiDescriptor?.options?.length ? uiDescriptor.options : setting.options();
+      const options = uiDescriptor?.options ?? [];
       if (typeof settingValue === "boolean") {
         settings.push({
           ...mappedSetting,

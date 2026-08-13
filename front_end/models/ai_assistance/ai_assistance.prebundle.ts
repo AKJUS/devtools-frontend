@@ -22,6 +22,7 @@ import * as DOMNodeContext from './contexts/DOMNodeContext.js';
 import * as FileContext from './contexts/FileContext.js';
 import * as PerformanceTraceContext from './contexts/PerformanceTraceContext.js';
 import * as RequestContext from './contexts/RequestContext.js';
+import * as StorageContext from './contexts/StorageContext.js';
 import * as ConversationSummary from './ConversationSummary.js';
 import * as FileFormatter from './data_formatters/FileFormatter.js';
 import * as LighthouseFormatter from './data_formatters/LighthouseFormatter.js';
@@ -42,10 +43,17 @@ import * as ExecuteJavaScript from './tools/ExecuteJavaScript.js';
 import * as GetElementAccessibilityDetails from './tools/GetElementAccessibilityDetails.js';
 import * as GetLighthouseAudits from './tools/GetLighthouseAudits.js';
 import * as GetNetworkRequestDetails from './tools/GetNetworkRequestDetails.js';
+import * as GetSourceContent from './tools/GetSourceContent.js';
 import * as GetStyles from './tools/GetStyles.js';
+import * as GetTraceEventByKey from './tools/GetTraceEventByKey.js';
+import * as GetTraceMainThreadSummary from './tools/GetTraceMainThreadSummary.js';
+import * as GetTraceNetworkSummary from './tools/GetTraceNetworkSummary.js';
 import * as ListNetworkRequests from './tools/ListNetworkRequests.js';
+import * as ListPageOrigins from './tools/ListPageOrigins.js';
+import * as ListSources from './tools/ListSources.js';
 import * as RecordPerformanceTrace from './tools/RecordPerformanceTrace.js';
 import * as ResolveDevtoolsNodePath from './tools/ResolveDevtoolsNodePath.js';
+import * as SelectTraceEventByKey from './tools/SelectTraceEventByKey.js';
 import * as Tool from './tools/Tool.js';
 import * as ToolRegistry from './tools/ToolRegistry.js';
 
@@ -77,10 +85,16 @@ export {
   GetElementAccessibilityDetails,
   GetLighthouseAudits,
   GetNetworkRequestDetails,
+  GetSourceContent,
   GetStyles,
+  GetTraceEventByKey,
+  GetTraceMainThreadSummary,
+  GetTraceNetworkSummary,
   Injected,
   LighthouseFormatter,
   ListNetworkRequests,
+  ListPageOrigins,
+  ListSources,
   NetworkAgent,
   NetworkRequestFormatter,
   PerformanceAgent,
@@ -91,7 +105,9 @@ export {
   RecordPerformanceTrace,
   RequestContext,
   ResolveDevtoolsNodePath,
+  SelectTraceEventByKey,
   StorageAgent,
+  StorageContext,
   StorageItem,
   StylingAgent,
   Tool,

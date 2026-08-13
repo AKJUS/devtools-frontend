@@ -66,12 +66,12 @@ export class CommandMenu {
     }
     static createSettingCommand(setting, title, value, settingUI) {
         const ui = settingUI ?? SettingsUI.SettingUIRegistration.maybeResolve(setting.descriptor());
-        const category = ui?.category ?? setting.category();
-        if (!category) {
+        const category = ui?.category;
+        if (!category || !ui) {
             throw new Error(`Creating '${title}' setting command failed. Setting has no category.`);
         }
-        const tags = ui?.tags || setting.tags() || '';
-        const reloadRequired = Boolean(ui?.reloadRequired ?? setting.reloadRequired());
+        const tags = ui.tags;
+        const reloadRequired = ui.reloadRequired;
         return CommandMenu.createCommand({
             category: Common.Settings.getLocalizedSettingsCategory(category),
             keys: tags,
