@@ -6660,161 +6660,10 @@ var ListPageOrigins_exports = {};
 __export(ListPageOrigins_exports, {
   ListPageOriginsTool: () => ListPageOriginsTool
 });
-import * as Common13 from "./../../core/common/common.js";
+import * as Common12 from "./../../core/common/common.js";
 import * as Host15 from "./../../core/host/host.js";
 import * as i18n24 from "./../../core/i18n/i18n.js";
 import * as SDK9 from "./../../core/sdk/sdk.js";
-
-// gen/front_end/models/ai_assistance/contexts/StorageContext.js
-var StorageContext_exports = {};
-__export(StorageContext_exports, {
-  StorageContext: () => StorageContext,
-  isSamePageOrigin: () => isSamePageOrigin
-});
-import * as Common12 from "./../../core/common/common.js";
-
-// gen/front_end/models/ai_assistance/StorageItem.js
-var StorageItem_exports = {};
-__export(StorageItem_exports, {
-  CookieItem: () => CookieItem,
-  DOMStorageItem: () => DOMStorageItem,
-  EMPTY_ORIGIN: () => EMPTY_ORIGIN,
-  StorageItem: () => StorageItem
-});
-var EMPTY_ORIGIN = "";
-var StorageItem = class _StorageItem {
-  primaryTargetOrigin;
-  origin;
-  constructor(primaryTargetOrigin, origin = EMPTY_ORIGIN) {
-    this.primaryTargetOrigin = primaryTargetOrigin;
-    this.origin = origin;
-  }
-  get isGenericContext() {
-    return this.origin === EMPTY_ORIGIN;
-  }
-  static createGenericContext(primaryTargetOrigin, ..._args) {
-    return new _StorageItem(primaryTargetOrigin, EMPTY_ORIGIN);
-  }
-};
-var DOMStorageItem = class _DOMStorageItem extends StorageItem {
-  storageKey;
-  type;
-  key;
-  constructor(primaryTargetOrigin, origin, storageKey, type, key) {
-    super(primaryTargetOrigin, origin);
-    this.storageKey = storageKey;
-    this.type = type;
-    this.key = key;
-  }
-  static createGenericContext(primaryTargetOrigin, type) {
-    return new _DOMStorageItem(primaryTargetOrigin, EMPTY_ORIGIN, void 0, type);
-  }
-};
-var CookieItem = class _CookieItem extends StorageItem {
-  name;
-  constructor(primaryTargetOrigin, origin, name) {
-    super(primaryTargetOrigin, origin);
-    this.name = name;
-  }
-  static createGenericContext(primaryTargetOrigin) {
-    return new _CookieItem(primaryTargetOrigin, EMPTY_ORIGIN);
-  }
-};
-
-// gen/front_end/models/ai_assistance/contexts/StorageContext.js
-var StorageContext = class extends ConversationContext {
-  #item;
-  constructor(item) {
-    super();
-    this.#item = item;
-  }
-  getURL() {
-    return this.#item.primaryTargetOrigin;
-  }
-  getItem() {
-    return this.#item;
-  }
-  getTitle() {
-    if (this.#item instanceof CookieItem) {
-      if (this.#item.name) {
-        return `cookie: ${this.#item.name}${this.#item.origin ? ` ${this.#item.origin}` : ""}`;
-      }
-      return `cookies${this.#item.isGenericContext ? "" : `: ${this.#item.origin}`}`;
-    }
-    if (this.#item instanceof DOMStorageItem) {
-      if (this.#item.key) {
-        return `entry: ${this.#item.key}${this.#item.origin ? ` ${this.#item.origin}` : ""}`;
-      }
-      const prefix = this.#item.type === "localStorage" ? "local storage" : "session storage";
-      return `${prefix}${this.#item.isGenericContext ? "" : `: ${this.#item.origin}`}`;
-    }
-    return `Storage: ${this.getOrigin()}`;
-  }
-  /**
-   * @override
-   */
-  isLoggingEnabled() {
-    if (this.#item instanceof CookieItem && Boolean(this.#item.name)) {
-      return false;
-    }
-    if (this.#item instanceof DOMStorageItem && Boolean(this.#item.key)) {
-      return false;
-    }
-    return true;
-  }
-  async getSuggestions() {
-    if (this.#item instanceof CookieItem) {
-      if (this.#item.name) {
-        return [
-          {
-            title: "Why is this cookie set?",
-            jslogContext: "storage-cookie"
-          },
-          {
-            title: "Explain the value of this cookie",
-            jslogContext: "storage-cookie"
-          }
-        ];
-      }
-      return [
-        {
-          title: "Explain the cookies set by this page",
-          jslogContext: "storage-cookie"
-        }
-      ];
-    }
-    if (this.#item instanceof DOMStorageItem) {
-      if (this.#item.key) {
-        return [
-          {
-            title: "What is the purpose of this storage entry?",
-            jslogContext: "storage-domstorage"
-          },
-          {
-            title: "Explain the value of this storage entry",
-            jslogContext: "storage-domstorage"
-          }
-        ];
-      }
-      return [
-        {
-          title: "Explain these storage items",
-          jslogContext: "storage-domstorage"
-        }
-      ];
-    }
-    return void 0;
-  }
-};
-function isSamePageOrigin(target, allowedOrigin) {
-  if (!target) {
-    return false;
-  }
-  const pageOrigin = Common12.ParsedURL.ParsedURL.extractOrigin(target.inspectedURL());
-  return pageOrigin !== "" && areOriginsEquivalent(pageOrigin, allowedOrigin);
-}
-
-// gen/front_end/models/ai_assistance/tools/ListPageOrigins.js
 var lockedString11 = i18n24.i18n.lockedString;
 var ListPageOriginsTool = class {
   name = "listPageOrigins";
@@ -6832,6 +6681,15 @@ var ListPageOriginsTool = class {
       action: "listPageOrigins()"
     };
   }
+  /**
+   * Retrieves the set of unique frame origins loaded within the primary page's target tree.
+   *
+   * To prevent data leakage across different tabs/windows, this tool:
+   * 1. Restricts the frame search to those belonging to the `primaryPageTarget`'s outermost target tree.
+   * 2. Filters out any origins that are not equivalent to the established allowed origin.
+   *    Note: Under site isolation, frames may be hosted on different sub-targets or processes,
+   *    so we check `frame.securityOrigin` directly instead of the frame's target origin.
+   */
   async handler(_args, context) {
     const targetManager = SDK9.TargetManager.TargetManager.instance();
     const primaryPageTarget = targetManager.primaryPageTarget();
@@ -6839,18 +6697,21 @@ var ListPageOriginsTool = class {
     if (!allowedOrigin || isOpaqueOrigin(allowedOrigin)) {
       return { error: "No origin available or not allowed." };
     }
-    const pageOrigin = primaryPageTarget ? Common13.ParsedURL.ParsedURL.extractOrigin(primaryPageTarget.inspectedURL()) : "";
+    const pageOrigin = primaryPageTarget ? Common12.ParsedURL.ParsedURL.extractOrigin(primaryPageTarget.inspectedURL()) : "";
     const isAllowed = pageOrigin !== "" && areOriginsEquivalent(pageOrigin, allowedOrigin);
     if (!isAllowed) {
       return { error: "No origin available or not allowed." };
     }
     const origins = /* @__PURE__ */ new Set();
     for (const frame of SDK9.ResourceTreeModel.ResourceTreeModel.frames(targetManager)) {
-      if (!isSamePageOrigin(frame.resourceTreeModel().target().outermostTarget(), allowedOrigin)) {
+      if (frame.resourceTreeModel().target().outermostTarget() !== primaryPageTarget) {
         continue;
       }
       const origin = frame.securityOrigin;
-      if (!origin || isOpaqueOrigin(origin) || origins.has(origin)) {
+      if (!origin || !areOriginsEquivalent(origin, allowedOrigin)) {
+        continue;
+      }
+      if (origins.has(origin)) {
         continue;
       }
       origins.add(origin);
@@ -6982,7 +6843,7 @@ var SelectTraceEventByKey_exports = {};
 __export(SelectTraceEventByKey_exports, {
   SelectTraceEventByKeyTool: () => SelectTraceEventByKeyTool
 });
-import * as Common14 from "./../../core/common/common.js";
+import * as Common13 from "./../../core/common/common.js";
 import * as Host18 from "./../../core/host/host.js";
 import * as i18n28 from "./../../core/i18n/i18n.js";
 import * as SDK11 from "./../../core/sdk/sdk.js";
@@ -7024,7 +6885,7 @@ var SelectTraceEventByKeyTool = class {
     }
     const revealable = new SDK11.TraceObject.RevealableEvent(event);
     try {
-      await Common14.Revealer.reveal(revealable);
+      await Common13.Revealer.reveal(revealable);
     } catch {
     }
     return {
@@ -7527,7 +7388,7 @@ var ContextSelectionAgent_exports = {};
 __export(ContextSelectionAgent_exports, {
   ContextSelectionAgent: () => ContextSelectionAgent
 });
-import * as Common15 from "./../../core/common/common.js";
+import * as Common14 from "./../../core/common/common.js";
 import * as Host20 from "./../../core/host/host.js";
 import * as i18n32 from "./../../core/i18n/i18n.js";
 import * as Root6 from "./../../core/root/root.js";
@@ -7571,6 +7432,146 @@ ${new FileFormatter(this.#file, this.#debuggerWorkspaceBinding).formatFile()}`;
   }
   async refresh() {
     await this.#file.requestContentData();
+  }
+};
+
+// gen/front_end/models/ai_assistance/contexts/StorageContext.js
+var StorageContext_exports = {};
+__export(StorageContext_exports, {
+  StorageContext: () => StorageContext
+});
+
+// gen/front_end/models/ai_assistance/StorageItem.js
+var StorageItem_exports = {};
+__export(StorageItem_exports, {
+  CookieItem: () => CookieItem,
+  DOMStorageItem: () => DOMStorageItem,
+  EMPTY_ORIGIN: () => EMPTY_ORIGIN,
+  StorageItem: () => StorageItem
+});
+var EMPTY_ORIGIN = "";
+var StorageItem = class _StorageItem {
+  primaryTargetOrigin;
+  origin;
+  constructor(primaryTargetOrigin, origin = EMPTY_ORIGIN) {
+    this.primaryTargetOrigin = primaryTargetOrigin;
+    this.origin = origin;
+  }
+  get isGenericContext() {
+    return this.origin === EMPTY_ORIGIN;
+  }
+  static createGenericContext(primaryTargetOrigin, ..._args) {
+    return new _StorageItem(primaryTargetOrigin, EMPTY_ORIGIN);
+  }
+};
+var DOMStorageItem = class _DOMStorageItem extends StorageItem {
+  storageKey;
+  type;
+  key;
+  constructor(primaryTargetOrigin, origin, storageKey, type, key) {
+    super(primaryTargetOrigin, origin);
+    this.storageKey = storageKey;
+    this.type = type;
+    this.key = key;
+  }
+  static createGenericContext(primaryTargetOrigin, type) {
+    return new _DOMStorageItem(primaryTargetOrigin, EMPTY_ORIGIN, void 0, type);
+  }
+};
+var CookieItem = class _CookieItem extends StorageItem {
+  name;
+  constructor(primaryTargetOrigin, origin, name) {
+    super(primaryTargetOrigin, origin);
+    this.name = name;
+  }
+  static createGenericContext(primaryTargetOrigin) {
+    return new _CookieItem(primaryTargetOrigin, EMPTY_ORIGIN);
+  }
+};
+
+// gen/front_end/models/ai_assistance/contexts/StorageContext.js
+var StorageContext = class extends ConversationContext {
+  #item;
+  constructor(item) {
+    super();
+    this.#item = item;
+  }
+  getURL() {
+    return this.#item.primaryTargetOrigin;
+  }
+  getItem() {
+    return this.#item;
+  }
+  getTitle() {
+    if (this.#item instanceof CookieItem) {
+      if (this.#item.name) {
+        return `cookie: ${this.#item.name}${this.#item.origin ? ` ${this.#item.origin}` : ""}`;
+      }
+      return `cookies${this.#item.isGenericContext ? "" : `: ${this.#item.origin}`}`;
+    }
+    if (this.#item instanceof DOMStorageItem) {
+      if (this.#item.key) {
+        return `entry: ${this.#item.key}${this.#item.origin ? ` ${this.#item.origin}` : ""}`;
+      }
+      const prefix = this.#item.type === "localStorage" ? "local storage" : "session storage";
+      return `${prefix}${this.#item.isGenericContext ? "" : `: ${this.#item.origin}`}`;
+    }
+    return `Storage: ${this.getOrigin()}`;
+  }
+  /**
+   * @override
+   */
+  isLoggingEnabled() {
+    if (this.#item instanceof CookieItem && Boolean(this.#item.name)) {
+      return false;
+    }
+    if (this.#item instanceof DOMStorageItem && Boolean(this.#item.key)) {
+      return false;
+    }
+    return true;
+  }
+  async getSuggestions() {
+    if (this.#item instanceof CookieItem) {
+      if (this.#item.name) {
+        return [
+          {
+            title: "Why is this cookie set?",
+            jslogContext: "storage-cookie"
+          },
+          {
+            title: "Explain the value of this cookie",
+            jslogContext: "storage-cookie"
+          }
+        ];
+      }
+      return [
+        {
+          title: "Explain the cookies set by this page",
+          jslogContext: "storage-cookie"
+        }
+      ];
+    }
+    if (this.#item instanceof DOMStorageItem) {
+      if (this.#item.key) {
+        return [
+          {
+            title: "What is the purpose of this storage entry?",
+            jslogContext: "storage-domstorage"
+          },
+          {
+            title: "Explain the value of this storage entry",
+            jslogContext: "storage-domstorage"
+          }
+        ];
+      }
+      return [
+        {
+          title: "Explain these storage items",
+          jslogContext: "storage-domstorage"
+        }
+      ];
+    }
+    return void 0;
   }
 };
 
@@ -7789,7 +7790,7 @@ var ContextSelectionAgent = class _ContextSelectionAgent extends AiAgent {
         const uiSourceCodes = [];
         for (const file of _ContextSelectionAgent.getUISourceCodes(this.#workspace)) {
           const fileUrl = file.url();
-          const fileOrigin = Common15.ParsedURL.ParsedURL.extractOrigin(fileUrl);
+          const fileOrigin = Common14.ParsedURL.ParsedURL.extractOrigin(fileUrl);
           if (origin && fileOrigin !== origin) {
             continue;
           }
@@ -7844,7 +7845,7 @@ var ContextSelectionAgent = class _ContextSelectionAgent extends AiAgent {
             return false;
           }
           const fileUrl = file2.url();
-          const fileOrigin = Common15.ParsedURL.ParsedURL.extractOrigin(fileUrl);
+          const fileOrigin = Common14.ParsedURL.ParsedURL.extractOrigin(fileUrl);
           return !origin || fileOrigin === origin;
         });
         if (!file) {
@@ -8252,7 +8253,7 @@ var PerformanceAgent_exports = {};
 __export(PerformanceAgent_exports, {
   PerformanceAgent: () => PerformanceAgent
 });
-import * as Common16 from "./../../core/common/common.js";
+import * as Common15 from "./../../core/common/common.js";
 import * as Host23 from "./../../core/host/host.js";
 import * as i18n34 from "./../../core/i18n/i18n.js";
 import * as Root9 from "./../../core/root/root.js";
@@ -9271,7 +9272,7 @@ ${result}`,
           return { error: "Invalid eventKey" };
         }
         const revealable = new SDK13.TraceObject.RevealableEvent(event);
-        await Common16.Revealer.reveal(revealable);
+        await Common15.Revealer.reveal(revealable);
         return {
           result: { success: true },
           widgets: [{
@@ -9310,10 +9311,10 @@ __export(StorageAgent_exports, {
   StorageAgent: () => StorageAgent,
   findFrameForOrigin: () => findFrameForOrigin,
   getCookiesForDomain: () => getCookiesForDomain,
-  isSamePageOrigin: () => isSamePageOrigin2,
+  isSamePageOrigin: () => isSamePageOrigin,
   resolveDOMStorages: () => resolveDOMStorages
 });
-import * as Common17 from "./../../core/common/common.js";
+import * as Common16 from "./../../core/common/common.js";
 import * as Host24 from "./../../core/host/host.js";
 import * as i18n36 from "./../../core/i18n/i18n.js";
 import * as Root10 from "./../../core/root/root.js";
@@ -9359,13 +9360,13 @@ var preamble6 = `You are a Senior Software Engineer specializing in state audit 
  `;
 function isSamePrimaryPageOrigin(targetManager, context) {
   const primaryPageTarget = targetManager.primaryPageTarget();
-  return isSamePageOrigin2(primaryPageTarget, context);
+  return isSamePageOrigin(primaryPageTarget, context);
 }
-function isSamePageOrigin2(target, context) {
+function isSamePageOrigin(target, context) {
   if (!target || !context) {
     return false;
   }
-  const pageOrigin = Common17.ParsedURL.ParsedURL.extractOrigin(target.inspectedURL());
+  const pageOrigin = Common16.ParsedURL.ParsedURL.extractOrigin(target.inspectedURL());
   return pageOrigin !== "" && context.isOriginAllowed(pageOrigin);
 }
 var MAX_TARGET_ORIGINS = 100;
@@ -9413,7 +9414,7 @@ var StorageAgent = class _StorageAgent extends AiAgent {
         }
         const origins = /* @__PURE__ */ new Set();
         for (const frame of SDK14.ResourceTreeModel.ResourceTreeModel.frames(this.targetManager)) {
-          if (!isSamePageOrigin2(frame.resourceTreeModel().target().outermostTarget(), this.context)) {
+          if (!isSamePageOrigin(frame.resourceTreeModel().target().outermostTarget(), this.context)) {
             continue;
           }
           const origin = frame.securityOrigin;
@@ -9716,7 +9717,7 @@ var StorageAgent = class _StorageAgent extends AiAgent {
       },
       handler: async () => {
         const target = this.targetManager.primaryPageTarget();
-        if (!target || !this.context || !isSamePageOrigin2(target, this.context)) {
+        if (!target || !this.context || !isSamePageOrigin(target, this.context)) {
           return { error: "No origin available or not allowed." };
         }
         const origin = this.context.getItem().primaryTargetOrigin;
@@ -9749,7 +9750,20 @@ var StorageAgent = class _StorageAgent extends AiAgent {
         return {
           result: {
             usageBreakdown
-          }
+          },
+          widgets: [
+            {
+              name: "STORAGE_BREAKDOWN",
+              data: {
+                totalUsageBytes: response.usage,
+                totalQuotaBytes: response.quota,
+                usageBreakdown: rawUsageBreakdown.map((entry) => ({
+                  storageType: entry.storageType,
+                  bytes: entry.rawUsage
+                }))
+              }
+            }
+          ]
         };
       }
     });
@@ -9757,7 +9771,7 @@ var StorageAgent = class _StorageAgent extends AiAgent {
   static #formatContext(item) {
     const primaryTargetOrigin = `Primary target: ${item.primaryTargetOrigin}`;
     if (item instanceof CookieItem) {
-      const parsedURL = Common17.ParsedURL.ParsedURL.fromString(item.origin);
+      const parsedURL = Common16.ParsedURL.ParsedURL.fromString(item.origin);
       const domain = parsedURL ? parsedURL.host : item.origin;
       return `${primaryTargetOrigin}
 User-selected Context: Cookies${item.isGenericContext ? "" : `
@@ -9821,7 +9835,7 @@ function findFrameForOrigin(context, origin, targetManager) {
   for (const frame of SDK14.ResourceTreeModel.ResourceTreeModel.frames(targetManager)) {
     if (frame.securityOrigin === origin) {
       const target = frame.resourceTreeModel().target();
-      if (isSamePageOrigin2(target.outermostTarget(), context)) {
+      if (isSamePageOrigin(target.outermostTarget(), context)) {
         return frame;
       }
     }
@@ -9845,7 +9859,7 @@ function resolveDOMStorages(context, type, origin, targetManager, storageKey) {
   const isLocalStorage = type === "localStorage";
   const domStorageModels = targetManager.models(SDK14.DOMStorageModel.DOMStorageModel);
   for (const domStorageModel of domStorageModels) {
-    if (!isSamePageOrigin2(domStorageModel.target().outermostTarget(), context)) {
+    if (!isSamePageOrigin(domStorageModel.target().outermostTarget(), context)) {
       continue;
     }
     for (const storage of domStorageModel.storages()) {
@@ -10383,7 +10397,7 @@ __export(AiConversation_exports, {
   NOT_FOUND_IMAGE_DATA: () => NOT_FOUND_IMAGE_DATA,
   generateContextDetailsMarkdown: () => generateContextDetailsMarkdown
 });
-import * as Common19 from "./../../core/common/common.js";
+import * as Common18 from "./../../core/common/common.js";
 import * as Host27 from "./../../core/host/host.js";
 import * as Platform4 from "./../../core/platform/platform.js";
 import * as Root13 from "./../../core/root/root.js";
@@ -10397,19 +10411,19 @@ __export(AiHistoryStorage_exports, {
   MAX_RECENT_PROMPTS_COUNT: () => MAX_RECENT_PROMPTS_COUNT,
   RECENT_PROMPTS_SIZE_LIMIT: () => RECENT_PROMPTS_SIZE_LIMIT
 });
-import * as Common18 from "./../../core/common/common.js";
+import * as Common17 from "./../../core/common/common.js";
 import * as Root12 from "./../../core/root/root.js";
 var DEFAULT_MAX_STORAGE_SIZE = 50 * 1024 * 1024;
 var MAX_RECENT_PROMPTS_COUNT = 20;
 var MAX_CONVERSATIONS_COUNT = 50;
 var RECENT_PROMPTS_SIZE_LIMIT = 100 * 1024;
-var AiHistoryStorage = class _AiHistoryStorage extends Common18.ObjectWrapper.ObjectWrapper {
+var AiHistoryStorage = class _AiHistoryStorage extends Common17.ObjectWrapper.ObjectWrapper {
   #historySetting;
   #imageHistorySettings;
   #recentPromptsSetting;
-  #mutex = new Common18.Mutex.Mutex();
+  #mutex = new Common17.Mutex.Mutex();
   #maxStorageSize;
-  constructor(settings = Common18.Settings.Settings.instance(), maxStorageSize = DEFAULT_MAX_STORAGE_SIZE) {
+  constructor(settings = Common17.Settings.Settings.instance(), maxStorageSize = DEFAULT_MAX_STORAGE_SIZE) {
     super();
     this.#historySetting = settings.createSetting("ai-assistance-history-entries", []);
     this.#imageHistorySettings = settings.createSetting("ai-assistance-history-images", []);
@@ -10550,7 +10564,7 @@ var AiHistoryStorage = class _AiHistoryStorage extends Common18.ObjectWrapper.Ob
     if (!Root12.DevToolsContext.globalInstance().has(_AiHistoryStorage) || forceNew) {
       Root12.DevToolsContext.globalInstance().set(_AiHistoryStorage, new _AiHistoryStorage(
         // eslint-disable-next-line @devtools/no-instance-of-migrated-singletons
-        settings ?? Common18.Settings.Settings.instance(),
+        settings ?? Common17.Settings.Settings.instance(),
         maxStorageSize
       ));
     }
@@ -11010,7 +11024,7 @@ function isAiAssistanceContextSelectionAgentEnabled() {
 function getPrimaryPageOrigin(targetManager) {
   const target = targetManager.primaryPageTarget();
   const inspectedURL = target?.inspectedURL();
-  return inspectedURL ? new Common19.ParsedURL.ParsedURL(inspectedURL).securityOrigin() : void 0;
+  return inspectedURL ? new Common18.ParsedURL.ParsedURL(inspectedURL).securityOrigin() : void 0;
 }
 
 // gen/front_end/models/ai_assistance/AiSetting.js
@@ -11018,10 +11032,10 @@ var AiSetting_exports = {};
 __export(AiSetting_exports, {
   AiSetting: () => AiSetting
 });
-import * as Common20 from "./../../core/common/common.js";
+import * as Common19 from "./../../core/common/common.js";
 import * as Host28 from "./../../core/host/host.js";
 import * as Root14 from "./../../core/root/root.js";
-var AiSetting = class extends Common20.ObjectWrapper.ObjectWrapper {
+var AiSetting = class extends Common19.ObjectWrapper.ObjectWrapper {
   #setting;
   #descriptor;
   #hostConfigTracker;
@@ -11141,10 +11155,10 @@ var BuiltInAi_exports = {};
 __export(BuiltInAi_exports, {
   BuiltInAi: () => BuiltInAi
 });
-import * as Common21 from "./../../core/common/common.js";
+import * as Common20 from "./../../core/common/common.js";
 import * as Host29 from "./../../core/host/host.js";
 import * as Root15 from "./../../core/root/root.js";
-var BuiltInAi = class _BuiltInAi extends Common21.ObjectWrapper.ObjectWrapper {
+var BuiltInAi = class _BuiltInAi extends Common20.ObjectWrapper.ObjectWrapper {
   #availability = null;
   #hasGpu;
   #consoleInsightsSession;
