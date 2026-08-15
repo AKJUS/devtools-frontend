@@ -16,3 +16,10 @@ export declare const extendGridLinesSettingDescriptor: Common.Settings.SettingDe
 export declare const showGridLineLabelsSettingDescriptor: Common.Settings.SettingDescriptor<string>;
 export declare const showPaintRectsSettingDescriptor: Common.Settings.SettingDescriptor<boolean>;
 export declare const showLayoutShiftRegionsSettingDescriptor: Common.Settings.SettingDescriptor<boolean>;
+export declare const showAdHighlightsSettingDescriptor: Common.Settings.SettingDescriptor<boolean>;
+export declare const showDebugBordersSettingDescriptor: Common.Settings.SettingDescriptor<boolean>;
+export declare const showFPSCounterSettingDescriptor: Common.Settings.SettingDescriptor<boolean>;
+export declare const showScrollBottleneckRectsSettingDescriptor: Common.Settings.SettingDescriptor<boolean>;
+export declare const emulatePageFocusSettingDescriptor: Common.Settings.SettingDescriptor<boolean>;
+export declare const emulatedCSSMediaSettingDescriptor: Common.Settings.SettingDescriptor<string>;
+export declare const cpuPressureSettingDescriptor: Common.Settings.SettingDescriptor<string>;
