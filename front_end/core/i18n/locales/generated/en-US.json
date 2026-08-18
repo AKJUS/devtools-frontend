@@ -8670,13 +8670,13 @@
     "message": "Understand this warning"
   },
   "panels/issues/AffectedBlockedByResponseView.ts | blockedResource": {
-    "message": "Blocked Resource"
+    "message": "Blocked resource"
   },
   "panels/issues/AffectedBlockedByResponseView.ts | nRequests": {
     "message": "{n, plural, =1 {# request} other {# requests}}"
   },
   "panels/issues/AffectedBlockedByResponseView.ts | parentFrame": {
-    "message": "Parent Frame"
+    "message": "Parent frame"
   },
   "panels/issues/AffectedBlockedByResponseView.ts | requestC": {
     "message": "Request"
@@ -8685,7 +8685,7 @@
     "message": "Domain"
   },
   "panels/issues/AffectedCookiesView.ts | filterSetCookieTitle": {
-    "message": "Show network requests that include this Set-Cookie header in the network panel"
+    "message": "Show network requests that include this Set-Cookie header in the Network panel"
   },
   "panels/issues/AffectedCookiesView.ts | name": {
     "message": "Name"
@@ -8694,7 +8694,7 @@
     "message": "{n, plural, =1 {# cookie} other {# cookies}}"
   },
   "panels/issues/AffectedCookiesView.ts | nRawCookieLines": {
-    "message": "{n, plural, =1 {1 Raw Set-Cookie header} other {# Raw Set-Cookie headers}}"
+    "message": "{n, plural, =1 {1 raw Set-Cookie header} other {# raw Set-Cookie headers}}"
   },
   "panels/issues/AffectedCookiesView.ts | path": {
     "message": "Path"
@@ -8706,7 +8706,7 @@
     "message": "{n, plural, =1 { descendant} other { descendants}}"
   },
   "panels/issues/AffectedDirectivesView.ts | blocked": {
-    "message": "blocked"
+    "message": "Blocked"
   },
   "panels/issues/AffectedDirectivesView.ts | clickToRevealTheViolatingDomNode": {
     "message": "Click to reveal the violating DOM node in the Elements panel"
@@ -8721,7 +8721,7 @@
     "message": "{n, plural, =1 {# directive} other {# directives}}"
   },
   "panels/issues/AffectedDirectivesView.ts | reportonly": {
-    "message": "report-only"
+    "message": "Report-only"
   },
   "panels/issues/AffectedDirectivesView.ts | resourceC": {
     "message": "Resource"
@@ -8769,7 +8769,7 @@
     "message": "Removed"
   },
   "panels/issues/AffectedHeavyAdView.ts | resolutionStatus": {
-    "message": "Resolution Status"
+    "message": "Resolution status"
   },
   "panels/issues/AffectedHeavyAdView.ts | warned": {
     "message": "Warned"
@@ -8799,19 +8799,19 @@
     "message": "Click to reveal the frame’s DOM node in the Elements panel"
   },
   "panels/issues/AffectedResourcesView.ts | unavailable": {
-    "message": "unavailable"
+    "message": "Unavailable"
   },
   "panels/issues/AffectedResourcesView.ts | unknown": {
-    "message": "unknown"
+    "message": "Unknown"
   },
   "panels/issues/AffectedSelectivePermissionsInterventionView.ts | adAncestry": {
-    "message": "Ad Ancestry"
+    "message": "Ad ancestry"
   },
   "panels/issues/AffectedSelectivePermissionsInterventionView.ts | api": {
     "message": "API"
   },
   "panels/issues/AffectedSelectivePermissionsInterventionView.ts | loading": {
-    "message": "loading…"
+    "message": "Loading…"
   },
   "panels/issues/AffectedSelectivePermissionsInterventionView.ts | nViolations": {
     "message": "{n, plural, =1 {# violation} other {# violations}}"
@@ -8820,13 +8820,13 @@
     "message": "Script"
   },
   "panels/issues/AffectedSelectivePermissionsInterventionView.ts | unknown": {
-    "message": "unknown"
+    "message": "Unknown"
   },
   "panels/issues/AffectedSharedArrayBufferIssueDetailsView.ts | aSharedarraybufferWas": {
     "message": "A SharedArrayBuffer was instantiated in a context that is not cross-origin isolated"
   },
   "panels/issues/AffectedSharedArrayBufferIssueDetailsView.ts | blocked": {
-    "message": "blocked"
+    "message": "Blocked"
   },
   "panels/issues/AffectedSharedArrayBufferIssueDetailsView.ts | instantiation": {
     "message": "Instantiation"
@@ -8835,10 +8835,10 @@
     "message": "{n, plural, =1 {# violation} other {# violations}}"
   },
   "panels/issues/AffectedSharedArrayBufferIssueDetailsView.ts | sharedarraybufferWasTransferedTo": {
-    "message": "SharedArrayBuffer was transfered to a context that is not cross-origin isolated"
+    "message": "SharedArrayBuffer was transferred to a context that is not cross-origin isolated"
   },
   "panels/issues/AffectedSharedArrayBufferIssueDetailsView.ts | sourceLocation": {
-    "message": "Source Location"
+    "message": "Source location"
   },
   "panels/issues/AffectedSharedArrayBufferIssueDetailsView.ts | status": {
     "message": "Status"
@@ -8850,7 +8850,7 @@
     "message": "Trigger"
   },
   "panels/issues/AffectedSharedArrayBufferIssueDetailsView.ts | warning": {
-    "message": "warning"
+    "message": "Warning"
   },
   "panels/issues/AffectedSourcesView.ts | nSources": {
     "message": "{n, plural, =1 {# source} other {# sources}}"
@@ -8862,37 +8862,37 @@
     "message": "Hide issues"
   },
   "panels/issues/CorsIssueDetailsView.ts | allowCredentialsValueFromHeader": {
-    "message": "Access-Control-Allow-Credentials Header Value"
+    "message": "Access-Control-Allow-Credentials header value"
   },
   "panels/issues/CorsIssueDetailsView.ts | allowedOrigin": {
-    "message": "Allowed Origin (from header)"
+    "message": "Allowed origin (from header)"
   },
   "panels/issues/CorsIssueDetailsView.ts | blocked": {
-    "message": "blocked"
+    "message": "Blocked"
   },
   "panels/issues/CorsIssueDetailsView.ts | disallowedRequestHeader": {
-    "message": "Disallowed Request Header"
+    "message": "Disallowed request header"
   },
   "panels/issues/CorsIssueDetailsView.ts | disallowedRequestMethod": {
-    "message": "Disallowed Request Method"
+    "message": "Disallowed request method"
   },
   "panels/issues/CorsIssueDetailsView.ts | failedRequest": {
-    "message": "Failed Request"
+    "message": "Failed request"
   },
   "panels/issues/CorsIssueDetailsView.ts | header": {
     "message": "Header"
   },
   "panels/issues/CorsIssueDetailsView.ts | initiatorAddressSpace": {
-    "message": "Initiator Address"
+    "message": "Initiator address"
   },
   "panels/issues/CorsIssueDetailsView.ts | initiatorContext": {
-    "message": "Initiator Context"
+    "message": "Initiator context"
   },
   "panels/issues/CorsIssueDetailsView.ts | insecure": {
-    "message": "insecure"
+    "message": "Insecure"
   },
   "panels/issues/CorsIssueDetailsView.ts | invalidValue": {
-    "message": "Invalid Value (if available)"
+    "message": "Invalid value (if available)"
   },
   "panels/issues/CorsIssueDetailsView.ts | nRequests": {
     "message": "{n, plural, =1 {# request} other {# requests}}"
@@ -8904,43 +8904,43 @@
     "message": "HTTP status of preflight request didn’t indicate success"
   },
   "panels/issues/CorsIssueDetailsView.ts | preflightRequest": {
-    "message": "Preflight Request"
+    "message": "Preflight request"
   },
   "panels/issues/CorsIssueDetailsView.ts | preflightRequestIfProblematic": {
-    "message": "Preflight Request (if problematic)"
+    "message": "Preflight request (if problematic)"
   },
   "panels/issues/CorsIssueDetailsView.ts | problem": {
     "message": "Problem"
   },
   "panels/issues/CorsIssueDetailsView.ts | problemInvalidValue": {
-    "message": "Invalid Value"
+    "message": "Invalid value"
   },
   "panels/issues/CorsIssueDetailsView.ts | problemMissingHeader": {
-    "message": "Missing Header"
+    "message": "Missing header"
   },
   "panels/issues/CorsIssueDetailsView.ts | problemMultipleValues": {
-    "message": "Multiple Values"
+    "message": "Multiple values"
   },
   "panels/issues/CorsIssueDetailsView.ts | request": {
     "message": "Request"
   },
   "panels/issues/CorsIssueDetailsView.ts | resourceAddressSpace": {
-    "message": "Resource Address"
+    "message": "Resource address"
   },
   "panels/issues/CorsIssueDetailsView.ts | secure": {
-    "message": "secure"
+    "message": "Secure"
   },
   "panels/issues/CorsIssueDetailsView.ts | sourceLocation": {
-    "message": "Source Location"
+    "message": "Source location"
   },
   "panels/issues/CorsIssueDetailsView.ts | status": {
     "message": "Status"
   },
   "panels/issues/CorsIssueDetailsView.ts | unsupportedScheme": {
-    "message": "Unsupported Scheme"
+    "message": "Unsupported scheme"
   },
   "panels/issues/CorsIssueDetailsView.ts | warning": {
-    "message": "warning"
+    "message": "Warning"
   },
   "panels/issues/GenericIssueDetailsView.ts | frameId": {
     "message": "Frame"
@@ -8958,13 +8958,13 @@
     "message": "Unhide all"
   },
   "panels/issues/IssueKindView.ts | hideAllCurrentBreakingChanges": {
-    "message": "Hide all current Breaking Changes"
+    "message": "Hide all current breaking changes"
   },
   "panels/issues/IssueKindView.ts | hideAllCurrentImprovements": {
-    "message": "Hide all current Improvements"
+    "message": "Hide all current improvements"
   },
   "panels/issues/IssueKindView.ts | hideAllCurrentPageErrors": {
-    "message": "Hide all current Page Errors"
+    "message": "Hide all current page errors"
   },
   "panels/issues/issues-meta.ts | issues": {
     "message": "Issues"
@@ -8976,10 +8976,10 @@
     "message": "Content Security Policy"
   },
   "panels/issues/IssuesPane.ts | cors": {
-    "message": "Cross Origin Resource Sharing"
+    "message": "Cross-Origin Resource Sharing"
   },
   "panels/issues/IssuesPane.ts | crossOriginEmbedderPolicy": {
-    "message": "Cross Origin Embedder Policy"
+    "message": "Cross-Origin Embedder Policy"
   },
   "panels/issues/IssuesPane.ts | generic": {
     "message": "Generic"
@@ -8994,13 +8994,13 @@
     "message": "Group displayed issues under associated categories"
   },
   "panels/issues/IssuesPane.ts | groupDisplayedIssuesUnderKind": {
-    "message": "Group displayed issues as Page errors, Breaking changes and Improvements"
+    "message": "Group displayed issues as page errors, breaking changes, and improvements"
   },
   "panels/issues/IssuesPane.ts | heavyAds": {
-    "message": "Heavy Ads"
+    "message": "Heavy ads"
   },
   "panels/issues/IssuesPane.ts | includeCookieIssuesCausedBy": {
-    "message": "Include cookie Issues caused by third-party sites"
+    "message": "Include cookie issues caused by third-party sites"
   },
   "panels/issues/IssuesPane.ts | includeThirdpartyCookieIssues": {
     "message": "Include third-party cookie issues"
@@ -9009,10 +9009,10 @@
     "message": "On this page you can find warnings from the browser."
   },
   "panels/issues/IssuesPane.ts | lowTextContrast": {
-    "message": "Low Text Contrast"
+    "message": "Low text contrast"
   },
   "panels/issues/IssuesPane.ts | mixedContent": {
-    "message": "Mixed Content"
+    "message": "Mixed content"
   },
   "panels/issues/IssuesPane.ts | noIssues": {
     "message": "No issues detected"
@@ -9024,25 +9024,25 @@
     "message": "Other"
   },
   "panels/issues/IssuesPane.ts | permissionElement": {
-    "message": "PEPC Element"
+    "message": "Permission element"
   },
   "panels/issues/IssuesPane.ts | quirksMode": {
-    "message": "Quirks Mode"
+    "message": "Quirks mode"
   },
   "panels/issues/IssuesPane.ts | samesiteCookie": {
-    "message": "SameSite Cookie"
+    "message": "SameSite cookie"
   },
   "panels/issues/IssuesPane.ts | selectivePermissionsIntervention": {
-    "message": "Selective Permissions Intervention"
+    "message": "Selective permissions intervention"
   },
   "panels/issues/IssueView.ts | affectedResources": {
-    "message": "Affected Resources"
+    "message": "Affected resources"
   },
   "panels/issues/IssueView.ts | automaticallyUpgraded": {
-    "message": "automatically upgraded"
+    "message": "Automatically upgraded"
   },
   "panels/issues/IssueView.ts | blocked": {
-    "message": "blocked"
+    "message": "Blocked"
   },
   "panels/issues/IssueView.ts | hideIssuesLikeThis": {
     "message": "Hide issues like this"
@@ -9060,7 +9060,7 @@
     "message": "{n, plural, =1 {# resource} other {# resources}}"
   },
   "panels/issues/IssueView.ts | restrictionStatus": {
-    "message": "Restriction Status"
+    "message": "Restriction status"
   },
   "panels/issues/IssueView.ts | unhideIssuesLikeThis": {
     "message": "Unhide issues like this"

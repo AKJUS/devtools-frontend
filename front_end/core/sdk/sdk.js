@@ -17966,7 +17966,10 @@ __export(SDKSettings_exports, {
   emulatePageFocusSettingDescriptor: () => emulatePageFocusSettingDescriptor,
   emulatedCSSMediaFeatureForcedColorsSettingDescriptor: () => emulatedCSSMediaFeatureForcedColorsSettingDescriptor,
   emulatedCSSMediaFeaturePrefersColorSchemeSettingDescriptor: () => emulatedCSSMediaFeaturePrefersColorSchemeSettingDescriptor,
+  emulatedCSSMediaFeaturePrefersContrastSettingDescriptor: () => emulatedCSSMediaFeaturePrefersContrastSettingDescriptor,
+  emulatedCSSMediaFeaturePrefersReducedDataSettingDescriptor: () => emulatedCSSMediaFeaturePrefersReducedDataSettingDescriptor,
   emulatedCSSMediaFeaturePrefersReducedMotionSettingDescriptor: () => emulatedCSSMediaFeaturePrefersReducedMotionSettingDescriptor,
+  emulatedCSSMediaFeaturePrefersReducedTransparencySettingDescriptor: () => emulatedCSSMediaFeaturePrefersReducedTransparencySettingDescriptor,
   emulatedCSSMediaSettingDescriptor: () => emulatedCSSMediaSettingDescriptor,
   extendGridLinesSettingDescriptor: () => extendGridLinesSettingDescriptor,
   idleDetectionSettingDescriptor: () => idleDetectionSettingDescriptor,
@@ -18152,6 +18155,24 @@ var emulatedCSSMediaFeatureForcedColorsSettingDescriptor = {
 };
 var emulatedCSSMediaFeaturePrefersReducedMotionSettingDescriptor = {
   name: "emulated-css-media-feature-prefers-reduced-motion",
+  type: "enum",
+  defaultValue: "",
+  storageType: "Session"
+};
+var emulatedCSSMediaFeaturePrefersContrastSettingDescriptor = {
+  name: "emulated-css-media-feature-prefers-contrast",
+  type: "enum",
+  defaultValue: "",
+  storageType: "Session"
+};
+var emulatedCSSMediaFeaturePrefersReducedDataSettingDescriptor = {
+  name: "emulated-css-media-feature-prefers-reduced-data",
+  type: "enum",
+  defaultValue: "",
+  storageType: "Session"
+};
+var emulatedCSSMediaFeaturePrefersReducedTransparencySettingDescriptor = {
+  name: "emulated-css-media-feature-prefers-reduced-transparency",
   type: "enum",
   defaultValue: "",
   storageType: "Session"
@@ -36648,9 +36669,9 @@ var EmulationModel = class extends SDKModel {
     const mediaFeatureColorGamutSetting = settings.moduleSetting("emulated-css-media-feature-color-gamut");
     const mediaFeaturePrefersColorSchemeSetting = settings.resolve(emulatedCSSMediaFeaturePrefersColorSchemeSettingDescriptor);
     const mediaFeatureForcedColorsSetting = settings.resolve(emulatedCSSMediaFeatureForcedColorsSettingDescriptor);
-    const mediaFeaturePrefersContrastSetting = settings.moduleSetting("emulated-css-media-feature-prefers-contrast");
-    const mediaFeaturePrefersReducedDataSetting = settings.moduleSetting("emulated-css-media-feature-prefers-reduced-data");
-    const mediaFeaturePrefersReducedTransparencySetting = settings.moduleSetting("emulated-css-media-feature-prefers-reduced-transparency");
+    const mediaFeaturePrefersContrastSetting = settings.resolve(emulatedCSSMediaFeaturePrefersContrastSettingDescriptor);
+    const mediaFeaturePrefersReducedDataSetting = settings.resolve(emulatedCSSMediaFeaturePrefersReducedDataSettingDescriptor);
+    const mediaFeaturePrefersReducedTransparencySetting = settings.resolve(emulatedCSSMediaFeaturePrefersReducedTransparencySettingDescriptor);
     const mediaFeaturePrefersReducedMotionSetting = settings.resolve(emulatedCSSMediaFeaturePrefersReducedMotionSettingDescriptor);
     this.#mediaConfiguration = /* @__PURE__ */ new Map([
       ["type", mediaTypeSetting.get()],
