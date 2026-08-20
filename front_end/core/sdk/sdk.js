@@ -771,6 +771,7 @@ var generatedProperties = [
       "overscroll-behavior-inline",
       "overscroll-behavior-x",
       "overscroll-behavior-y",
+      "overscroll-container-type",
       "pad",
       "padding-block-end",
       "padding-block-start",
@@ -4357,6 +4358,17 @@ var generatedProperties = [
       "none"
     ],
     "name": "overscroll-behavior-y"
+  },
+  {
+    "keywords": [
+      "none",
+      "auto",
+      "push",
+      "overlay"
+    ],
+    "name": "overscroll-container-type",
+    "runtime_flag": "OverscrollGestures",
+    "runtime_flag_status": "experimental"
   },
   {
     "is_descriptor": true,
@@ -8415,6 +8427,14 @@ var generatedPropertyValues = {
       "none"
     ]
   },
+  "overscroll-container-type": {
+    "values": [
+      "none",
+      "auto",
+      "push",
+      "overlay"
+    ]
+  },
   "page": {
     "values": [
       "auto"
@@ -9938,7 +9958,7 @@ var CSSMetadata = class _CSSMetadata {
         if (partialValueKeywordsNoPresets.get(name)?.has(value)) {
           return false;
         }
-        return CSS.supports(name, value);
+        return true;
       }).sort(_CSSMetadata.sortPrefixesAndCSSWideKeywordsToEnd);
       const presets = values.map((value) => `${name}: ${value}`);
       if (!this.isSVGProperty(name)) {
@@ -10077,11 +10097,6 @@ var CSSMetadata = class _CSSMetadata {
     let keywords = propertyValues.get(propertyName) || propertyValues.get(unprefixedName);
     if (!keywords) {
       keywords = [];
-      for (const commonKeyword of CommonKeywords) {
-        if (CSS.supports(propertyName, commonKeyword)) {
-          keywords.push(commonKeyword);
-        }
-      }
       propertyValues.set(propertyName, keywords);
     }
     return keywords;
@@ -12880,7 +12895,8 @@ __export(DOMModel_exports, {
   DOMNodeShortcut: () => DOMNodeShortcut,
   DOMNodeSnapshot: () => DOMNodeSnapshot,
   DeferredDOMNode: () => DeferredDOMNode,
-  Events: () => Events5
+  Events: () => Events5,
+  cssEscape: () => cssEscape
 });
 import * as Common18 from "./../common/common.js";
 import * as Platform11 from "./../platform/platform.js";
@@ -17959,11 +17975,16 @@ var CSSStyleSheetHeader = class {
 var SDKSettings_exports = {};
 __export(SDKSettings_exports, {
   apcaSettingDescriptor: () => apcaSettingDescriptor,
+  avifFormatDisabledSettingDescriptor: () => avifFormatDisabledSettingDescriptor,
   breakpointsActiveSettingDescriptor: () => breakpointsActiveSettingDescriptor,
+  cacheDisabledSettingDescriptor: () => cacheDisabledSettingDescriptor,
   cpuPressureSettingDescriptor: () => cpuPressureSettingDescriptor,
   cssSourceMapsEnabledSettingDescriptor: () => cssSourceMapsEnabledSettingDescriptor,
+  customFormattersSettingDescriptor: () => customFormattersSettingDescriptor,
   disableAsyncStackTracesSettingDescriptor: () => disableAsyncStackTracesSettingDescriptor,
+  emulateAutoDarkModeSettingDescriptor: () => emulateAutoDarkModeSettingDescriptor,
   emulatePageFocusSettingDescriptor: () => emulatePageFocusSettingDescriptor,
+  emulatedCSSMediaFeatureColorGamutSettingDescriptor: () => emulatedCSSMediaFeatureColorGamutSettingDescriptor,
   emulatedCSSMediaFeatureForcedColorsSettingDescriptor: () => emulatedCSSMediaFeatureForcedColorsSettingDescriptor,
   emulatedCSSMediaFeaturePrefersColorSchemeSettingDescriptor: () => emulatedCSSMediaFeaturePrefersColorSchemeSettingDescriptor,
   emulatedCSSMediaFeaturePrefersContrastSettingDescriptor: () => emulatedCSSMediaFeaturePrefersContrastSettingDescriptor,
@@ -17971,14 +17992,20 @@ __export(SDKSettings_exports, {
   emulatedCSSMediaFeaturePrefersReducedMotionSettingDescriptor: () => emulatedCSSMediaFeaturePrefersReducedMotionSettingDescriptor,
   emulatedCSSMediaFeaturePrefersReducedTransparencySettingDescriptor: () => emulatedCSSMediaFeaturePrefersReducedTransparencySettingDescriptor,
   emulatedCSSMediaSettingDescriptor: () => emulatedCSSMediaSettingDescriptor,
+  emulatedOSTextScaleSettingDescriptor: () => emulatedOSTextScaleSettingDescriptor,
+  emulatedVisionDeficiencySettingDescriptor: () => emulatedVisionDeficiencySettingDescriptor,
+  enableRemoteFileLoadingSettingDescriptor: () => enableRemoteFileLoadingSettingDescriptor,
   extendGridLinesSettingDescriptor: () => extendGridLinesSettingDescriptor,
   idleDetectionSettingDescriptor: () => idleDetectionSettingDescriptor,
   javaScriptDisabledSettingDescriptor: () => javaScriptDisabledSettingDescriptor,
+  jpegXlFormatDisabledSettingDescriptor: () => jpegXlFormatDisabledSettingDescriptor,
   jsSourceMapsEnabledSettingDescriptor: () => jsSourceMapsEnabledSettingDescriptor,
+  localFontsDisabledSettingDescriptor: () => localFontsDisabledSettingDescriptor,
   pauseOnCaughtExceptionSettingDescriptor: () => pauseOnCaughtExceptionSettingDescriptor,
   pauseOnExceptionEnabledSettingDescriptor: () => pauseOnExceptionEnabledSettingDescriptor,
   pauseOnUncaughtExceptionSettingDescriptor: () => pauseOnUncaughtExceptionSettingDescriptor,
   preserveConsoleLogSettingDescriptor: () => preserveConsoleLogSettingDescriptor,
+  requestBlockingEnabledSettingDescriptor: () => requestBlockingEnabledSettingDescriptor,
   showAdHighlightsSettingDescriptor: () => showAdHighlightsSettingDescriptor,
   showDebugBordersSettingDescriptor: () => showDebugBordersSettingDescriptor,
   showFPSCounterSettingDescriptor: () => showFPSCounterSettingDescriptor,
@@ -17989,7 +18016,8 @@ __export(SDKSettings_exports, {
   showMetricsRulersSettingDescriptor: () => showMetricsRulersSettingDescriptor,
   showPaintRectsSettingDescriptor: () => showPaintRectsSettingDescriptor,
   showScrollBottleneckRectsSettingDescriptor: () => showScrollBottleneckRectsSettingDescriptor,
-  touchSettingDescriptor: () => touchSettingDescriptor
+  touchSettingDescriptor: () => touchSettingDescriptor,
+  webpFormatDisabledSettingDescriptor: () => webpFormatDisabledSettingDescriptor
 });
 import * as Common6 from "./../common/common.js";
 var jsSourceMapsEnabledSettingDescriptor = {
@@ -18176,6 +18204,76 @@ var emulatedCSSMediaFeaturePrefersReducedTransparencySettingDescriptor = {
   type: "enum",
   defaultValue: "",
   storageType: "Session"
+};
+var emulatedCSSMediaFeatureColorGamutSettingDescriptor = {
+  name: "emulated-css-media-feature-color-gamut",
+  type: "enum",
+  defaultValue: "",
+  storageType: "Session"
+};
+var emulatedVisionDeficiencySettingDescriptor = {
+  name: "emulated-vision-deficiency",
+  type: "enum",
+  defaultValue: "none",
+  storageType: "Session"
+};
+var emulatedOSTextScaleSettingDescriptor = {
+  name: "emulated-os-text-scale",
+  type: "enum",
+  defaultValue: "",
+  storageType: "Session"
+};
+var localFontsDisabledSettingDescriptor = {
+  name: "local-fonts-disabled",
+  type: "boolean",
+  defaultValue: false,
+  storageType: "Session"
+};
+var avifFormatDisabledSettingDescriptor = {
+  name: "avif-format-disabled",
+  type: "boolean",
+  defaultValue: false,
+  storageType: "Session"
+};
+var jpegXlFormatDisabledSettingDescriptor = {
+  name: "jpeg-xl-format-disabled",
+  type: "boolean",
+  defaultValue: false,
+  storageType: "Session"
+};
+var webpFormatDisabledSettingDescriptor = {
+  name: "webp-format-disabled",
+  type: "boolean",
+  defaultValue: false,
+  storageType: "Session"
+};
+var customFormattersSettingDescriptor = {
+  name: "custom-formatters",
+  type: "boolean",
+  defaultValue: false
+};
+var requestBlockingEnabledSettingDescriptor = {
+  name: "request-blocking-enabled",
+  type: "boolean",
+  defaultValue: false,
+  storageType: "Local"
+};
+var cacheDisabledSettingDescriptor = {
+  name: "cache-disabled",
+  type: "boolean",
+  defaultValue: false
+};
+var emulateAutoDarkModeSettingDescriptor = {
+  name: "emulate-auto-dark-mode",
+  type: "boolean",
+  defaultValue: false,
+  storageType: "Session"
+};
+var enableRemoteFileLoadingSettingDescriptor = {
+  name: "network.enable-remote-file-loading",
+  type: "boolean",
+  defaultValue: false,
+  storageType: "Synced"
 };
 
 // gen/front_end/core/sdk/SourceMapManager.js
@@ -19435,7 +19533,7 @@ var PageResourceLoader = class _PageResourceLoader extends Common11.ObjectWrappe
   async loadFromTarget(target, frameId, url, isBinary) {
     const networkManager = target.model(NetworkManager);
     const ioModel = target.model(IOModel);
-    const disableCache = this.#settings.moduleSetting("cache-disabled").get();
+    const disableCache = this.#settings.resolve(cacheDisabledSettingDescriptor).get();
     const resource = await networkManager.loadNetworkResource(frameId, url, { disableCache, includeCredentials: true });
     try {
       const content = resource.stream ? isBinary ? await ioModel.readToBuffer(resource.stream) : await ioModel.readToString(resource.stream) : "";
@@ -19461,10 +19559,10 @@ var PageResourceLoader = class _PageResourceLoader extends Common11.ObjectWrappe
     if (currentUserAgent) {
       headers["User-Agent"] = currentUserAgent;
     }
-    if (this.#settings.moduleSetting("cache-disabled").get()) {
+    if (this.#settings.resolve(cacheDisabledSettingDescriptor).get()) {
       headers["Cache-Control"] = "no-cache";
     }
-    const allowRemoteFilePaths = this.#settings.moduleSetting("network.enable-remote-file-loading").get();
+    const allowRemoteFilePaths = this.#settings.resolve(enableRemoteFileLoadingSettingDescriptor).get();
     return await new Promise((resolve) => Host2.ResourceLoader.load(url, headers, (success, _responseHeaders, content, errorDescription) => {
       resolve({ success, content, errorDescription });
     }, allowRemoteFilePaths));
@@ -23325,6 +23423,36 @@ var DOMNodeEvents;
   DOMNodeEvents2["SCROLL_SNAP_OVERLAY_STATE_CHANGED"] = "ScrollSnapOverlayStateChanged";
   DOMNodeEvents2["CONTAINER_QUERY_OVERLAY_STATE_CHANGED"] = "ContainerQueryOverlayStateChanged";
 })(DOMNodeEvents || (DOMNodeEvents = {}));
+function cssEscape(value) {
+  const length = value.length;
+  let index = -1;
+  let codeUnit;
+  let result = "";
+  const firstCodeUnit = value.charCodeAt(0);
+  if (length === 0) {
+    return "";
+  }
+  if (length === 1 && firstCodeUnit === 45) {
+    return "\\" + value;
+  }
+  while (++index < length) {
+    codeUnit = value.charCodeAt(index);
+    if (codeUnit === 0) {
+      result += "\uFFFD";
+      continue;
+    }
+    if (codeUnit >= 1 && codeUnit <= 31 || codeUnit === 127 || index === 0 && codeUnit >= 48 && codeUnit <= 57 || index === 1 && codeUnit >= 48 && codeUnit <= 57 && firstCodeUnit === 45) {
+      result += "\\" + codeUnit.toString(16) + " ";
+      continue;
+    }
+    if (codeUnit >= 128 || codeUnit === 45 || codeUnit === 95 || codeUnit >= 48 && codeUnit <= 57 || codeUnit >= 65 && codeUnit <= 90 || codeUnit >= 97 && codeUnit <= 122) {
+      result += value.charAt(index);
+      continue;
+    }
+    result += "\\" + value.charAt(index);
+  }
+  return result;
+}
 var DOMNode = class _DOMNode extends Common18.ObjectWrapper.ObjectWrapper {
   #domModel;
   #frameManager;
@@ -24105,6 +24233,81 @@ var DOMNode = class _DOMNode extends Common18.ObjectWrapper.ObjectWrapper {
       }
     });
   }
+  duplicate() {
+    if (this.isInShadowTree()) {
+      return;
+    }
+    const parentNode = this.parentNode ? this.parentNode : this;
+    if (parentNode.nodeName() === "#document") {
+      return;
+    }
+    this.copyTo(parentNode, this.nextSibling);
+  }
+  /**
+   * Runs a script on the node's remote object that toggles a class name on
+   * the node and injects a stylesheet into the head of the node's document
+   * containing a rule to set "visibility: hidden" on the class and all it's
+   * ancestors.
+   */
+  async toggleHideElement() {
+    let pseudoElementName = this.pseudoType() ? this.nodeName() : null;
+    if (pseudoElementName && this.pseudoIdentifier()) {
+      pseudoElementName += `(${this.pseudoIdentifier()})`;
+    }
+    let effectiveNode = this;
+    while (effectiveNode?.pseudoType()) {
+      if (effectiveNode !== this && effectiveNode.pseudoType() === "column") {
+        pseudoElementName = "::column" + pseudoElementName;
+      }
+      effectiveNode = effectiveNode.parentNode;
+    }
+    if (!effectiveNode) {
+      return;
+    }
+    const hidden = this.marker("hidden-marker");
+    const object = await effectiveNode.resolveToObject("");
+    if (!object) {
+      return;
+    }
+    await object.callFunction(toggleClassAndInjectStyleRule, [{ value: pseudoElementName }, { value: !hidden }]);
+    object.release();
+    this.setMarker("hidden-marker", hidden ? null : true);
+    function toggleClassAndInjectStyleRule(pseudoElementName2, hidden2) {
+      const classNamePrefix = "__web-inspector-hide";
+      const classNameSuffix = "-shortcut__";
+      const styleTagId = "__web-inspector-hide-shortcut-style__";
+      const pseudoElementNameEscaped = pseudoElementName2 ? pseudoElementName2.replace(/[\(\)\:]/g, "_") : "";
+      const className = classNamePrefix + pseudoElementNameEscaped + classNameSuffix;
+      this.classList.toggle(className, hidden2);
+      let localRoot = this;
+      while (localRoot.parentNode) {
+        localRoot = localRoot.parentNode;
+      }
+      if (localRoot.nodeType === Node.DOCUMENT_NODE) {
+        localRoot = document.head;
+      }
+      let style = localRoot.querySelector("style#" + styleTagId);
+      if (!style) {
+        const selectors = [];
+        selectors.push(".__web-inspector-hide-shortcut__");
+        selectors.push(".__web-inspector-hide-shortcut__ *");
+        const selector = selectors.join(", ");
+        const ruleBody = "    visibility: hidden !important;";
+        const rule = "\n" + selector + "\n{\n" + ruleBody + "\n}\n";
+        style = document.createElement("style");
+        style.id = styleTagId;
+        style.textContent = rule;
+        localRoot.appendChild(style);
+      }
+      if (pseudoElementName2 && !style.classList.contains(className)) {
+        style.classList.add(className);
+        style.textContent = `.${className}${pseudoElementName2}, ${style.textContent}`;
+      }
+    }
+  }
+  isToggledToHidden() {
+    return Boolean(this.marker("hidden-marker"));
+  }
   isXMLNode() {
     return Boolean(this.#xmlVersion);
   }
@@ -24292,14 +24495,14 @@ var DOMNode = class _DOMNode extends Common18.ObjectWrapper.ObjectWrapper {
     const id = this.getAttribute("id");
     const classes = this.getAttribute("class");
     if (lowerCaseName === "input" && type && !id && !classes) {
-      return lowerCaseName + '[type="' + CSS.escape(type) + '"]';
+      return lowerCaseName + '[type="' + cssEscape(type) + '"]';
     }
     if (id) {
-      return lowerCaseName + "#" + CSS.escape(id);
+      return lowerCaseName + "#" + cssEscape(id);
     }
     if (classes) {
       const classList = classes.trim().split(/\s+/g);
-      return (lowerCaseName === "div" ? "" : lowerCaseName) + "." + classList.map((cls) => CSS.escape(cls)).join(".");
+      return (lowerCaseName === "div" ? "" : lowerCaseName) + "." + classList.map((cls) => cssEscape(cls)).join(".");
     }
     if (this.pseudoIdentifier()) {
       return `${lowerCaseName}(${this.pseudoIdentifier()})`;
@@ -25215,6 +25418,8 @@ var DOMNodeSnapshot = class extends DOMNode {
   }
   moveTo(_targetNode, _anchorNode, _callback) {
   }
+  duplicate() {
+  }
   canInspectNode() {
     return false;
   }
@@ -25244,6 +25449,8 @@ var DOMDocumentSnapshot = class extends DOMDocument {
   copyTo(_targetNode, _anchorNode, _callback) {
   }
   moveTo(_targetNode, _anchorNode, _callback) {
+  }
+  duplicate() {
   }
   canInspectNode() {
     return false;
@@ -28109,11 +28316,11 @@ var RuntimeModel = class extends SDKModel {
     this.agent = target.runtimeAgent();
     this.target().registerRuntimeDispatcher(new RuntimeDispatcher(this));
     void this.agent.invoke_enable();
-    const settings = this.target().targetManager().context.get(Common24.Settings.Settings);
-    if (settings.moduleSetting("custom-formatters").get()) {
+    const customFormattersSetting = this.target().targetManager().context.get(Common24.Settings.Settings).resolve(customFormattersSettingDescriptor);
+    if (customFormattersSetting.get()) {
       void this.agent.invoke_setCustomObjectFormatterEnabled({ enabled: true });
     }
-    settings.moduleSetting("custom-formatters").addChangeListener(this.customFormattersStateChanged.bind(this));
+    customFormattersSetting.addChangeListener(this.customFormattersStateChanged.bind(this));
   }
   static isSideEffectFailure(response) {
     const exceptionDetails = "exceptionDetails" in response && response.exceptionDetails;
@@ -28783,7 +28990,7 @@ var NetworkManager = class _NetworkManager extends SDKModel {
     target.registerFetchDispatcher(this.fetchDispatcher);
     const settings = this.target().targetManager().settings;
     this.activeNetworkThrottlingKey = activeNetworkThrottlingKeySetting(settings);
-    if (settings.moduleSetting("cache-disabled").get()) {
+    if (settings.resolve(cacheDisabledSettingDescriptor).get()) {
       void this.#networkAgent.invoke_setCacheDisabled({ cacheDisabled: true });
     }
     void this.#networkAgent.invoke_enable({
@@ -28802,7 +29009,7 @@ var NetworkManager = class _NetworkManager extends SDKModel {
       this.bypassServiceWorkerChanged();
     }
     this.#bypassServiceWorkerSetting.addChangeListener(this.bypassServiceWorkerChanged, this);
-    settings.moduleSetting("cache-disabled").addChangeListener(this.cacheDisabledSettingChanged, this);
+    settings.resolve(cacheDisabledSettingDescriptor).addChangeListener(this.cacheDisabledSettingChanged, this);
   }
   static forRequest(request) {
     return requestToManagerMap.get(request) || null;
@@ -29097,7 +29304,7 @@ var NetworkManager = class _NetworkManager extends SDKModel {
   }
   dispose() {
     const settings = this.target().targetManager().settings;
-    settings.moduleSetting("cache-disabled").removeChangeListener(this.cacheDisabledSettingChanged, this);
+    settings.resolve(cacheDisabledSettingDescriptor).removeChangeListener(this.cacheDisabledSettingChanged, this);
     settings.moduleSetting("network-log.preserve-log").removeChangeListener(this.preserveLogChanged, this);
   }
   bypassServiceWorkerChanged() {
@@ -30172,7 +30379,7 @@ var RequestConditions = class extends Common25.ObjectWrapper.ObjectWrapper {
   constructor(settings) {
     super();
     this.#setting = settings.createSetting("network-blocked-patterns", []);
-    this.#conditionsEnabledSetting = settings.moduleSetting("request-blocking-enabled");
+    this.#conditionsEnabledSetting = settings.resolve(requestBlockingEnabledSettingDescriptor);
     for (const condition of this.#setting.get()) {
       try {
         this.#conditions.push(RequestCondition.createFromSetting(condition, settings));
@@ -30539,8 +30746,8 @@ var MultitargetNetworkManager = class _MultitargetNetworkManager extends Common2
   }
   async updateInterceptionPatterns() {
     const settings = this.#targetManager.settings;
-    if (!settings.moduleSetting("cache-disabled").get()) {
-      settings.moduleSetting("cache-disabled").set(true);
+    if (!settings.resolve(cacheDisabledSettingDescriptor).get()) {
+      settings.resolve(cacheDisabledSettingDescriptor).set(true);
     }
     this.#updatingInterceptionPatternsPromise = null;
     const promises = [];
@@ -36666,7 +36873,7 @@ var EmulationModel = class extends SDKModel {
       await this.setPressureStateOverride(settingValue);
     });
     const mediaTypeSetting = settings.resolve(emulatedCSSMediaSettingDescriptor);
-    const mediaFeatureColorGamutSetting = settings.moduleSetting("emulated-css-media-feature-color-gamut");
+    const mediaFeatureColorGamutSetting = settings.resolve(emulatedCSSMediaFeatureColorGamutSettingDescriptor);
     const mediaFeaturePrefersColorSchemeSetting = settings.resolve(emulatedCSSMediaFeaturePrefersColorSchemeSettingDescriptor);
     const mediaFeatureForcedColorsSetting = settings.resolve(emulatedCSSMediaFeatureForcedColorsSettingDescriptor);
     const mediaFeaturePrefersContrastSetting = settings.resolve(emulatedCSSMediaFeaturePrefersContrastSettingDescriptor);
@@ -36716,7 +36923,7 @@ var EmulationModel = class extends SDKModel {
       void this.updateCssMedia();
     });
     void this.updateCssMedia();
-    const autoDarkModeSetting = settings.moduleSetting("emulate-auto-dark-mode");
+    const autoDarkModeSetting = settings.resolve(emulateAutoDarkModeSettingDescriptor);
     autoDarkModeSetting.addChangeListener(() => {
       const enabled = autoDarkModeSetting.get();
       mediaFeaturePrefersColorSchemeSetting.set(enabled ? "dark" : "");
@@ -36726,26 +36933,26 @@ var EmulationModel = class extends SDKModel {
       mediaFeaturePrefersColorSchemeSetting.set("dark");
       void this.emulateAutoDarkMode(true);
     }
-    const visionDeficiencySetting = settings.moduleSetting("emulated-vision-deficiency");
+    const visionDeficiencySetting = settings.resolve(emulatedVisionDeficiencySettingDescriptor);
     visionDeficiencySetting.addChangeListener(() => this.emulateVisionDeficiency(visionDeficiencySetting.get()));
     if (visionDeficiencySetting.get()) {
       void this.emulateVisionDeficiency(visionDeficiencySetting.get());
     }
-    const osTextScaleSetting = settings.moduleSetting("emulated-os-text-scale");
+    const osTextScaleSetting = settings.resolve(emulatedOSTextScaleSettingDescriptor);
     osTextScaleSetting.addChangeListener(() => {
       void this.emulateOSTextScale(parseFloat(osTextScaleSetting.get()) || void 0);
     });
     if (osTextScaleSetting.get()) {
       void this.emulateOSTextScale(parseFloat(osTextScaleSetting.get()) || void 0);
     }
-    const localFontsDisabledSetting = settings.moduleSetting("local-fonts-disabled");
+    const localFontsDisabledSetting = settings.resolve(localFontsDisabledSettingDescriptor);
     localFontsDisabledSetting.addChangeListener(() => this.setLocalFontsDisabled(localFontsDisabledSetting.get()));
     if (localFontsDisabledSetting.get()) {
       this.setLocalFontsDisabled(localFontsDisabledSetting.get());
     }
-    const avifFormatDisabledSetting = settings.moduleSetting("avif-format-disabled");
-    const jpegXlFormatDisabledSetting = settings.moduleSetting("jpeg-xl-format-disabled");
-    const webpFormatDisabledSetting = settings.moduleSetting("webp-format-disabled");
+    const avifFormatDisabledSetting = settings.resolve(avifFormatDisabledSettingDescriptor);
+    const jpegXlFormatDisabledSetting = settings.resolve(jpegXlFormatDisabledSettingDescriptor);
+    const webpFormatDisabledSetting = settings.resolve(webpFormatDisabledSettingDescriptor);
     const updateDisabledImageFormats = () => {
       const types = [];
       if (avifFormatDisabledSetting.get()) {
