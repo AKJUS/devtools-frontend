@@ -1107,36 +1107,36 @@ var MessageLevelSelector = class {
     this.items.insert(this.items.length, debugLevel);
     this.itemMap.set(debugLevel.value, debugLevel);
   }
-  #renderItem(item2, target) {
-    const checked = Boolean(item2.value & this.bitFieldValue);
+  #renderItem(item3, target) {
+    const checked = Boolean(item3.value & this.bitFieldValue);
     render2(html2`
       <div class="media-messages-level-dropdown-element">
         <div class="media-messages-level-dropdown-checkbox">
-          ${!item2.overwrite && checked ? html2`<div>✓</div>` : nothing}
+          ${!item3.overwrite && checked ? html2`<div>✓</div>` : nothing}
         </div>
-        <span class="media-messages-level-dropdown-text">${item2.title}</span>
+        <span class="media-messages-level-dropdown-text">${item3.title}</span>
       </div>
     `, target, { host: this });
   }
   updateCheckMarks() {
     this.hiddenLevels = [];
-    for (const [key, item2] of this.itemMap) {
-      if (!item2.overwrite) {
+    for (const [key, item3] of this.itemMap) {
+      if (!item3.overwrite) {
         if (!(key & this.bitFieldValue)) {
-          this.hiddenLevels.push(item2.stringValue);
+          this.hiddenLevels.push(item3.stringValue);
         }
-        const target = this.elementsForItems.get(item2);
+        const target = this.elementsForItems.get(item3);
         if (target) {
-          this.#renderItem(item2, target);
+          this.#renderItem(item3, target);
         }
       }
     }
   }
-  titleFor(item2) {
-    if (item2.overwrite) {
-      this.bitFieldValue = item2.value;
+  titleFor(item3) {
+    if (item3.overwrite) {
+      this.bitFieldValue = item3.value;
     } else {
-      this.bitFieldValue ^= item2.value;
+      this.bitFieldValue ^= item3.value;
     }
     if (this.bitFieldValue === 7) {
       return this.#defaultTitle;
@@ -1150,12 +1150,12 @@ var MessageLevelSelector = class {
     }
     return this.customTitle;
   }
-  createElementForItem(item2) {
+  createElementForItem(item3) {
     const element = document.createElement("div");
     const shadowRoot = UI3.UIUtils.createShadowRootWithCoreStyles(element, { cssFile: playerMessagesView_css_default });
-    this.elementsForItems.set(item2, shadowRoot);
-    this.itemMap.set(item2.value, item2);
-    this.#renderItem(item2, shadowRoot);
+    this.elementsForItems.set(item3, shadowRoot);
+    this.itemMap.set(item3.value, item3);
+    this.#renderItem(item3, shadowRoot);
     this.updateCheckMarks();
     this.view.regenerateMessageDisplayCss(this.hiddenLevels);
     return element;
@@ -1225,25 +1225,25 @@ var PlayerMessagesView = class extends UI3.Widget.VBox {
   }
   #renderMessages() {
     render2(html2`
-      ${this.#items.map((item2) => {
-      const isUnselected = this.#isLevelHidden(item2.level);
+      ${this.#items.map((item3) => {
+      const isUnselected = this.#isLevelHidden(item3.level);
       let isFiltered = false;
       if (this.#filterString !== "") {
-        if (item2.type === "message") {
-          isFiltered = !item2.message.message.includes(this.#filterString);
+        if (item3.type === "message") {
+          isFiltered = !item3.message.message.includes(this.#filterString);
         } else {
-          isFiltered = !this.#errorMatchesFilter(item2.error, this.#filterString);
+          isFiltered = !this.#errorMatchesFilter(item3.error, this.#filterString);
         }
       }
       const classes = {
         "media-messages-message-container": true,
-        [`media-message-${item2.level}`]: true,
+        [`media-message-${item3.level}`]: true,
         "media-messages-message-unselected": isUnselected,
         "media-messages-message-filtered": isFiltered
       };
       return html2`
           <div class=${classMap(classes)}>
-            ${item2.type === "message" ? item2.message.message : this.renderError(item2.error)}
+            ${item3.type === "message" ? item3.message.message : this.renderError(item3.error)}
           </div>
         `;
     })}
@@ -1553,6 +1553,7 @@ var PropertyRenderer = class extends UI4.Widget.VBox {
   constructor(title) {
     super();
     this.contentElement.classList.add("media-property-renderer");
+    this.contentElement.setAttribute("jslog", `${VisualLogging4.item("property-row")}`);
     const titleElement = this.contentElement.createChild("span", "media-property-renderer-title");
     this.contents = this.contentElement.createChild("div", "media-property-renderer-contents");
     UI4.UIUtils.createTextChild(titleElement, title);
@@ -1651,6 +1652,7 @@ var AttributesView = class extends UI4.Widget.VBox {
     super();
     this.contentHash = 0;
     this.contentElement.classList.add("media-attributes-view");
+    this.contentElement.setAttribute("jslog", `${VisualLogging4.section("media-attributes")}`);
     for (const element of elements) {
       element.show(this.contentElement);
       const content = this.contentElement.textContent;
@@ -1773,6 +1775,128 @@ var NoTracksPlaceholderMenu = class extends UI4.Widget.VBox {
     this.wrapping.addNewTab(trackNumber, element);
   }
 };
+var Property = class {
+  type;
+  dataInternal = null;
+  constructor(type) {
+    this.type = type;
+  }
+  parse(val) {
+    try {
+      return JSON.parse(val);
+    } catch {
+      return val;
+    }
+  }
+  get data() {
+    return this.dataInternal;
+  }
+  set data(val) {
+    if (!val) {
+      this.dataInternal = null;
+      return;
+    }
+    this.dataInternal = String(this.parse(val));
+  }
+};
+var TotalBytesProperty = class _TotalBytesProperty extends Property {
+  constructor() {
+    super(
+      "kTotalBytes"
+      /* PlayerPropertyKeys.TOTAL_BYTES */
+    );
+  }
+  set data(val) {
+    this.dataInternal = val === null ? null : _TotalBytesProperty.formatFileSize(this.parse(val));
+  }
+  static formatFileSize(bytes) {
+    if (bytes === "") {
+      return "0 bytes";
+    }
+    const actualBytes = Number(bytes);
+    if (actualBytes < 1e3) {
+      return `${bytes} bytes`;
+    }
+    const power = Math.floor(Math.log10(actualBytes) / 3);
+    const suffix = ["bytes", "kB", "MB", "GB", "TB"][power];
+    const bytesDecimal = (actualBytes / Math.pow(1e3, power)).toFixed(2);
+    return `${bytesDecimal} ${suffix}`;
+  }
+};
+var BitRateProperty = class _BitRateProperty extends Property {
+  constructor() {
+    super(
+      "kBitrate"
+      /* PlayerPropertyKeys.BITRATE */
+    );
+  }
+  set data(val) {
+    this.dataInternal = val === null ? null : _BitRateProperty.formatKbps(this.parse(val));
+  }
+  static formatKbps(bitsPerSecond) {
+    if (bitsPerSecond === "") {
+      return "0 kbps";
+    }
+    const kbps = Math.floor(Number(bitsPerSecond) / 1e3);
+    return `${kbps} kbps`;
+  }
+};
+var MaxDurationProperty = class _MaxDurationProperty extends Property {
+  constructor() {
+    super(
+      "kMaxDuration"
+      /* PlayerPropertyKeys.MAX_DURATION */
+    );
+  }
+  set data(val) {
+    this.dataInternal = val === null ? null : _MaxDurationProperty.formatTime(this.parse(val));
+  }
+  static formatTime(seconds) {
+    if (seconds === "") {
+      return "0:00";
+    }
+    const date = /* @__PURE__ */ new Date(0);
+    date.setSeconds(Number(seconds));
+    return date.toISOString().substring(11, 19);
+  }
+};
+var HlsBufferedRangesProperty = class _HlsBufferedRangesProperty extends Property {
+  constructor() {
+    super(
+      "kHlsBufferedRanges"
+      /* PlayerPropertyKeys.HLS_BUFFERED_RANGES */
+    );
+  }
+  set data(val) {
+    this.dataInternal = val === null ? null : _HlsBufferedRangesProperty.formatBufferedRanges(this.parse(val));
+  }
+  static formatBufferedRanges(ranges) {
+    return ranges.map((range) => {
+      return "[" + range[0] + " \u2192 " + range[1] + "]";
+    }).join(", ");
+  }
+};
+var TrackProperty = class extends Property {
+  #entries = null;
+  // eslint-disable-next-line @typescript-eslint/no-useless-constructor
+  constructor(type) {
+    super(type);
+  }
+  get entries() {
+    return this.#entries;
+  }
+  get data() {
+    throw new Error("Cannot access raw data");
+  }
+  set data(val) {
+    if (val === null) {
+      this.#entries = null;
+      return;
+    }
+    const parsed = this.parse(val);
+    this.#entries = Array.isArray(parsed) ? parsed : [];
+  }
+};
 var PlayerPropertiesView = class extends UI4.Widget.VBox {
   mediaElements;
   videoDecoderElements;
@@ -1784,6 +1908,181 @@ var PlayerPropertiesView = class extends UI4.Widget.VBox {
   videoDecoderTabs;
   audioDecoderTabs;
   textTracksTabs;
+  #properties = {
+    /* Media properties */
+    [
+      "kResolution"
+      /* PlayerPropertyKeys.RESOLUTION */
+    ]: new Property(
+      "kResolution"
+      /* PlayerPropertyKeys.RESOLUTION */
+    ),
+    [
+      "kTotalBytes"
+      /* PlayerPropertyKeys.TOTAL_BYTES */
+    ]: new TotalBytesProperty(),
+    [
+      "kBitrate"
+      /* PlayerPropertyKeys.BITRATE */
+    ]: new BitRateProperty(),
+    [
+      "kMaxDuration"
+      /* PlayerPropertyKeys.MAX_DURATION */
+    ]: new MaxDurationProperty(),
+    [
+      "kStartTime"
+      /* PlayerPropertyKeys.START_TIME */
+    ]: new Property(
+      "kStartTime"
+      /* PlayerPropertyKeys.START_TIME */
+    ),
+    [
+      "kIsStreaming"
+      /* PlayerPropertyKeys.IS_STREAMING */
+    ]: new Property(
+      "kIsStreaming"
+      /* PlayerPropertyKeys.IS_STREAMING */
+    ),
+    [
+      "kFrameUrl"
+      /* PlayerPropertyKeys.FRAME_URL */
+    ]: new Property(
+      "kFrameUrl"
+      /* PlayerPropertyKeys.FRAME_URL */
+    ),
+    [
+      "kFrameTitle"
+      /* PlayerPropertyKeys.FRAME_TITLE */
+    ]: new Property(
+      "kFrameTitle"
+      /* PlayerPropertyKeys.FRAME_TITLE */
+    ),
+    [
+      "kIsSingleOrigin"
+      /* PlayerPropertyKeys.IS_SINGLE_ORIGIN */
+    ]: new Property(
+      "kIsSingleOrigin"
+      /* PlayerPropertyKeys.IS_SINGLE_ORIGIN */
+    ),
+    [
+      "kIsRangeHeaderSupported"
+      /* PlayerPropertyKeys.IS_RANGE_HEADER_SUPPORTED */
+    ]: new Property(
+      "kIsRangeHeaderSupported"
+      /* PlayerPropertyKeys.IS_RANGE_HEADER_SUPPORTED */
+    ),
+    [
+      "kFramerate"
+      /* PlayerPropertyKeys.FRAMERATE */
+    ]: new Property(
+      "kFramerate"
+      /* PlayerPropertyKeys.FRAMERATE */
+    ),
+    [
+      "kVideoPlaybackRoughness"
+      /* PlayerPropertyKeys.VIDEO_PLAYBACK_ROUGHNESS */
+    ]: new Property(
+      "kVideoPlaybackRoughness"
+      /* PlayerPropertyKeys.VIDEO_PLAYBACK_ROUGHNESS */
+    ),
+    [
+      "kVideoPlaybackFreezing"
+      /* PlayerPropertyKeys.VIDEO_PLAYBACK_FREEZING */
+    ]: new Property(
+      "kVideoPlaybackFreezing"
+      /* PlayerPropertyKeys.VIDEO_PLAYBACK_FREEZING */
+    ),
+    [
+      "kRendererName"
+      /* PlayerPropertyKeys.RENDERER_NAME */
+    ]: new Property(
+      "kRendererName"
+      /* PlayerPropertyKeys.RENDERER_NAME */
+    ),
+    [
+      "kHlsBufferedRanges"
+      /* PlayerPropertyKeys.HLS_BUFFERED_RANGES */
+    ]: new HlsBufferedRangesProperty(),
+    /* Video Decoder Properties */
+    [
+      "kVideoDecoderName"
+      /* PlayerPropertyKeys.VIDEO_DECODER_NAME */
+    ]: new Property(
+      "kVideoDecoderName"
+      /* PlayerPropertyKeys.VIDEO_DECODER_NAME */
+    ),
+    [
+      "kIsPlatformVideoDecoder"
+      /* PlayerPropertyKeys.IS_PLATFORM_VIDEO_DECODER */
+    ]: new Property(
+      "kIsPlatformVideoDecoder"
+      /* PlayerPropertyKeys.IS_PLATFORM_VIDEO_DECODER */
+    ),
+    [
+      "kVideoEncoderName"
+      /* PlayerPropertyKeys.VIDEO_ENCODER_NAME */
+    ]: new Property(
+      "kVideoEncoderName"
+      /* PlayerPropertyKeys.VIDEO_ENCODER_NAME */
+    ),
+    [
+      "kIsPlatformVideoEncoder"
+      /* PlayerPropertyKeys.IS_PLATFORM_VIDEO_ENCODER */
+    ]: new Property(
+      "kIsPlatformVideoEncoder"
+      /* PlayerPropertyKeys.IS_PLATFORM_VIDEO_ENCODER */
+    ),
+    [
+      "kIsVideoDecryptingDemuxerStream"
+      /* PlayerPropertyKeys.IS_VIDEO_DECRYPTION_DEMUXER_STREAM */
+    ]: new Property(
+      "kIsVideoDecryptingDemuxerStream"
+      /* PlayerPropertyKeys.IS_VIDEO_DECRYPTION_DEMUXER_STREAM */
+    ),
+    [
+      "kVideoTracks"
+      /* PlayerPropertyKeys.VIDEO_TRACKS */
+    ]: new TrackProperty(
+      "kVideoTracks"
+      /* PlayerPropertyKeys.VIDEO_TRACKS */
+    ),
+    /* Audio Decoder Properties */
+    [
+      "kAudioDecoderName"
+      /* PlayerPropertyKeys.AUDIO_DECODER_NAME */
+    ]: new Property(
+      "kAudioDecoderName"
+      /* PlayerPropertyKeys.AUDIO_DECODER_NAME */
+    ),
+    [
+      "kIsPlatformAudioDecoder"
+      /* PlayerPropertyKeys.IS_PLATFORM_AUDIO_DECODER */
+    ]: new Property(
+      "kIsPlatformAudioDecoder"
+      /* PlayerPropertyKeys.IS_PLATFORM_AUDIO_DECODER */
+    ),
+    [
+      "kIsAudioDecryptingDemuxerStream"
+      /* PlayerPropertyKeys.IS_AUDIO_DECRYPTING_DEMUXER_STREAM */
+    ]: new Property(
+      "kIsAudioDecryptingDemuxerStream"
+      /* PlayerPropertyKeys.IS_AUDIO_DECRYPTING_DEMUXER_STREAM */
+    ),
+    [
+      "kAudioTracks"
+      /* PlayerPropertyKeys.AUDIO_TRACKS */
+    ]: new TrackProperty(
+      "kAudioTracks"
+      /* PlayerPropertyKeys.AUDIO_TRACKS */
+    ),
+    [
+      "kTextTracks"
+      /* PlayerPropertyKeys.TEXT_TRACKS */
+    ]: new TrackProperty(
+      "kTextTracks"
+      /* PlayerPropertyKeys.TEXT_TRACKS */
+    )
+  };
   constructor() {
     super({ jslog: `${VisualLogging4.pane("properties")}` });
     this.registerRequiredCSS(playerPropertiesView_css_default);
@@ -1831,51 +2130,22 @@ var PlayerPropertiesView = class extends UI4.Widget.VBox {
       throw new Error(`Player property "${property.name}" not supported.`);
     }
     renderer.updateData(property.value);
-  }
-  formatKbps(bitsPerSecond) {
-    if (bitsPerSecond === "") {
-      return "0 kbps";
+    if (!(property.name in this.#properties)) {
+      throw new Error(`Player property "${property.name}" not supported.`);
     }
-    const kbps = Math.floor(Number(bitsPerSecond) / 1e3);
-    return `${kbps} kbps`;
-  }
-  formatTime(seconds) {
-    if (seconds === "") {
-      return "0:00";
-    }
-    const date = /* @__PURE__ */ new Date();
-    date.setSeconds(Number(seconds));
-    return date.toISOString().substr(11, 8);
-  }
-  formatFileSize(bytes) {
-    if (bytes === "") {
-      return "0 bytes";
-    }
-    const actualBytes = Number(bytes);
-    if (actualBytes < 1e3) {
-      return `${bytes} bytes`;
-    }
-    const power = Math.floor(Math.log10(actualBytes) / 3);
-    const suffix = ["bytes", "kB", "MB", "GB", "TB"][power];
-    const bytesDecimal = (actualBytes / Math.pow(1e3, power)).toFixed(2);
-    return `${bytesDecimal} ${suffix}`;
-  }
-  formatBufferedRanges(ranges) {
-    return ranges.map((range) => {
-      return "[" + range[0] + " \u2192 " + range[1] + "]";
-    }).join(", ");
+    this.#properties[property.name].data = property.value;
   }
   populateAttributesAndElements() {
     const resolution = new PropertyRenderer(i18nString4(UIStrings4.resolution));
     this.mediaElements.push(resolution);
     this.attributeMap.set("kResolution", resolution);
-    const fileSize = new FormattedPropertyRenderer(i18nString4(UIStrings4.fileSize), this.formatFileSize);
+    const fileSize = new FormattedPropertyRenderer(i18nString4(UIStrings4.fileSize), TotalBytesProperty.formatFileSize);
     this.mediaElements.push(fileSize);
     this.attributeMap.set("kTotalBytes", fileSize);
-    const bitrate = new FormattedPropertyRenderer(i18nString4(UIStrings4.bitrate), this.formatKbps);
+    const bitrate = new FormattedPropertyRenderer(i18nString4(UIStrings4.bitrate), BitRateProperty.formatKbps);
     this.mediaElements.push(bitrate);
     this.attributeMap.set("kBitrate", bitrate);
-    const duration = new FormattedPropertyRenderer(i18nString4(UIStrings4.duration), this.formatTime);
+    const duration = new FormattedPropertyRenderer(i18nString4(UIStrings4.duration), MaxDurationProperty.formatTime);
     this.mediaElements.push(duration);
     this.attributeMap.set("kMaxDuration", duration);
     const startTime = new PropertyRenderer(i18nString4(UIStrings4.startTime));
@@ -1908,7 +2178,7 @@ var PlayerPropertiesView = class extends UI4.Widget.VBox {
     const rendererName = new PropertyRenderer(i18nString4(UIStrings4.rendererName));
     this.mediaElements.push(rendererName);
     this.attributeMap.set("kRendererName", rendererName);
-    const hlsBufferedRanges = new FormattedPropertyRenderer(i18nString4(UIStrings4.hlsBufferedRanges), this.formatBufferedRanges);
+    const hlsBufferedRanges = new FormattedPropertyRenderer(i18nString4(UIStrings4.hlsBufferedRanges), HlsBufferedRangesProperty.formatBufferedRanges);
     this.mediaElements.push(hlsBufferedRanges);
     this.attributeMap.set("kHlsBufferedRanges", hlsBufferedRanges);
     const decoderName = new DefaultPropertyRenderer(i18nString4(UIStrings4.decoderName), i18nString4(UIStrings4.noDecoder));

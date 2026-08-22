@@ -257,4 +257,27 @@ export const enableRemoteFileLoadingSettingDescriptor = {
     defaultValue: false,
     storageType: "Synced" /* Common.Settings.SettingStorageType.SYNCED */,
 };
+export const consoleUserActivationEvalSettingDescriptor = {
+    name: 'console-user-activation-eval',
+    type: "boolean" /* Common.Settings.SettingType.BOOLEAN */,
+    defaultValue: true,
+    storageType: "Synced" /* Common.Settings.SettingStorageType.SYNCED */,
+};
+export const monitoringXHREnabledSettingDescriptor = {
+    name: 'monitoring-xhr-enabled',
+    type: "boolean" /* Common.Settings.SettingType.BOOLEAN */,
+    defaultValue: false,
+    storageType: "Synced" /* Common.Settings.SettingStorageType.SYNCED */,
+};
+export const disablePausedStateOverlaySettingDescriptor = {
+    name: 'disable-paused-state-overlay',
+    type: "boolean" /* Common.Settings.SettingType.BOOLEAN */,
+    defaultValue: false,
+    storageType: "Synced" /* Common.Settings.SettingStorageType.SYNCED */,
+};
+export const preserveNetworkLogSettingDescriptor = {
+    name: 'network-log.preserve-log',
+    type: "boolean" /* Common.Settings.SettingType.BOOLEAN */,
+    defaultValue: false,
+};
 //# sourceMappingURL=SDKSettings.js.map

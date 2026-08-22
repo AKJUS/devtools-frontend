@@ -9,7 +9,6 @@ export declare const enum PlayerPropertyKeys {
     BITRATE = "kBitrate",
     MAX_DURATION = "kMaxDuration",
     START_TIME = "kStartTime",
-    IS_CDM_ATTACHED = "kIsCdmAttached",
     IS_STREAMING = "kIsStreaming",
     FRAME_URL = "kFrameUrl",
     FRAME_TITLE = "kFrameTitle",
@@ -88,6 +87,7 @@ declare class NoTracksPlaceholderMenu extends UI.Widget.VBox {
     addNewTab(trackNumber: number, element: AttributesView): void;
 }
 export declare class PlayerPropertiesView extends UI.Widget.VBox {
+    #private;
     private readonly mediaElements;
     private readonly videoDecoderElements;
     private readonly audioDecoderElements;
@@ -102,10 +102,6 @@ export declare class PlayerPropertiesView extends UI.Widget.VBox {
     private lazyCreateTrackTabs;
     getTabs(type: string): GenericTrackMenu | NoTracksPlaceholderMenu;
     onProperty(property: Protocol.Media.PlayerProperty): void;
-    formatKbps(bitsPerSecond: string | number): string;
-    formatTime(seconds: string | number): string;
-    formatFileSize(bytes: string): string;
-    formatBufferedRanges(ranges: string[]): string;
     populateAttributesAndElements(): void;
 }
 export {};
