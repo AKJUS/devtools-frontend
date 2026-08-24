@@ -9728,14 +9728,11 @@
   "panels/media/PlayerMessagesView.ts | warning": {
     "message": "Warning"
   },
-  "panels/media/PlayerPropertiesView.ts | audio": {
-    "message": "Audio"
+  "panels/media/PlayerPropertiesView.ts | audioDecoderProperties": {
+    "message": "Audio Decoder Properties"
   },
   "panels/media/PlayerPropertiesView.ts | bitrate": {
     "message": "Bitrate"
-  },
-  "panels/media/PlayerPropertiesView.ts | decoder": {
-    "message": "Decoder"
   },
   "panels/media/PlayerPropertiesView.ts | decoderName": {
     "message": "Decoder name"
@@ -9779,9 +9776,6 @@
   "panels/media/PlayerPropertiesView.ts | playbackFrameUrl": {
     "message": "Playback frame URL"
   },
-  "panels/media/PlayerPropertiesView.ts | properties": {
-    "message": "Properties"
-  },
   "panels/media/PlayerPropertiesView.ts | rangeHeaderSupport": {
     "message": "Range header support"
   },
@@ -9806,8 +9800,11 @@
   "panels/media/PlayerPropertiesView.ts | track": {
     "message": "Track"
   },
-  "panels/media/PlayerPropertiesView.ts | video": {
-    "message": "Video"
+  "panels/media/PlayerPropertiesView.ts | trackNumber": {
+    "message": "{PH1} #{PH2}"
+  },
+  "panels/media/PlayerPropertiesView.ts | videoDecoderProperties": {
+    "message": "Video Decoder Properties"
   },
   "panels/media/PlayerPropertiesView.ts | videoFreezingScore": {
     "message": "Video freezing score"
