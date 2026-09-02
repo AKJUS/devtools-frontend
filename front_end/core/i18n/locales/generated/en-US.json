@@ -17730,7 +17730,7 @@
     "message": "Add new"
   },
   "ui/legacy/components/data_grid/DataGrid.ts | checked": {
-    "message": "checked"
+    "message": "Checked"
   },
   "ui/legacy/components/data_grid/DataGrid.ts | collapsed": {
     "message": "collapsed"
@@ -17742,10 +17742,10 @@
     "message": "Edit \"{PH1}\""
   },
   "ui/legacy/components/data_grid/DataGrid.ts | emptyRowCreated": {
-    "message": "An empty table row has been created. You may double click or use context menu to edit."
+    "message": "An empty table row was added. Double-click or use the context menu to edit."
   },
   "ui/legacy/components/data_grid/DataGrid.ts | enterToSort": {
-    "message": "Column sort state: {PH1}. Press enter to apply sorting filter"
+    "message": "Column sort state: {PH1}. Press enter to sort."
   },
   "ui/legacy/components/data_grid/DataGrid.ts | expanded": {
     "message": "expanded"
@@ -17754,7 +17754,7 @@
     "message": "Header options"
   },
   "ui/legacy/components/data_grid/DataGrid.ts | levelS": {
-    "message": "level {PH1}"
+    "message": "Level {PH1}"
   },
   "ui/legacy/components/data_grid/DataGrid.ts | refresh": {
     "message": "Refresh"
@@ -17763,19 +17763,19 @@
     "message": "Reset columns"
   },
   "ui/legacy/components/data_grid/DataGrid.ts | rowsS": {
-    "message": "Rows: {PH1}"
+    "message": "rows: {PH1}"
   },
   "ui/legacy/components/data_grid/DataGrid.ts | sortableColumn": {
-    "message": "Sortable column. Press enter to apply sorting filter"
+    "message": "Sortable column. Press enter to sort."
   },
   "ui/legacy/components/data_grid/DataGrid.ts | sortByString": {
     "message": "Sort by"
   },
   "ui/legacy/components/data_grid/DataGrid.ts | sRowS": {
-    "message": "{PH1} Row {PH2}"
+    "message": "{PH1} row {PH2}"
   },
   "ui/legacy/components/data_grid/DataGrid.ts | sSUseTheUpAndDownArrowKeysTo": {
-    "message": "{PH1} {PH2}, use the up and down arrow keys to navigate and interact with the rows of the table; Use browse mode to read cell by cell."
+    "message": "{PH1} {PH2}, use the up and down arrow keys to navigate and interact with the rows of the table; use browse mode to read cell by cell."
   },
   "ui/legacy/components/data_grid/ShowMoreDataGridNode.ts | showAllD": {
     "message": "Show all {PH1}"
