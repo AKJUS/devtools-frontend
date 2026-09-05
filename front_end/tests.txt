@@ -146,6 +146,7 @@ core/sdk/DOMStorageModel.test.js
 core/sdk/EmulationModel.test.js
 core/sdk/EnhancedTracesParser.test.js
 core/sdk/NetworkRequest.test.js
+core/sdk/NetworkRequestAccess.test.js
 core/sdk/OverlayColorGenerator.test.js
 core/sdk/OverlayModel.test.js
 core/sdk/PreloadingModel.test.js
@@ -156,6 +157,7 @@ core/sdk/ResourceTreeModel.test.js
 core/sdk/ScopeTreeCache.test.js
 core/sdk/ScreenCaptureModel.test.js
 core/sdk/Script.test.js
+core/sdk/SecurityOrigin.test.js
 core/sdk/ServerTiming.test.js
 core/sdk/ServiceWorkerCacheModel.test.js
 core/sdk/ServiceWorkerManager.test.js

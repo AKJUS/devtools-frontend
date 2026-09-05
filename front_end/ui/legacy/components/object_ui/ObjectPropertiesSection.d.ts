@@ -110,8 +110,8 @@ export declare class ArrayGroupTreeNode extends ObjectTreeNodeBase {
 export declare class ObjectTreeNode extends ObjectTreeNodeBase {
     #private;
     readonly property: SDK.RemoteObject.RemoteObjectProperty;
-    readonly nonSyntheticParent?: SDK.RemoteObject.RemoteObject | undefined;
-    constructor(property: SDK.RemoteObject.RemoteObjectProperty, parent: ObjectTreeNodeBase | undefined, options: ObjectTreeOptions, nonSyntheticParent?: SDK.RemoteObject.RemoteObject | undefined);
+    readonly nonSyntheticParent?: SDK.RemoteObject.RemoteObject;
+    constructor(property: SDK.RemoteObject.RemoteObjectProperty, parent: ObjectTreeNodeBase | undefined, options: ObjectTreeOptions, nonSyntheticParent?: SDK.RemoteObject.RemoteObject);
     get object(): SDK.RemoteObject.RemoteObject | undefined;
     get isFiltered(): boolean;
     get canExpandRecursively(): boolean;
@@ -157,7 +157,7 @@ export declare const enum ObjectPropertiesMode {
     OWN_AND_INTERNAL_AND_INHERITED = 1
 }
 export declare function populateObjectTreeContextMenu(contextMenu: UI.ContextMenu.ContextMenu, object: ObjectTree, expandRecursively: () => void, collapseChildren: () => void, sortPropertiesAlphabetically: () => void, onShowAllToggled: () => void): void;
-interface ObjectTreeViewInput {
+export interface ObjectTreeViewInput {
     renderAsSubtree: boolean;
     objectTree?: ObjectTree;
     linkifier?: Components.Linkifier.Linkifier;
@@ -165,7 +165,7 @@ interface ObjectTreeViewInput {
     skipProto: boolean;
     onExpand: (expanded: boolean) => void;
 }
-type ObjectTreeView = (input: ObjectTreeViewInput, output: object, target: HTMLElement) => void;
+export type ObjectTreeView = (input: ObjectTreeViewInput, output: object, target: HTMLElement) => void;
 export declare const OBJECT_TREE_DEFAULT_VIEW: ObjectTreeView;
 export declare class ObjectTreeWidget extends UI.Widget.Widget {
     #private;
@@ -200,7 +200,7 @@ export declare const OBJECT_PROPERTIES_SECTION_DEFAULT_VIEW: ObjectPropertiesSec
 export declare function renderPropertyName(name: string | null, isPrivate?: boolean, title?: string): TemplateResult;
 export declare function formatObjectAsFunction(func: SDK.RemoteObject.RemoteObject, linkify: boolean, includePreview?: boolean): Promise<LitTemplate>;
 export declare function renderPropertyValue(value: SDK.RemoteObject.RemoteObject, wasThrown: boolean, showPreview: boolean, linkifier?: Components.Linkifier.Linkifier, isSyntheticProperty?: boolean, variableName?: string, includeNullOrUndefined?: boolean, useCustomPreview?: boolean, valueRef?: (element: Element | undefined) => void): LitTemplate;
-export declare function defaultObjectPresentation(objectOrTree: SDK.RemoteObject.RemoteObject | ObjectTree, linkifier?: Components.Linkifier.Linkifier, skipProto?: boolean, readOnly?: boolean): LitTemplate;
+export declare function defaultObjectPresentation(objectOrTree: SDK.RemoteObject.RemoteObject | ObjectTree, linkifier?: Components.Linkifier.Linkifier, skipProto?: boolean, readOnly?: boolean, extraClasses?: Record<string, boolean>): LitTemplate;
 /**
  * Number of initially visible children in an ObjectPropertyTreeElement.
  * Remaining children are shown as soon as requested via a show more properties button.
@@ -220,11 +220,11 @@ export interface ObjectPropertyViewInput {
     node: ObjectTreeNode;
     search?: UI.TreeOutline.TreeSearch<ObjectTreeNodeBase>;
 }
-interface ObjectPropertyViewOutput {
+export interface ObjectPropertyViewOutput {
     valueElement: Element | undefined;
     nameElement: Element | undefined;
 }
-type ObjectPropertyView = (input: ObjectPropertyViewInput, output: ObjectPropertyViewOutput, target: HTMLElement) => void;
+export type ObjectPropertyView = (input: ObjectPropertyViewInput, output: ObjectPropertyViewOutput, target: HTMLElement) => void;
 export declare const OBJECT_PROPERTY_DEFAULT_VIEW: ObjectPropertyView;
 export declare class ObjectPropertyWidget extends UI.Widget.Widget {
     #private;
@@ -288,7 +288,7 @@ export declare class ArrayGroupingTreeElement extends UI.TreeOutline.TreeElement
     static bucketThreshold: number;
     static sparseIterationThreshold: number;
 }
-interface ExpandableTextViewInput {
+export interface ExpandableTextViewInput {
     copyText: () => void;
     expandText: () => void;
     expanded: boolean;
@@ -296,7 +296,7 @@ interface ExpandableTextViewInput {
     byteCount: number;
     text: string;
 }
-type ExpandableTextView = (input: ExpandableTextViewInput, output: object, target: HTMLElement) => void;
+export type ExpandableTextView = (input: ExpandableTextViewInput, output: object, target: HTMLElement) => void;
 export declare const EXPANDABLE_TEXT_DEFAULT_VIEW: ExpandableTextView;
 export declare class ExpandableTextPropertyValue extends UI.Widget.Widget {
     #private;

@@ -138,10 +138,11 @@ export declare class ElementsTreeWidget extends UI.Widget.Widget {
     focusOutline?: () => void;
     setMultilineEditing?: (multilineEditing: EditorHandles | null) => void;
     visibleWidth?: () => number;
-    private readonly decorationsThrottler;
     inClipboard: boolean;
     editing: EditorHandles | null;
     expandAllButtonElement: UI.TreeOutline.TreeElement | null;
+    get updateRecord(): Elements.ElementUpdateRecord.ElementUpdateRecord | null;
+    set updateRecord(updateRecord: Elements.ElementUpdateRecord.ElementUpdateRecord | null);
     get node(): SDK.DOMModel.DOMNode;
     set node(node: SDK.DOMModel.DOMNode);
     get expanded(): boolean;
@@ -159,6 +160,7 @@ export declare class ElementsTreeWidget extends UI.Widget.Widget {
     static canShowInlineText(node: SDK.DOMModel.DOMNode): boolean;
     static populateForcedPseudoStateItems(contextMenu: UI.ContextMenu.ContextMenu, node: SDK.DOMModel.DOMNode): void;
     animateOnDOMUpdate(): void;
+    wasShown(): void;
     performUpdate(): void;
     highlightAttribute(attributeName: string): void;
     isDisplayContents(): boolean;

@@ -32,7 +32,7 @@ import { AggregatedTimelineTreeView } from './TimelineTreeView.js';
 import * as Utils from './utils/utils.js';
 const UIStrings = {
     /**
-     * @description Text in Timeline Flame Chart View of the Performance panel
+     * @description Accessible title for a timeline marker at a given timestamp in the Performance panel.
      * @example {Frame} PH1
      * @example {10ms} PH2
      */
@@ -59,7 +59,8 @@ export const SORT_ORDER_PAGE_LOAD_MARKERS = {
 // Threshold to match up overlay markers that are off by a tiny amount so they aren't rendered
 // on top of each other.
 const TIMESTAMP_THRESHOLD_MS = Trace.Types.Timing.Micro(10);
-export class TimelineFlameChartView extends Common.ObjectWrapper.eventMixin(UI.Widget.VBox) {
+const TimelineFlameChartViewBase = Common.ObjectWrapper.eventMixin(UI.Widget.VBox);
+export class TimelineFlameChartView extends TimelineFlameChartViewBase {
     delegate;
     /**
      * Tracks the indexes of matched entries when the user searches the panel.
@@ -100,6 +101,7 @@ export class TimelineFlameChartView extends Common.ObjectWrapper.eventMixin(UI.W
     #eventToRelatedInsightsMap = null;
     #selectedGroupName = null;
     #onTraceBoundsChangeBound = this.#onTraceBoundsChange.bind(this);
+    #debouncedUpdateSearchResults = Common.Debouncer.debounce(() => this.updateSearchResults(false, false), 100);
     #gameKeyMatches = 0;
     #gameTimeout = setTimeout(() => ({}), 0);
     #overlaysContainer = document.createElement('div');
@@ -937,11 +939,7 @@ export class TimelineFlameChartView extends Common.ObjectWrapper.eventMixin(UI.W
         this.mainFlameChart.setWindowTimes(visibleWindow.min, visibleWindow.max, shouldAnimate);
         this.networkDataProvider.setWindowTimes(visibleWindow.min, visibleWindow.max);
         this.networkFlameChart.setWindowTimes(visibleWindow.min, visibleWindow.max, shouldAnimate);
-        // Updating search results can be very expensive. Debounce to avoid over-calling it.
-        const debouncedUpdate = Common.Debouncer.debounce(() => {
-            this.updateSearchResults(false, false);
-        }, 100);
-        debouncedUpdate();
+        this.#debouncedUpdateSearchResults();
     }
     getLinkSelectionAnnotation() {
         return this.#linkSelectionAnnotation;

@@ -378,6 +378,27 @@ button {
   }
 }
 
+@media (forced-colors: active) {
+  button.outlined {
+    background: ButtonFace;
+    border-color: ButtonText;
+    color: ButtonText;
+
+    devtools-icon {
+      color: ButtonText;
+    }
+
+    &:disabled {
+      border-color: GrayText;
+      color: GrayText;
+
+      devtools-icon {
+        color: GrayText;
+      }
+    }
+  }
+}
+
 /*# sourceURL=${import.meta.resolve("./button.css")} */`;
 
 // ../../front_end/ui/components/buttons/Button.ts
@@ -837,6 +858,31 @@ button {
 
   devtools-icon {
     color: var(--ref-palette-neutral100) !important; /* stylelint-disable-line declaration-no-important */
+  }
+}
+
+@media (forced-colors: active) {
+  button {
+    forced-color-adjust: none;
+    box-shadow: 0 0 0 var(--sys-size-1) ButtonText;
+
+    :host-context(:not(.theme-with-dark-background)) &,
+    :host-context(.theme-with-dark-background) &:not(:disabled) {
+      background-color: ButtonFace;
+    }
+
+    :host-context(:not(.theme-with-dark-background)) &:not(:disabled) > devtools-icon,
+    :host-context(.theme-with-dark-background) &:not(:disabled) > devtools-icon {
+      color: ButtonText;
+    }
+
+    &:focus-visible {
+      outline-color: ButtonText;
+    }
+
+    &:disabled > devtools-icon {
+      color: GrayText;
+    }
   }
 }
 

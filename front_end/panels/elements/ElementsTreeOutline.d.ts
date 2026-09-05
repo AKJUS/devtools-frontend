@@ -1,10 +1,10 @@
 import * as Common from '../../core/common/common.js';
 import * as SDK from '../../core/sdk/sdk.js';
+import * as Elements from '../../models/elements/elements.js';
 import * as UI from '../../ui/legacy/legacy.js';
 import { ElementsTreeElement, ElementsTreeWidget, type InitialEditState } from './ElementsTreeElement.js';
 import elementsTreeOutlineStyles from './elementsTreeOutline.css.js';
 import { ImagePreviewPopover } from './ImagePreviewPopover.js';
-import type { MarkerDecoratorRegistration } from './MarkerDecorator.js';
 import { TopLayerContainer } from './TopLayerContainer.js';
 export type View = (input: ViewInput, output: ViewOutput, target: HTMLElement) => void;
 export { elementsTreeOutlineStyles };
@@ -67,10 +67,28 @@ interface ViewInput {
     onDragLeave?: (event: DragEvent) => void;
     onDrop?: (node: SDK.DOMModel.DOMNode, isClosingTag: boolean, event: DragEvent) => void;
     onDragEnd?: (event: DragEvent) => void;
+    getTopLayerShortcuts?: (doc: SDK.DOMModel.DOMDocument) => SDK.DOMModel.DOMNodeShortcut[];
+    isTopLayerExpanded?: (doc: SDK.DOMModel.DOMDocument) => boolean;
+    onToggleTopLayerExpanded?: (doc: SDK.DOMModel.DOMDocument, expanded: boolean) => void;
+    onSelectTopLayerContainer?: (doc: SDK.DOMModel.DOMDocument) => void;
+    isTopLayerShortcutExpanded?: (shortcut: SDK.DOMModel.DOMNodeShortcut) => boolean;
+    onToggleTopLayerShortcutExpanded?: (shortcut: SDK.DOMModel.DOMNodeShortcut, expanded: boolean) => void;
+    selectedTopLayerShortcut?: SDK.DOMModel.DOMNodeShortcut | null;
+    onSelectTopLayerShortcut?: (shortcut: SDK.DOMModel.DOMNodeShortcut) => void;
+    onRevealTopLayerShortcut?: (shortcut: SDK.DOMModel.DOMNodeShortcut) => void;
+    isAdoptedStyleSheetsExpanded?: (node: SDK.DOMModel.DOMNode) => boolean;
+    onToggleAdoptedStyleSheetsExpanded?: (node: SDK.DOMModel.DOMNode, expanded: boolean) => void;
+    onSelectAdoptedStyleSheets?: (node: SDK.DOMModel.DOMNode) => void;
+    isAdoptedStyleSheetExpanded?: (sheet: SDK.DOMModel.AdoptedStyleSheet) => boolean;
+    onToggleAdoptedStyleSheetExpanded?: (sheet: SDK.DOMModel.AdoptedStyleSheet, expanded: boolean) => void;
+    selectedAdoptedStyleSheet?: SDK.DOMModel.AdoptedStyleSheet | null;
+    onSelectAdoptedStyleSheet?: (sheet: SDK.DOMModel.AdoptedStyleSheet) => void;
+    expandedChildrenLimit?: (node: SDK.DOMModel.DOMNode) => number;
+    onExpandAllChildren?: (node: SDK.DOMModel.DOMNode) => void;
+    updateRecordForNode?: (node: SDK.DOMModel.DOMNode) => Elements.ElementUpdateRecord.ElementUpdateRecord | null;
 }
 interface ViewOutput {
     elementsTreeOutline?: ElementsTreeOutline;
-    imagePreviewPopover?: ImagePreviewPopover;
     highlightedTreeElement: ElementsTreeElement | null;
     searchMatchTreeElement?: ElementsTreeElement | null;
     searchMatchQuery?: string;
@@ -121,6 +139,8 @@ export declare class DOMTreeWidget extends UI.Widget.Widget {
     get expandRoot(): boolean;
     set expandRoot(expandRoot: boolean);
     constructor(element?: HTMLElement, view?: View);
+    updateRecordsForTest(): Map<SDK.DOMModel.DOMNode, Elements.ElementUpdateRecord.ElementUpdateRecord>;
+    updateModifiedNodes(): void;
     selectDOMNode(node: SDK.DOMModel.DOMNode | SDK.DOMModel.AdoptedStyleSheet | null, focus?: boolean): void;
     highlightNodeAttribute(node: SDK.DOMModel.DOMNode, attribute: string): void;
     get wrap(): boolean;
@@ -129,6 +149,9 @@ export declare class DOMTreeWidget extends UI.Widget.Widget {
     selectedDOMNode(): SDK.DOMModel.DOMNode | null;
     setNodeExpanded(node: SDK.DOMModel.DOMNode, expanded: boolean): void;
     isNodeExpanded(node: SDK.DOMModel.DOMNode): boolean;
+    expandedChildrenLimit(node: SDK.DOMModel.DOMNode): number;
+    setExpandedChildrenLimit(node: SDK.DOMModel.DOMNode, limit: number): void;
+    expandAllChildren(node: SDK.DOMModel.DOMNode): void;
     expandRecursively(node: SDK.DOMModel.DOMNode, maxDepth?: number): Promise<void>;
     collapseChildren(node: SDK.DOMModel.DOMNode): void;
     showContextMenu(node: SDK.DOMModel.DOMNode, event: MouseEvent, widget?: ElementsTreeWidget): Promise<UI.ContextMenu.ContextMenu | undefined>;
@@ -188,6 +211,17 @@ export declare class DOMTreeWidget extends UI.Widget.Widget {
     onDragEnd(event: DragEvent): void;
     moveNode(draggedNode: SDK.DOMModel.DOMNode, targetNode: SDK.DOMModel.DOMNode, isClosingTag: boolean): void;
     selectNodeAfterEdit(wasExpanded: boolean, error: string | null, newNode: SDK.DOMModel.DOMNode | null, moveDirection?: string): void;
+    topLayerShortcuts(document: SDK.DOMModel.DOMDocument): SDK.DOMModel.DOMNodeShortcut[];
+    isTopLayerExpanded(document: SDK.DOMModel.DOMDocument): boolean;
+    setTopLayerExpanded(document: SDK.DOMModel.DOMDocument, expanded: boolean): void;
+    isTopLayerShortcutExpanded(shortcut: SDK.DOMModel.DOMNodeShortcut): boolean;
+    setTopLayerShortcutExpanded(shortcut: SDK.DOMModel.DOMNodeShortcut, expanded: boolean): void;
+    revealInTopLayer(node: SDK.DOMModel.DOMNode): void;
+    isAdoptedStyleSheetsExpanded(node: SDK.DOMModel.DOMNode): boolean;
+    setAdoptedStyleSheetsExpanded(node: SDK.DOMModel.DOMNode, expanded: boolean): void;
+    isAdoptedStyleSheetExpanded(sheet: SDK.DOMModel.AdoptedStyleSheet): boolean;
+    setAdoptedStyleSheetExpanded(sheet: SDK.DOMModel.AdoptedStyleSheet, expanded: boolean): void;
+    highlightAdoptedStyleSheet(adoptedStyleSheet: SDK.DOMModel.AdoptedStyleSheet): void;
     startEditing(node: SDK.DOMModel.DOMNode): void;
     onKeyDown(event: KeyboardEvent): boolean;
     clipboardData(): ClipboardData | null;
@@ -214,10 +248,13 @@ export declare class DOMTreeWidget extends UI.Widget.Widget {
     wasShown(): void;
     wasHidden(): void;
     detach(overrideHideOnDetach?: boolean): void;
+    hideImagePreview(): void;
+    imagePreviewPopoverForTest(): ImagePreviewPopover | undefined;
+    issuePopoverHelperForTest(): UI.PopoverHelper.PopoverHelper | undefined;
     show(parentElement: Element, insertBefore?: Node | null, suppressOrphanWidgetError?: boolean): void;
 }
-declare const ElementsTreeOutline_base: import("../../core/platform/Constructor.js").Constructor<Common.EventTarget.EventTarget<ElementsTreeOutline.EventTypes>, any[]> & typeof UI.TreeOutline.TreeOutline;
-export declare class ElementsTreeOutline extends ElementsTreeOutline_base {
+declare const ElementsTreeOutlineBase: Common.ObjectWrapper.EventMixin<ElementsTreeOutline.EventTypes, typeof UI.TreeOutline.TreeOutline>;
+export declare class ElementsTreeOutline extends ElementsTreeOutlineBase {
     #private;
     treeElementByNode: WeakMap<SDK.DOMModel.DOMNode, ElementsTreeElement>;
     private readonly shadowRoot;
@@ -229,7 +266,6 @@ export declare class ElementsTreeOutline extends ElementsTreeOutline_base {
     private visible;
     private updateRecords;
     private treeElementsBeingUpdated;
-    decoratorExtensions: MarkerDecoratorRegistration[] | null;
     private visibleWidthInternal?;
     private isXMLMimeTypeInternal?;
     suppressRevealAndSelect: boolean;
