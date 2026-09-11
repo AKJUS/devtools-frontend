@@ -4011,6 +4011,7 @@ var Audits;
     FederatedAuthRequestIssueReason2["UiDismissedNoEmbargo"] = "UiDismissedNoEmbargo";
     FederatedAuthRequestIssueReason2["CorsError"] = "CorsError";
     FederatedAuthRequestIssueReason2["SuppressedBySegmentationPlatform"] = "SuppressedBySegmentationPlatform";
+    FederatedAuthRequestIssueReason2["PopupBlockedByConnectionAllowlist"] = "PopupBlockedByConnectionAllowlist";
   })(FederatedAuthRequestIssueReason = Audits2.FederatedAuthRequestIssueReason || (Audits2.FederatedAuthRequestIssueReason = {}));
   let FederatedAuthUserInfoRequestIssueReason;
   ((FederatedAuthUserInfoRequestIssueReason2) => {
@@ -4083,6 +4084,7 @@ var Audits;
     EmailVerificationRequestIssueReason2["TokenVerificationKbInvalidSdHash"] = "TokenVerificationKbInvalidSdHash";
     EmailVerificationRequestIssueReason2["TokenVerificationKbMissingCnf"] = "TokenVerificationKbMissingCnf";
     EmailVerificationRequestIssueReason2["TokenVerificationKbSignatureFailed"] = "TokenVerificationKbSignatureFailed";
+    EmailVerificationRequestIssueReason2["CrossOriginIframeNotSupported"] = "CrossOriginIframeNotSupported";
   })(EmailVerificationRequestIssueReason = Audits2.EmailVerificationRequestIssueReason || (Audits2.EmailVerificationRequestIssueReason = {}));
   let PartitioningBlobURLInfo;
   ((PartitioningBlobURLInfo2) => {
@@ -4539,6 +4541,11 @@ var Emulation;
     SetDeviceMetricsOverrideRequestScrollbarType2["Overlay"] = "overlay";
     SetDeviceMetricsOverrideRequestScrollbarType2["Default"] = "default";
   })(SetDeviceMetricsOverrideRequestScrollbarType = Emulation2.SetDeviceMetricsOverrideRequestScrollbarType || (Emulation2.SetDeviceMetricsOverrideRequestScrollbarType = {}));
+  let SetDeviceMetricsOverrideRequestViewportMeta;
+  ((SetDeviceMetricsOverrideRequestViewportMeta2) => {
+    SetDeviceMetricsOverrideRequestViewportMeta2["Enable"] = "enable";
+    SetDeviceMetricsOverrideRequestViewportMeta2["Default"] = "default";
+  })(SetDeviceMetricsOverrideRequestViewportMeta = Emulation2.SetDeviceMetricsOverrideRequestViewportMeta || (Emulation2.SetDeviceMetricsOverrideRequestViewportMeta = {}));
   let SetEmitTouchEventsForMouseRequestConfiguration;
   ((SetEmitTouchEventsForMouseRequestConfiguration2) => {
     SetEmitTouchEventsForMouseRequestConfiguration2["Mobile"] = "mobile";
@@ -6329,6 +6336,7 @@ var Runtime;
     RemoteObjectSubtype2["Dataview"] = "dataview";
     RemoteObjectSubtype2["Webassemblymemory"] = "webassemblymemory";
     RemoteObjectSubtype2["Wasmvalue"] = "wasmvalue";
+    RemoteObjectSubtype2["Deferredmodule"] = "deferredmodule";
     RemoteObjectSubtype2["Trustedtype"] = "trustedtype";
   })(RemoteObjectSubtype = Runtime6.RemoteObjectSubtype || (Runtime6.RemoteObjectSubtype = {}));
   let ObjectPreviewType;
@@ -6363,6 +6371,7 @@ var Runtime;
     ObjectPreviewSubtype2["Dataview"] = "dataview";
     ObjectPreviewSubtype2["Webassemblymemory"] = "webassemblymemory";
     ObjectPreviewSubtype2["Wasmvalue"] = "wasmvalue";
+    ObjectPreviewSubtype2["Deferredmodule"] = "deferredmodule";
     ObjectPreviewSubtype2["Trustedtype"] = "trustedtype";
   })(ObjectPreviewSubtype = Runtime6.ObjectPreviewSubtype || (Runtime6.ObjectPreviewSubtype = {}));
   let PropertyPreviewType;
@@ -6398,6 +6407,7 @@ var Runtime;
     PropertyPreviewSubtype2["Dataview"] = "dataview";
     PropertyPreviewSubtype2["Webassemblymemory"] = "webassemblymemory";
     PropertyPreviewSubtype2["Wasmvalue"] = "wasmvalue";
+    PropertyPreviewSubtype2["Deferredmodule"] = "deferredmodule";
     PropertyPreviewSubtype2["Trustedtype"] = "trustedtype";
   })(PropertyPreviewSubtype = Runtime6.PropertyPreviewSubtype || (Runtime6.PropertyPreviewSubtype = {}));
   let ConsoleAPICalledEventType;
@@ -9948,8 +9958,7 @@ var AiAssistancePanel = class _AiAssistancePanel extends UI9.Panel.Panel {
           },
           onTextSubmit: async (text, imageInput, multimodalInputType) => {
             const submit = () => {
-              Host5.userMetrics.actionTaken(Host5.UserMetrics.Action.AiAssistanceQuerySubmitted);
-              void this.#startConversation(text, imageInput, multimodalInputType);
+              void this.#submitQuery(text, imageInput, multimodalInputType);
             };
             const seenSetting = Common5.Settings.Settings.instance().resolve(
               AiAssistanceModel7.AiUtils.aiAssistanceV2OptInChangeDialogSeenSettingDescriptor
@@ -10638,11 +10647,10 @@ var AiAssistancePanel = class _AiAssistancePanel extends UI9.Panel.Panel {
       if (!this.#canExecuteQuery()) {
         return;
       }
-      Host5.userMetrics.actionTaken(Host5.UserMetrics.Action.AiAssistanceQuerySubmitted);
       if (this.#conversation && this.#conversation.isBlockedByOrigin) {
         this.#handleNewChatRequest();
       }
-      await this.#startConversation(predefinedPrompt);
+      await this.#submitQuery(predefinedPrompt);
     } else {
       this.#viewOutput.chatView?.focusTextInput();
     }
@@ -10709,7 +10717,7 @@ var AiAssistancePanel = class _AiAssistancePanel extends UI9.Panel.Panel {
       return;
     }
     this.#updateConversationState(conversation);
-    await this.#doConversation(conversation.history);
+    await this.#consumeResponseStream(conversation.history);
   }
   #handleNewChatRequest() {
     this.#textInputValue = "";
@@ -10802,14 +10810,20 @@ var AiAssistancePanel = class _AiAssistancePanel extends UI9.Panel.Panel {
       }
     }
   }
-  async #startConversation(text, imageInput, multimodalInputType) {
+  /**
+   * Submits a user query turn to the active conversation and streams the response.
+   * Executes on every turn (both initial prompt and follow-up turns).
+   */
+  async #submitQuery(text, imageInput, multimodalInputType) {
     if (!this.#conversation) {
       return;
     }
     this.#cancel();
+    Host5.userMetrics.actionTaken(Host5.UserMetrics.Action.AiAssistanceQuerySubmitted);
     const signal = this.#runAbortController.signal;
     if (this.#conversation.isEmpty) {
       Badges.UserBadges.instance().recordAction(Badges.BadgeAction.STARTED_AI_CONVERSATION);
+      void VisualLogging7.logFunctionCall(`start-conversation-${this.#conversation.type}`, "ui");
     }
     let multimodalInput;
     if (isAiAssistanceMultimodalInputEnabled() && imageInput && multimodalInputType) {
@@ -10819,8 +10833,7 @@ var AiAssistancePanel = class _AiAssistancePanel extends UI9.Panel.Panel {
         type: multimodalInputType
       };
     }
-    void VisualLogging7.logFunctionCall(`start-conversation-${this.#conversation.type}`, "ui");
-    await this.#doConversation(
+    await this.#consumeResponseStream(
       this.#conversation.run(
         text,
         {
@@ -10830,7 +10843,10 @@ var AiAssistancePanel = class _AiAssistancePanel extends UI9.Panel.Panel {
       )
     );
   }
-  async #doConversation(items) {
+  /**
+   * Consumes response items (live generator or historic array) and drives UI updates.
+   */
+  async #consumeResponseStream(items) {
     const release = await this.#mutex.acquire();
     try {
       let commitStep = function() {

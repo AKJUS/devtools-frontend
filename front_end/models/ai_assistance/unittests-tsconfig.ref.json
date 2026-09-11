@@ -6,13 +6,16 @@
     "emitDeclarationOnly": true,
     "outDir": ".",
     "rootDir": "../../../../../../front_end/models/ai_assistance",
+    "rootDirs": [
+      "../../../../../../",
+      "../../../"
+    ],
     "skipLibCheck": true
   },
   "files": [
     "../../../../../../front_end/models/ai_assistance/AiAgent2.test.ts",
     "../../../../../../front_end/models/ai_assistance/AiConversation.test.ts",
     "../../../../../../front_end/models/ai_assistance/AiHistoryStorage.test.ts",
-    "../../../../../../front_end/models/ai_assistance/AiOrigins.test.ts",
     "../../../../../../front_end/models/ai_assistance/AiSetting.test.ts",
     "../../../../../../front_end/models/ai_assistance/AiUtils.test.ts",
     "../../../../../../front_end/models/ai_assistance/BuiltInAi.test.ts",

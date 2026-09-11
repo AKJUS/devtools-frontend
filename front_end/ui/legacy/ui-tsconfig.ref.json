@@ -6,6 +6,10 @@
     "emitDeclarationOnly": true,
     "outDir": ".",
     "rootDir": "../../../../../../front_end/ui/legacy",
+    "rootDirs": [
+      "../../../../../../",
+      "../../../"
+    ],
     "skipLibCheck": true
   },
   "files": [
@@ -49,6 +53,7 @@
     "../../../../../../front_end/ui/legacy/SoftDropDown.ts",
     "../../../../../../front_end/ui/legacy/SplitWidget.ts",
     "../../../../../../front_end/ui/legacy/StackedPane.ts",
+    "../../../../../../front_end/ui/legacy/StatusBar.ts",
     "../../../../../../front_end/ui/legacy/SuggestBox.ts",
     "../../../../../../front_end/ui/legacy/TabbedPane.ts",
     "../../../../../../front_end/ui/legacy/TargetCrashedScreen.ts",
