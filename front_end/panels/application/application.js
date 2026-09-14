@@ -1624,6 +1624,7 @@ var Network;
     TerminationEventDetailsDeletionReason2["InvalidSessionParams"] = "InvalidSessionParams";
     TerminationEventDetailsDeletionReason2["RefreshFatalError"] = "RefreshFatalError";
     TerminationEventDetailsDeletionReason2["DevTools"] = "DevTools";
+    TerminationEventDetailsDeletionReason2["Replaced"] = "Replaced";
   })(TerminationEventDetailsDeletionReason = Network3.TerminationEventDetailsDeletionReason || (Network3.TerminationEventDetailsDeletionReason = {}));
   let ChallengeEventDetailsChallengeResult;
   ((ChallengeEventDetailsChallengeResult2) => {
@@ -6781,7 +6782,7 @@ function renderDocumentSection(input) {
         </div>
       </devtools-report-value>
       ${maybeRenderUnreachableURL(input.frame?.unreachableUrl())}
-      ${maybeRenderOrigin(input.frame?.securityOrigin)}
+      ${maybeRenderOrigin(input.frame?.securityOrigin())}
       ${renderOwnerElement(input.linkTargetDOMNode)}
       ${maybeRenderCreationStacktrace(input.creationStackTrace)}
       ${maybeRenderAdStatus(input.frame?.adFrameType(), input.frame?.adFrameStatus())}
@@ -6842,11 +6843,12 @@ function renderNetworkLinkForUnreachableURL(unreachableUrlString) {
   return nothing3;
 }
 function maybeRenderOrigin(securityOrigin) {
-  if (securityOrigin && securityOrigin !== "://") {
+  if (securityOrigin && !securityOrigin.isOpaque()) {
+    const originString = securityOrigin.siteId();
     return html5`
         <devtools-report-key>${i18nString7(UIStrings7.origin)}</devtools-report-key>
         <devtools-report-value>
-          <div class="text-ellipsis" title=${securityOrigin}>${securityOrigin}</div>
+          <div class="text-ellipsis" title=${originString}>${originString}</div>
         </devtools-report-value>
       `;
   }
@@ -10039,7 +10041,6 @@ var CrashReportContextView = class extends UI12.Widget.VBox {
         frameId,
         displayName,
         isMain: frame?.isMainFrame() ?? false,
-        origin: frame?.securityOrigin || "",
         entries: frameEntries
       };
     }).sort((a, b) => {
@@ -12898,8 +12899,8 @@ import * as Common12 from "../../core/common/common.js";
 import * as i18n41 from "../../core/i18n/i18n.js";
 import * as SDK19 from "../../core/sdk/sdk.js";
 import * as AiAssistanceModel from "../../models/ai_assistance/ai_assistance.js";
-import * as Geometry from "../../models/geometry/geometry.js";
 import * as IssuesManager from "../../models/issues_manager/issues_manager.js";
+import * as Geometry from "../../ui/geometry/geometry.js";
 import * as CookieTable from "../../ui/legacy/components/cookie_table/cookie_table.js";
 import * as UI21 from "../../ui/legacy/legacy.js";
 import { html as html13, render as render13 } from "../../ui/lit/lit.js";
@@ -14615,7 +14616,7 @@ __export(KeyValueStorageItemsView_exports, {
 import "../../ui/components/buttons/buttons.js";
 import * as i18n45 from "../../core/i18n/i18n.js";
 import * as AIAssistance from "../../models/ai_assistance/ai_assistance.js";
-import * as Geometry2 from "../../models/geometry/geometry.js";
+import * as Geometry2 from "../../ui/geometry/geometry.js";
 
 // gen/front_end/ui/legacy/components/data_grid/dataGridAiButton.css.js
 var dataGridAiButton_css_default = `/*
@@ -15353,20 +15354,20 @@ var resourcesPanel_css_default = `/*
  */
 
 .resources-toolbar {
-  border-top: 1px solid var(--sys-color-divider);
+  border-top: var(--sys-size-1) solid var(--sys-color-divider);
   background-color: var(--sys-color-cdt-base-container);
 }
 
 .top-resources-toolbar {
-  border-bottom: 1px solid var(--sys-color-divider);
+  border-bottom: var(--sys-size-1) solid var(--sys-color-divider);
   background-color: var(--sys-color-cdt-base-container);
 }
 
 .resources.panel .status {
   float: right;
-  height: 16px;
-  margin-top: 1px;
-  margin-left: 4px;
+  height: var(--sys-size-8);
+  margin-top: var(--sys-size-1);
+  margin-left: var(--sys-size-3);
   line-height: 1em;
 }
 
@@ -15382,7 +15383,7 @@ var resourcesPanel_css_default = `/*
 
 .storage-view .storage-table-error {
   color: var(--sys-color-error);
-  font-size: 24px;
+  font-size: var(--sys-typescale-headline1-size);
   font-weight: bold;
   padding: 10px;
   display: flex;
@@ -15391,13 +15392,13 @@ var resourcesPanel_css_default = `/*
 }
 
 .storage-view.query {
-  padding: 2px 0;
+  padding: var(--sys-size-2) 0;
   overflow: hidden auto;
 }
 
 .storage-view .filter-bar {
   border-top: none;
-  border-bottom: 1px solid var(--sys-color-divider);
+  border-bottom: var(--sys-size-1) solid var(--sys-color-divider);
 }
 
 .database-query-group-messages {
@@ -15406,8 +15407,8 @@ var resourcesPanel_css_default = `/*
 
 .database-query-prompt-container {
   position: relative;
-  padding: 1px 22px 1px 24px;
-  min-height: 16px;
+  padding: var(--sys-size-1) var(--sys-size-10) var(--sys-size-1) var(--sys-size-11);
+  min-height: var(--sys-size-8);
 }
 
 .database-query-prompt {
@@ -15428,14 +15429,14 @@ var resourcesPanel_css_default = `/*
 }
 
 .database-query-prompt-container .prompt-icon {
-  top: 6px;
+  top: var(--sys-size-4);
 }
 
 .database-user-query {
   position: relative;
-  border-bottom: 1px solid var(--sys-color-divider);
-  padding: 1px 22px 1px 24px;
-  min-height: 16px;
+  border-bottom: var(--sys-size-1) solid var(--sys-color-divider);
+  padding: var(--sys-size-1) var(--sys-size-10) var(--sys-size-1) var(--sys-size-11);
+  min-height: var(--sys-size-8);
   flex-shrink: 0;
 }
 
@@ -15450,9 +15451,9 @@ var resourcesPanel_css_default = `/*
 
 .database-query-result {
   position: relative;
-  padding: 1px 22px;
-  min-height: 16px;
-  margin-left: -22px;
+  padding: var(--sys-size-1) var(--sys-size-10);
+  min-height: var(--sys-size-8);
+  margin-left: calc(-1 * var(--sys-size-10));
   padding-right: 0;
 }
 

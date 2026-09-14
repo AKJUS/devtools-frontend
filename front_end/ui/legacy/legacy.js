@@ -2269,7 +2269,7 @@ __export(SplitWidget_exports, {
 });
 import * as Common7 from "../../core/common/common.js";
 import * as Platform6 from "../../core/platform/platform.js";
-import * as Geometry2 from "../../models/geometry/geometry.js";
+import * as Geometry2 from "../geometry/geometry.js";
 import * as VisualLogging4 from "../visual_logging/visual_logging.js";
 
 // ../../front_end/ui/legacy/ResizerWidget.ts
@@ -2514,8 +2514,8 @@ __export(Widget_exports, {
 });
 import "../dom_extension/dom_extension.js";
 import * as Platform5 from "../../core/platform/platform.js";
-import * as Geometry from "../../models/geometry/geometry.js";
 import * as Lit from "../lit/lit.js";
+import * as Geometry from "../geometry/geometry.js";
 
 // ../../front_end/ui/legacy/DOMUtilities.ts
 var DOMUtilities_exports = {};
@@ -3853,7 +3853,13 @@ var SplitWidget = class extends SplitWidgetBase {
     const mainSlot = this.#mainElement.createChild("slot");
     mainSlot.name = "main";
     mainSlot.addEventListener("slotchange", (_) => {
-      const assignedNode = mainSlot.assignedNodes()[0];
+      const assignedNode = mainSlot.assignedNodes().find((node) => {
+        const widget3 = node instanceof HTMLElement ? Widget.get(node) : null;
+        if (widget3) {
+          return widget3 === this.#mainWidget || widget3.isShowing();
+        }
+        return node instanceof HTMLElement && !node.classList.contains("hidden");
+      }) ?? mainSlot.assignedNodes()[0];
       const widget2 = assignedNode instanceof HTMLElement ? Widget.getOrCreateWidget(assignedNode) : null;
       if (widget2 && widget2 !== this.#mainWidget) {
         this.setMainWidget(widget2);
@@ -3862,7 +3868,13 @@ var SplitWidget = class extends SplitWidgetBase {
     const sidebarSlot = this.#sidebarElement.createChild("slot");
     sidebarSlot.name = "sidebar";
     sidebarSlot.addEventListener("slotchange", (_) => {
-      const assignedNode = sidebarSlot.assignedNodes()[0];
+      const assignedNode = sidebarSlot.assignedNodes().find((node) => {
+        const widget3 = node instanceof HTMLElement ? Widget.get(node) : null;
+        if (widget3) {
+          return widget3 === this.#sidebarWidget || widget3.isShowing();
+        }
+        return node instanceof HTMLElement && !node.classList.contains("hidden");
+      }) ?? sidebarSlot.assignedNodes()[0];
       const widget2 = assignedNode instanceof HTMLElement ? Widget.getOrCreateWidget(assignedNode) : null;
       if (widget2 && widget2 !== this.#sidebarWidget) {
         this.setSidebarWidget(widget2);
@@ -4585,10 +4597,10 @@ __export(TabbedPane_exports, {
 import * as Common8 from "../../core/common/common.js";
 import * as i18n7 from "../../core/i18n/i18n.js";
 import * as Platform7 from "../../core/platform/platform.js";
-import * as Geometry3 from "../../models/geometry/geometry.js";
 import * as Buttons2 from "../components/buttons/buttons.js";
 import { render } from "../lit/lit.js";
 import * as VisualLogging5 from "../visual_logging/visual_logging.js";
+import * as Geometry3 from "../geometry/geometry.js";
 import { createIcon as createIcon2, Icon } from "../kit/kit.js";
 
 // gen/front_end/ui/legacy/tabbedPane.css.js
@@ -11002,7 +11014,7 @@ __export(SuggestBox_exports, {
 });
 import * as i18n21 from "../../core/i18n/i18n.js";
 import * as Platform11 from "../../core/platform/platform.js";
-import * as Geometry4 from "../../models/geometry/geometry.js";
+import * as Geometry4 from "../geometry/geometry.js";
 import * as VisualLogging13 from "../visual_logging/visual_logging.js";
 
 // ../../front_end/ui/legacy/ListControl.ts
@@ -14302,8 +14314,8 @@ import * as Common15 from "../../core/common/common.js";
 import * as Host9 from "../../core/host/host.js";
 import * as i18n25 from "../../core/i18n/i18n.js";
 import * as Platform15 from "../../core/platform/platform.js";
-import * as Geometry5 from "../../models/geometry/geometry.js";
 import * as Buttons6 from "../components/buttons/buttons.js";
+import * as Geometry5 from "../geometry/geometry.js";
 import { Icon as Icon2 } from "../kit/kit.js";
 import * as Lit4 from "../lit/lit.js";
 import * as VisualLogging16 from "../visual_logging/visual_logging.js";
@@ -22156,7 +22168,7 @@ __export(SoftDropDown_exports, {
   SoftDropDown: () => SoftDropDown
 });
 import * as i18n39 from "../../core/i18n/i18n.js";
-import * as Geometry6 from "../../models/geometry/geometry.js";
+import * as Geometry6 from "../geometry/geometry.js";
 import { createIcon as createIcon9 } from "../kit/kit.js";
 import * as VisualLogging25 from "../visual_logging/visual_logging.js";
 
@@ -23271,6 +23283,18 @@ var TreeOutlineInShadow = class extends TreeOutline {
   setDense(dense) {
     this.contentElement.classList.toggle("tree-outline-dense", dense);
   }
+  setDisclosureClass(disclosureClass) {
+    const isHideOverflow = this.disclosureElement.classList.contains("tree-outline-disclosure-hide-overflow");
+    this.disclosureElement.className = "tree-outline-disclosure";
+    if (isHideOverflow) {
+      this.disclosureElement.classList.add("tree-outline-disclosure-hide-overflow");
+    }
+    for (const cls of disclosureClass.split(/\s+/)) {
+      if (cls) {
+        this.disclosureElement.classList.add(cls);
+      }
+    }
+  }
   onStartedEditingTitle(treeElement) {
     const selection = this.shadowRoot.getSelection();
     if (selection) {
@@ -23450,6 +23474,7 @@ var TreeElement = class {
     }
     for (let current = child.firstChild(); this.treeOutline && current; current = current.traverseNextTreeElement(false, child, true)) {
       this.treeOutline.bindTreeElement(current);
+      current.ensureSelection();
     }
     child.onattach();
     child.ensureSelection();
@@ -23750,6 +23775,9 @@ var TreeElement = class {
     }
     if (this.expandable && !this.expanded) {
       void this.#setExpandedFromUser(true, false);
+      if (!this.listItemElement.hasFocus()) {
+        this.listItemElement.focus();
+      }
     }
   }
   async #setExpandedFromUser(shouldExpand, recursively) {
@@ -24275,6 +24303,7 @@ var TreeViewTreeElement = class _TreeViewTreeElement extends TreeElement {
     this.updateExpansionFromAttribute();
   }
   refresh() {
+    const hadFocus = this.listItemElement.hasFocus();
     this.titleElement.textContent = "";
     this.updateAttributes();
     const childUl = this.configElement.querySelector(':scope > ul[role="group"]');
@@ -24290,9 +24319,16 @@ var TreeViewTreeElement = class _TreeViewTreeElement extends TreeElement {
     this.toggleOnClick = hasBooleanAttribute(this.configElement, "toggle-on-click");
     this.updateExpansionFromAttribute();
     Highlighting.HighlightManager.HighlightManager.instance().apply(this.titleElement);
+    if (hadFocus) {
+      this.listItemElement.focus();
+    }
   }
   static get(configElement) {
     return configElement && _TreeViewTreeElement.#elementToTreeElement.get(configElement);
+  }
+  onselect(selectedByUser) {
+    this.listItemElement.dispatchEvent(new TreeViewElement.SelectEvent({ selectedByUser: Boolean(selectedByUser) }));
+    return super.onselect(selectedByUser);
   }
   onenter() {
     const enterEvent = new TreeViewElement.EnterEvent();
@@ -24350,10 +24386,18 @@ function removeNode(node, preserveParentExpandable = false) {
   }
 }
 var TreeViewElement = class _TreeViewElement extends HTMLElementWithLightDOMTemplate {
-  static observedAttributes = ["navigation-variant", "hide-overflow", "dense", "show-selection-on-keyboard-focus"];
+  static observedAttributes = ["navigation-variant", "hide-overflow", "dense", "show-selection-on-keyboard-focus", "disclosure-class"];
   #treeOutline = new TreeOutlineInShadow(void 0, this, true);
+  #syncedTreeClasses = /* @__PURE__ */ new Set();
   constructor() {
     super();
+    this.#treeOutline.contentElement.removeAttribute("jslog");
+    if (!this.hasAttribute("jslog")) {
+      this.setAttribute("jslog", `${VisualLogging26.tree()}`);
+    }
+    if (this.hasAttribute("disclosure-class")) {
+      this.#treeOutline.setDisclosureClass(this.getAttribute("disclosure-class") ?? "");
+    }
     this.addEventListener("focusin", (event) => {
       const actualTarget = event.composedPath()[0];
       if (actualTarget === this.#treeOutline.contentElement && !this.#treeOutline.selectedTreeElement && this.#treeOutline.firstChild()) {
@@ -24363,11 +24407,6 @@ var TreeViewElement = class _TreeViewElement extends HTMLElementWithLightDOMTemp
           /* selectedByUser */
           false
         );
-      }
-    });
-    this.#treeOutline.addEventListener("ElementSelected" /* ElementSelected */, (event) => {
-      if (event.data instanceof TreeViewTreeElement) {
-        event.data.listItemElement.dispatchEvent(new _TreeViewElement.SelectEvent());
       }
     });
     this.#treeOutline.addEventListener("ElementExpanded" /* ElementExpanded */, (event) => {
@@ -24420,6 +24459,24 @@ var TreeViewElement = class _TreeViewElement extends HTMLElementWithLightDOMTemp
     return treeElement ? { expanded, treeElement, classes: subtreeRoot.classList, attributes: subtreeRoot.attributes } : null;
   }
   updateNode(node, attributeName) {
+    if (node instanceof HTMLUListElement && node.role === "tree") {
+      if (attributeName === null || attributeName === "class") {
+        for (const cls of this.#syncedTreeClasses) {
+          if (!node.classList.contains(cls)) {
+            this.#treeOutline.contentElement.classList.remove(cls);
+          }
+        }
+        this.#syncedTreeClasses.clear();
+        for (const cls of node.classList) {
+          if (cls) {
+            this.#syncedTreeClasses.add(cls);
+            this.#treeOutline.contentElement.classList.add(cls);
+          }
+        }
+        this.#treeOutline.contentElement.classList.add("tree-outline");
+      }
+      return;
+    }
     let current = node;
     while (current?.parentNode && !(current instanceof HTMLElement)) {
       current = current.parentNode;
@@ -24551,13 +24608,16 @@ var TreeViewElement = class _TreeViewElement extends HTMLElementWithLightDOMTemp
       case "show-selection-on-keyboard-focus":
         this.#treeOutline.setShowSelectionOnKeyboardFocus(booleanValueIsTrue);
         break;
+      case "disclosure-class":
+        this.#treeOutline.setDisclosureClass(newValue ?? "");
+        break;
     }
   }
 };
 ((TreeViewElement2) => {
   class SelectEvent extends CustomEvent {
-    constructor() {
-      super("select");
+    constructor(detail) {
+      super("select", { detail });
     }
   }
   TreeViewElement2.SelectEvent = SelectEvent;

@@ -1658,6 +1658,7 @@ var Network;
     TerminationEventDetailsDeletionReason2["InvalidSessionParams"] = "InvalidSessionParams";
     TerminationEventDetailsDeletionReason2["RefreshFatalError"] = "RefreshFatalError";
     TerminationEventDetailsDeletionReason2["DevTools"] = "DevTools";
+    TerminationEventDetailsDeletionReason2["Replaced"] = "Replaced";
   })(TerminationEventDetailsDeletionReason = Network2.TerminationEventDetailsDeletionReason || (Network2.TerminationEventDetailsDeletionReason = {}));
   let ChallengeEventDetailsChallengeResult;
   ((ChallengeEventDetailsChallengeResult2) => {
@@ -16575,6 +16576,8 @@ __export(CSSPropertyParserMatchers_exports, {
   MathFunctionMatcher: () => MathFunctionMatcher,
   PositionAnchorMatch: () => PositionAnchorMatch,
   PositionAnchorMatcher: () => PositionAnchorMatcher,
+  PositionAreaMatch: () => PositionAreaMatch,
+  PositionAreaMatcher: () => PositionAreaMatcher,
   PositionTryMatch: () => PositionTryMatch,
   PositionTryMatcher: () => PositionTryMatcher,
   RAW_STRING_TYPE: () => RAW_STRING_TYPE,
@@ -18019,6 +18022,35 @@ var EnvFunctionMatcher = class extends EnvFunctionMatcherBase {
     const varName = matching.getComputedTextRange(...ASTUtils.range(valueNodes)).trim();
     const value = this.matchedStyles.environmentVariable(varName);
     return new EnvFunctionMatch(matching.ast.text(node), node, varName, value ?? fallbackValue ?? null, Boolean(value));
+  }
+};
+var PositionAreaMatch = class {
+  constructor(text, node) {
+    this.text = text;
+    this.node = node;
+  }
+  text;
+  node;
+};
+var PositionAreaMatcherBase = matcherBase(PositionAreaMatch);
+var PositionAreaMatcher = class extends PositionAreaMatcherBase {
+  // clang-format on
+  accepts(propertyName) {
+    return propertyName === "position-area" || propertyName === "inset-area";
+  }
+  matches(node, matching) {
+    if (node.name !== "Declaration") {
+      return null;
+    }
+    const valueNodes = ASTUtils.siblings(ASTUtils.declValue(node));
+    if (valueNodes.length === 0) {
+      return null;
+    }
+    const valueText = matching.getComputedTextRange(valueNodes[0], valueNodes[valueNodes.length - 1]);
+    if (CSSMetadata.isCSSWideKeyword(valueText)) {
+      return null;
+    }
+    return new PositionAreaMatch(valueText, node);
   }
 };
 
@@ -20896,6 +20928,7 @@ var CSSMatchedStyles = class _CSSMatchedStyles {
       new AnchorFunctionMatcher(),
       new PositionAnchorMatcher(),
       new FlexGridGridLanesMatcher(),
+      new PositionAreaMatcher(),
       new PositionTryMatcher(),
       new LengthMatcher(),
       new MathFunctionMatcher(),
@@ -29051,15 +29084,17 @@ var DOMNode = class _DOMNode extends Common20.ObjectWrapper.ObjectWrapper {
       }
     });
   }
-  duplicate() {
+  async duplicate() {
     if (this.isInShadowTree()) {
-      return;
+      return { error: "Cannot duplicate node in shadow tree", node: null };
     }
     const parentNode = this.parentNode ? this.parentNode : this;
     if (parentNode.nodeName() === "#document") {
-      return;
+      return { error: "Parent node is document", node: null };
     }
-    this.copyTo(parentNode, this.nextSibling);
+    return await new Promise((resolve) => {
+      this.copyTo(parentNode, this.nextSibling, (error, node) => resolve({ error, node }));
+    });
   }
   /**
    * Runs a script on the node's remote object that toggles a class name on
@@ -30276,6 +30311,7 @@ var DOMNodeSnapshot = class extends DOMNode {
   moveTo(_targetNode, _anchorNode, _callback) {
   }
   duplicate() {
+    return Promise.resolve({ error: null, node: null });
   }
   canInspectNode() {
     return false;
@@ -30308,6 +30344,7 @@ var DOMDocumentSnapshot = class extends DOMDocument {
   moveTo(_targetNode, _anchorNode, _callback) {
   }
   duplicate() {
+    return Promise.resolve({ error: null, node: null });
   }
   canInspectNode() {
     return false;
@@ -30666,6 +30703,32 @@ var ResourceTreeModel = class _ResourceTreeModel extends SDKModel {
       result.push(...resourceTreeModel.frames());
     }
     return result;
+  }
+  /**
+   * Finds the first active frame that matches the specified security origin under
+   * the given primary page target.
+   *
+   * Returns `null` if the target has no outermost target or if no matching frame
+   * exists.
+   *
+   * @param primaryPageTarget The primary page target that contains the candidate frames.
+   * @param origin The security origin to match.
+   * @returns The first matching frame, or `null` if no frame matches.
+   */
+  static frameForOrigin(primaryPageTarget, origin) {
+    const outermostTarget = primaryPageTarget.outermostTarget();
+    if (!outermostTarget) {
+      return null;
+    }
+    for (const frame of _ResourceTreeModel.frames(primaryPageTarget.targetManager())) {
+      if (frame.resourceTreeModel().target().outermostTarget() !== outermostTarget) {
+        continue;
+      }
+      if (frame.securityOrigin().isSameOriginWith(origin)) {
+        return frame;
+      }
+    }
+    return null;
   }
   static resourceForURL(targetManager, url) {
     for (const resourceTreeModel of targetManager.models(_ResourceTreeModel)) {
@@ -31038,21 +31101,23 @@ var ResourceTreeModel = class _ResourceTreeModel extends SDKModel {
     return ExecutionContext.comparator(a, b);
   }
   getSecurityOriginData() {
-    const securityOrigins = /* @__PURE__ */ new Set();
+    const securityOrigins = [];
     let mainSecurityOrigin = null;
     let unreachableMainSecurityOrigin = null;
     for (const frame of this.framesInternal.values()) {
-      const origin = frame.securityOrigin;
-      if (!origin) {
+      const origin = frame.securityOrigin();
+      if (frame.isMainFrame()) {
+        mainSecurityOrigin = origin.isOpaque() ? null : origin;
+        if (frame.unreachableUrl()) {
+          const unreachable = SecurityOrigin.create(frame.unreachableUrl());
+          unreachableMainSecurityOrigin = unreachable.isOpaque() ? null : unreachable;
+        }
+      }
+      if (origin.isOpaque()) {
         continue;
       }
-      securityOrigins.add(origin);
-      if (frame.isMainFrame()) {
-        mainSecurityOrigin = origin;
-        if (frame.unreachableUrl()) {
-          const unreachableParsed = new Common23.ParsedURL.ParsedURL(frame.unreachableUrl());
-          unreachableMainSecurityOrigin = unreachableParsed.securityOrigin();
-        }
+      if (!securityOrigins.some((existing) => existing.isSameOriginWith(origin))) {
+        securityOrigins.push(origin);
       }
     }
     return {
@@ -31085,10 +31150,10 @@ var ResourceTreeModel = class _ResourceTreeModel extends SDKModel {
   updateSecurityOrigins() {
     const data = this.getSecurityOriginData();
     this.#securityOriginManager.setMainSecurityOrigin(
-      data.mainSecurityOrigin || "",
-      data.unreachableMainSecurityOrigin || ""
+      data.mainSecurityOrigin?.siteId() || "",
+      data.unreachableMainSecurityOrigin?.siteId() || ""
     );
-    this.#securityOriginManager.updateSecurityOrigins(data.securityOrigins);
+    this.#securityOriginManager.updateSecurityOrigins(new Set(data.securityOrigins.map((o) => o.siteId())));
   }
   async updateStorageKeys() {
     const data = await this.getStorageKeyData();
@@ -31101,9 +31166,10 @@ var ResourceTreeModel = class _ResourceTreeModel extends SDKModel {
       false
     ) : null;
   }
+  // TODO(crbug.com/559122726): Remove siteId() usage and evaluate removing this method in favor of direct SecurityOrigin handling.
   getMainSecurityOrigin() {
     const data = this.getSecurityOriginData();
-    return data.mainSecurityOrigin || data.unreachableMainSecurityOrigin;
+    return data.mainSecurityOrigin?.siteId() || data.unreachableMainSecurityOrigin?.siteId() || null;
   }
   onBackForwardCacheNotUsed(event) {
     if (this.mainFrame && this.mainFrame.id === event.frameId && this.mainFrame.loaderId === event.loaderId) {
@@ -31181,7 +31247,7 @@ var ResourceTreeFrame = class {
     this.#name = payload?.name;
     this.#url = payload && payload.url || Platform14.DevToolsPath.EmptyUrlString;
     this.#domainAndRegistry = payload?.domainAndRegistry || "";
-    this.#securityOrigin = payload?.securityOrigin ?? null;
+    this.#securityOrigin = SecurityOrigin.create(payload?.securityOrigin ?? "");
     this.#securityOriginDetails = payload?.securityOriginDetails;
     this.#unreachableUrl = payload && payload.unreachableUrl || Platform14.DevToolsPath.EmptyUrlString;
     this.#adFrameStatus = payload?.adFrameStatus;
@@ -31219,7 +31285,7 @@ var ResourceTreeFrame = class {
     this.#name = framePayload.name;
     this.#url = framePayload.url;
     this.#domainAndRegistry = framePayload.domainAndRegistry;
-    this.#securityOrigin = framePayload.securityOrigin;
+    this.#securityOrigin = SecurityOrigin.create(framePayload.securityOrigin);
     this.#securityOriginDetails = framePayload.securityOriginDetails;
     void this.getStorageKey(
       /* forceFetch */
@@ -31262,7 +31328,15 @@ var ResourceTreeFrame = class {
     const res = await this.#model.agent.invoke_getAdScriptAncestry({ frameId });
     return res.adScriptAncestry || null;
   }
-  get securityOrigin() {
+  /**
+   * Returns the security origin of this frame.
+   *
+   * If the frame does not have a valid origin (such as `about:blank`), this
+   * method returns a unique opaque origin.
+   *
+   * @returns The security origin of the frame.
+   */
+  securityOrigin() {
     return this.#securityOrigin;
   }
   get securityOriginDetails() {
@@ -33179,8 +33253,11 @@ var Scope = class {
   icon() {
     return void 0;
   }
+  empty() {
+    return Boolean(this.#payload.empty);
+  }
   extraProperties() {
-    if (this.#ordinal !== 0 || this.#type !== Debugger.ScopeType.Local || this.#callFrame.script.isWasm()) {
+    if (this !== this.#callFrame.localScope() || this.#callFrame.script.isWasm()) {
       return [];
     }
     const extraProperties = [];
@@ -34764,6 +34841,9 @@ var NetworkDispatcher = class {
       }
       requestToManagerMap.set(networkRequest, this.#manager);
     }
+    networkRequest.setCacheDisabled(
+      this.#manager.target().targetManager().settings.resolve(cacheDisabledSettingDescriptor).get()
+    );
     networkRequest.hasNetworkData = true;
     this.updateNetworkRequestWithRequest(networkRequest, request);
     networkRequest.setIssueTime(timestamp, wallTime);
@@ -37340,6 +37420,7 @@ var NetworkRequest = class _NetworkRequest extends Common30.ObjectWrapper.Object
   #fromMemoryCache;
   #fromDiskCache;
   #fromPrefetchCache;
+  #cacheDisabled = false;
   #fromEarlyHints;
   #fetchedViaServiceWorker;
   #serviceWorkerRouterInfo;
@@ -37709,6 +37790,12 @@ var NetworkRequest = class _NetworkRequest extends Common30.ObjectWrapper.Object
   }
   setFromPrefetchCache() {
     this.#fromPrefetchCache = true;
+  }
+  cacheDisabled() {
+    return this.#cacheDisabled;
+  }
+  setCacheDisabled(cacheDisabled) {
+    this.#cacheDisabled = cacheDisabled;
   }
   fromEarlyHints() {
     return Boolean(this.#fromEarlyHints);

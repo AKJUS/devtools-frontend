@@ -1790,7 +1790,7 @@ export class DOMTreeWidget extends UI.Widget.Widget {
         this.performUpdate();
     }
     duplicateNode(node) {
-        node.duplicate();
+        void node.duplicate();
     }
     nodeBeingDragged() {
         return this.#draggedNode;
@@ -2366,6 +2366,7 @@ export class ElementsTreeOutline extends ElementsTreeOutlineBase {
     constructor(omitRootDOMNode, selectEnabled, hideGutter, maxTreeDepth, enableContextMenu, showComments, showAIButton, disableEdits, expandRoot, domTreeWidget) {
         super();
         this.domTreeWidget = domTreeWidget ?? null;
+        this.renderSelection = true;
         this.treeElementByNode = new WeakMap();
         const shadowContainer = document.createElement('div');
         this.shadowRoot = UI.UIUtils.createShadowRootWithCoreStyles(shadowContainer, { cssFile: [elementsTreeOutlineStyles, CodeHighlighter.codeHighlighterStyles] });

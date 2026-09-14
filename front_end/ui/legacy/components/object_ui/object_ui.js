@@ -77,8 +77,8 @@ var customPreviewComponent_css_default = `/*
 
 .custom-expand-icon {
   user-select: none;
-  margin-right: 4px;
-  margin-bottom: -4px;
+  margin-right: var(--sys-size-3);
+  margin-bottom: calc(-1 * var(--sys-size-3));
 }
 
 .custom-expandable-section-standard-section {
@@ -86,7 +86,7 @@ var customPreviewComponent_css_default = `/*
 }
 
 .custom-expandable-section-default-body {
-  padding-left: 12px;
+  padding-left: var(--sys-size-6);
 }
 
 /*# sourceURL=${import.meta.resolve("./customPreviewComponent.css")} */`;
@@ -1755,6 +1755,7 @@ var Network;
     TerminationEventDetailsDeletionReason2["InvalidSessionParams"] = "InvalidSessionParams";
     TerminationEventDetailsDeletionReason2["RefreshFatalError"] = "RefreshFatalError";
     TerminationEventDetailsDeletionReason2["DevTools"] = "DevTools";
+    TerminationEventDetailsDeletionReason2["Replaced"] = "Replaced";
   })(TerminationEventDetailsDeletionReason = Network2.TerminationEventDetailsDeletionReason || (Network2.TerminationEventDetailsDeletionReason = {}));
   let ChallengeEventDetailsChallengeResult;
   ((ChallengeEventDetailsChallengeResult2) => {
@@ -5930,7 +5931,7 @@ __export(ObjectPopoverHelper_exports, {
 import * as i18n7 from "../../../../core/i18n/i18n.js";
 import * as Platform3 from "../../../../core/platform/platform.js";
 import * as SDK4 from "../../../../core/sdk/sdk.js";
-import * as Geometry from "../../../../models/geometry/geometry.js";
+import * as Geometry from "../../../geometry/geometry.js";
 import { Link } from "../../../kit/kit.js";
 import { render as render4 } from "../../../lit/lit.js";
 import * as UI4 from "../../legacy.js";

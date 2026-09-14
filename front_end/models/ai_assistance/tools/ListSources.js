@@ -23,8 +23,12 @@ export class ListSourcesTool {
         ListSourcesTool.lastSourceId = 0;
         ListSourcesTool.uiSourceCodeId = new WeakMap();
     }
+    static getUISourceCodes(establishedOrigin, 
     // eslint-disable-next-line @devtools/no-instance-of-migrated-singletons
-    static getUISourceCodes(workspace = Workspace.Workspace.WorkspaceImpl.instance()) {
+    workspace = Workspace.Workspace.WorkspaceImpl.instance()) {
+        if (establishedOrigin.isOpaque()) {
+            return [];
+        }
         const projects = workspace.projects().filter(project => project.type() === Workspace.Workspace.projectTypes.Network);
         const uiSourceCodes = new Map();
         for (const project of projects) {
@@ -41,7 +45,16 @@ export class ListSourcesTool {
                 }
             }
         }
-        return [...uiSourceCodes.values()];
+        return [...uiSourceCodes.values()].filter(file => isOriginAllowedByLock(establishedOrigin, FileContext.originForUISourceCode(file)));
+    }
+    static getSourceById(id, establishedOrigin, 
+    // eslint-disable-next-line @devtools/no-instance-of-migrated-singletons
+    workspace = Workspace.Workspace.WorkspaceImpl.instance()) {
+        if (establishedOrigin.isOpaque()) {
+            return undefined;
+        }
+        return ListSourcesTool.getUISourceCodes(establishedOrigin, workspace)
+            .find(file => ListSourcesTool.uiSourceCodeId.get(file) === id);
     }
     parameters = {
         type: 6 /* Host.AidaClient.ParametersTypes.OBJECT */,
@@ -57,15 +70,13 @@ export class ListSourcesTool {
         };
     }
     async handler(_params, context) {
-        const origin = context.getEstablishedOrigin();
-        if (!origin || origin.isOpaque()) {
+        const establishedOrigin = context.getEstablishedOrigin();
+        if (!establishedOrigin || establishedOrigin.isOpaque()) {
             return {
                 error: 'Opaque origin not allowed',
             };
         }
-        const files = ListSourcesTool.getUISourceCodes().filter(file => {
-            return isOriginAllowedByLock(context, FileContext.originForUISourceCode(file));
-        });
+        const files = ListSourcesTool.getUISourceCodes(establishedOrigin);
         return {
             result: {
                 files: files.map(file => ({

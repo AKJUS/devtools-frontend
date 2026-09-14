@@ -89,7 +89,14 @@ export interface StyleMutationCapability {
  */
 export interface TargetCapability {
     /**
-     * Returns the current SDK Target for the inspected page.
+     * Returns the primary SDK Target for the inspected page.
+     *
+     * WARNING: This method does not perform a security origin check. When a conversation
+     * is locked to an iframe or subframe origin, this still returns the primary page target
+     * so tools can resolve DOM nodes and frame hierarchies across frames.
+     *
+     * Tools that consume this target must independently validate the security origin of
+     * any resolved entities (e.g. via `node.securityOrigin()`) against `getEstablishedOrigin()`.
      */
     getTarget(): SDK.Target.Target | null;
 }
@@ -100,22 +107,20 @@ export interface OriginLockCapability {
     /**
      * Returns the security origin locked for the current conversation.
      *
+     * TODO: When V1 agents (StylingAgent, AccessibilityAgent) are removed,
+     * simplify getEstablishedOrigin() to return SDK.SecurityOrigin.SecurityOrigin
+     * non-optionally.
+     *
      * @returns The established {@link SDK.SecurityOrigin.SecurityOrigin}, or `undefined`
      * if the conversation is not yet locked to an origin (e.g. before the first query).
      */
     getEstablishedOrigin(): SDK.SecurityOrigin.SecurityOrigin | undefined;
 }
 /**
- * Verifies that the conversation origin lock is established and non-opaque, and
- * that a target resource origin matches the locked origin.
- * Fails closed, returning a ToolErrorResult if invalid, or undefined if allowed.
- */
-export declare function validateOriginLock(context: OriginLockCapability, targetOrigin?: SDK.SecurityOrigin.SecurityOrigin | null, actionDescription?: string): ToolErrorResult | undefined;
-/**
  * Checks whether a target origin matches the established conversation origin lock.
- * Fails closed (returns false) if origin lock is missing/opaque or target is cross-origin.
+ * Fails closed (returns false) if established origin is missing/opaque or target is cross-origin.
  */
-export declare function isOriginAllowedByLock(context: OriginLockCapability, targetOrigin: SDK.SecurityOrigin.SecurityOrigin | null | undefined): boolean;
+export declare function isOriginAllowedByLock(establishedOrigin: SDK.SecurityOrigin.SecurityOrigin | undefined, targetOrigin: SDK.SecurityOrigin.SecurityOrigin | null | undefined): boolean;
 /**
  * Capability for tools that need to inspect an active Lighthouse report from context.
  */

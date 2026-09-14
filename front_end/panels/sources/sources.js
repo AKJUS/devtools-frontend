@@ -3884,6 +3884,7 @@ var Network;
     TerminationEventDetailsDeletionReason2["InvalidSessionParams"] = "InvalidSessionParams";
     TerminationEventDetailsDeletionReason2["RefreshFatalError"] = "RefreshFatalError";
     TerminationEventDetailsDeletionReason2["DevTools"] = "DevTools";
+    TerminationEventDetailsDeletionReason2["Replaced"] = "Replaced";
   })(TerminationEventDetailsDeletionReason = Network2.TerminationEventDetailsDeletionReason || (Network2.TerminationEventDetailsDeletionReason = {}));
   let ChallengeEventDetailsChallengeResult;
   ((ChallengeEventDetailsChallengeResult2) => {
@@ -8550,9 +8551,9 @@ import * as i18n15 from "../../core/i18n/i18n.js";
 import { assertNotNullOrUndefined as assertNotNullOrUndefined3 } from "../../core/platform/platform.js";
 import * as SDK7 from "../../core/sdk/sdk.js";
 import * as Bindings4 from "../../models/bindings/bindings.js";
-import * as Geometry from "../../models/geometry/geometry.js";
 import * as Workspace10 from "../../models/workspace/workspace.js";
 import * as CodeMirror3 from "../../third_party/codemirror.next/codemirror.next.js";
+import * as Geometry from "../../ui/geometry/geometry.js";
 import { createIcon as createIcon2 } from "../../ui/kit/kit.js";
 import * as ColorPicker from "../../ui/legacy/components/color_picker/color_picker.js";
 import * as InlineEditor from "../../ui/legacy/components/inline_editor/inline_editor.js";

@@ -25,19 +25,22 @@ export class CommentManager extends Common.ObjectWrapper.ObjectWrapper {
         return this.#commentMode;
     }
     createCommentThread(anchor, text, author = 'DEVELOPER', changes) {
-        const id = `comment-${this.#nextId++}`;
-        const comment = {
-            author,
-            text,
-            timestamp: Date.now(),
-        };
+        const index = this.#nextId++;
+        const id = `comment-${index}`;
+        const comments = text ? [{
+                author,
+                text,
+                timestamp: Date.now(),
+            }] :
+            [];
         const thread = {
             id,
             anchor,
-            comments: [comment],
+            comments,
             status: 'ACTIVE',
             transmitted: false,
             changes,
+            index,
         };
         this.#commentThreads.set(id, thread);
         this.dispatchEventToListeners("CommentThreadsChanged" /* Events.COMMENT_THREADS_CHANGED */, this.getCommentThreads());
