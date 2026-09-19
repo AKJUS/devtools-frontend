@@ -685,6 +685,14 @@ var Audits;
     PermissionElementIssueType2["NonSecureContext"] = "NonSecureContext";
     PermissionElementIssueType2["MissingTransientUserActivation"] = "MissingTransientUserActivation";
   })(PermissionElementIssueType = Audits2.PermissionElementIssueType || (Audits2.PermissionElementIssueType = {}));
+  let WebInstallIssueReason;
+  ((WebInstallIssueReason2) => {
+    WebInstallIssueReason2["ManifestParsingOrNetworkError"] = "ManifestParsingOrNetworkError";
+    WebInstallIssueReason2["StartUrlInvalid"] = "StartUrlInvalid";
+    WebInstallIssueReason2["ManifestMissingNameOrShortName"] = "ManifestMissingNameOrShortName";
+    WebInstallIssueReason2["ManifestMissingId"] = "ManifestMissingId";
+    WebInstallIssueReason2["NoManifest"] = "NoManifest";
+  })(WebInstallIssueReason = Audits2.WebInstallIssueReason || (Audits2.WebInstallIssueReason = {}));
   let InspectorIssueCode;
   ((InspectorIssueCode2) => {
     InspectorIssueCode2["CookieIssue"] = "CookieIssue";
@@ -717,6 +725,7 @@ var Audits;
     InspectorIssueCode2["SelectivePermissionsInterventionIssue"] = "SelectivePermissionsInterventionIssue";
     InspectorIssueCode2["EmailVerificationRequestIssue"] = "EmailVerificationRequestIssue";
     InspectorIssueCode2["LazyLoadImageIssue"] = "LazyLoadImageIssue";
+    InspectorIssueCode2["WebInstallIssue"] = "WebInstallIssue";
   })(InspectorIssueCode = Audits2.InspectorIssueCode || (Audits2.InspectorIssueCode = {}));
   let GetEncodedResponseRequestEncoding;
   ((GetEncodedResponseRequestEncoding2) => {
@@ -999,6 +1008,11 @@ var DOM;
     GetElementByRelationRequestRelation2["InterestTarget"] = "InterestTarget";
     GetElementByRelationRequestRelation2["CommandFor"] = "CommandFor";
   })(GetElementByRelationRequestRelation = DOM2.GetElementByRelationRequestRelation || (DOM2.GetElementByRelationRequestRelation = {}));
+  let SetTextMarkerRequestType;
+  ((SetTextMarkerRequestType2) => {
+    SetTextMarkerRequestType2["Spelling"] = "spelling";
+    SetTextMarkerRequestType2["Grammar"] = "grammar";
+  })(SetTextMarkerRequestType = DOM2.SetTextMarkerRequestType || (DOM2.SetTextMarkerRequestType = {}));
 })(DOM || (DOM = {}));
 var DOMDebugger;
 ((DOMDebugger2) => {
@@ -4582,7 +4596,7 @@ var OBJECT_TREE_DEFAULT_VIEW = (input, output, target) => {
     const nodes = Array.from(ObjectPropertyTreeElement.createNodes(
       objectTree,
       input.skipProto,
-      false,
+      input.skipGettersAndSetters,
       input.linkifier,
       input.emptyPlaceholder
     ));
@@ -4609,6 +4623,7 @@ var ObjectTreeWidget = class extends UI2.Widget.Widget {
   #emptyPlaceholder;
   #renderAsSubtree = false;
   #skipProto = false;
+  #skipGettersAndSetters = false;
   #view;
   constructor(element, view = OBJECT_TREE_DEFAULT_VIEW) {
     super(element);
@@ -4624,6 +4639,13 @@ var ObjectTreeWidget = class extends UI2.Widget.Widget {
   }
   set skipProto(val) {
     this.#skipProto = val;
+    this.requestUpdate();
+  }
+  get skipGettersAndSetters() {
+    return this.#skipGettersAndSetters;
+  }
+  set skipGettersAndSetters(val) {
+    this.#skipGettersAndSetters = val;
     this.requestUpdate();
   }
   get objectTree() {
@@ -5125,7 +5147,7 @@ var ObjectPropertyTreeElement = class _ObjectPropertyTreeElement extends UI2.Tre
     if (arrayRanges && arrayRanges.length > 0) {
       empty = false;
     }
-    const sortPropertiesAlphabetically = properties?.[0]?.parent?.sortPropertiesAlphabetically ?? true;
+    const sortPropertiesAlphabetically = properties?.[0]?.sortPropertiesAlphabetically ?? true;
     properties?.sort((a, b) => compareProperties(a, b, sortPropertiesAlphabetically));
     const entriesProperty = internalProperties?.find(({ property }) => property.name === "[[Entries]]");
     if (entriesProperty) {
@@ -5268,7 +5290,7 @@ var ObjectPropertyTreeElement = class _ObjectPropertyTreeElement extends UI2.Tre
   }
   getContextMenu(event) {
     const contextMenu = new UI2.ContextMenu.ContextMenu(event);
-    contextMenu.appendApplicableItems(this);
+    contextMenu.appendApplicableItems(this.property);
     if (this.property.property.symbol) {
       contextMenu.appendApplicableItems(this.property.property.symbol);
     }
@@ -5340,9 +5362,6 @@ var ObjectPropertyTreeElement = class _ObjectPropertyTreeElement extends UI2.Tre
     } else {
       this.setExpandable(false);
     }
-  }
-  path() {
-    return this.property.path;
   }
 };
 async function arrayRangeGroups(object, fromIndex, toIndex) {

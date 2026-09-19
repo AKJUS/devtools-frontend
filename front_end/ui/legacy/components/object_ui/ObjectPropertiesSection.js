@@ -1082,7 +1082,7 @@ export const OBJECT_TREE_DEFAULT_VIEW = (input, output, target) => {
         if (entry) {
             objectTree.removeEventListener("children-changed" /* ObjectTreeNodeBase.Events.CHILDREN_CHANGED */, entry.listener);
         }
-        const nodes = Array.from(ObjectPropertyTreeElement.createNodes(objectTree, input.skipProto, false, input.linkifier, input.emptyPlaceholder));
+        const nodes = Array.from(ObjectPropertyTreeElement.createNodes(objectTree, input.skipProto, input.skipGettersAndSetters, input.linkifier, input.emptyPlaceholder));
         const listener = () => {
             topLevelNodesCache.delete(objectTree);
             objectTree.removeEventListener("children-changed" /* ObjectTreeNodeBase.Events.CHILDREN_CHANGED */, listener);
@@ -1106,6 +1106,7 @@ export class ObjectTreeWidget extends UI.Widget.Widget {
     #emptyPlaceholder;
     #renderAsSubtree = false;
     #skipProto = false;
+    #skipGettersAndSetters = false;
     #view;
     constructor(element, view = OBJECT_TREE_DEFAULT_VIEW) {
         super(element);
@@ -1121,6 +1122,13 @@ export class ObjectTreeWidget extends UI.Widget.Widget {
     }
     set skipProto(val) {
         this.#skipProto = val;
+        this.requestUpdate();
+    }
+    get skipGettersAndSetters() {
+        return this.#skipGettersAndSetters;
+    }
+    set skipGettersAndSetters(val) {
+        this.#skipGettersAndSetters = val;
         this.requestUpdate();
     }
     get objectTree() {
@@ -1596,7 +1604,7 @@ export class ObjectPropertyTreeElement extends UI.TreeOutline.TreeElement {
         if (arrayRanges && arrayRanges.length > 0) {
             empty = false;
         }
-        const sortPropertiesAlphabetically = properties?.[0]?.parent?.sortPropertiesAlphabetically ?? true;
+        const sortPropertiesAlphabetically = properties?.[0]?.sortPropertiesAlphabetically ?? true;
         properties?.sort((a, b) => compareProperties(a, b, sortPropertiesAlphabetically));
         const entriesProperty = internalProperties?.find(({ property }) => property.name === '[[Entries]]');
         if (entriesProperty) {
@@ -1734,7 +1742,7 @@ export class ObjectPropertyTreeElement extends UI.TreeOutline.TreeElement {
     }
     getContextMenu(event) {
         const contextMenu = new UI.ContextMenu.ContextMenu(event);
-        contextMenu.appendApplicableItems(this);
+        contextMenu.appendApplicableItems(this.property);
         if (this.property.property.symbol) {
             contextMenu.appendApplicableItems(this.property.property.symbol);
         }
@@ -1789,9 +1797,6 @@ export class ObjectPropertyTreeElement extends UI.TreeOutline.TreeElement {
         else {
             this.setExpandable(false);
         }
-    }
-    path() {
-        return this.property.path;
     }
 }
 async function arrayRangeGroups(object, fromIndex, toIndex) {

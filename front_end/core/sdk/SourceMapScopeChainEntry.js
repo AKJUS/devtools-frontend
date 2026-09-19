@@ -24,6 +24,10 @@ const UIStrings = {
     /**
      * @description Text in Scope Chain section of the Sources panel.
      */
+    exception: 'Exception',
+    /**
+     * @description Text in Scope Chain section of the Sources panel.
+     */
     returnValue: 'Return value',
 };
 const str_ = i18n.i18n.registerUIStrings('core/sdk/SourceMapScopeChainEntry.ts', UIStrings);
@@ -34,44 +38,56 @@ export class SourceMapScopeChainEntry {
     #range;
     #isInnerMostFunction;
     #returnValue;
+    #scopeNumber;
     /**
      * @param isInnerMostFunction If `scope` is the innermost 'function' scope. Only used for labeling as we name the
      * scope of the paused function 'Local', while other outer 'function' scopes are named 'Closure'.
+     * @param scopeNumber The V8 scope in which `scope`s binding expressions must be evaluated. Defaults to the
+     * inner-most scope.
      */
-    constructor(callFrame, scope, range, isInnerMostFunction, returnValue) {
+    constructor(callFrame, scope, range, isInnerMostFunction, returnValue, scopeNumber) {
         this.#callFrame = callFrame;
         this.#scope = scope;
         this.#range = range;
         this.#isInnerMostFunction = isInnerMostFunction;
         this.#returnValue = returnValue;
+        this.#scopeNumber = scopeNumber;
     }
     extraProperties() {
-        if (this.#returnValue) {
-            return [new RemoteObjectProperty(i18nString(UIStrings.returnValue), this.#returnValue, undefined, undefined, undefined, undefined, undefined, 
-                /* synthetic */ true)];
+        const extraProperties = [];
+        if (this.#isInnerMostFunction && this.#callFrame.exception) {
+            extraProperties.push(new RemoteObjectProperty(i18nString(UIStrings.exception), this.#callFrame.exception, undefined, undefined, undefined, undefined, undefined, 
+            /* synthetic */ true));
         }
-        return [];
+        if (this.#returnValue) {
+            extraProperties.push(new RemoteObjectProperty(i18nString(UIStrings.returnValue), this.#returnValue, undefined, undefined, undefined, undefined, undefined, 
+            /* synthetic */ true, this.#callFrame.setReturnValue.bind(this.#callFrame)));
+        }
+        return extraProperties;
     }
     callFrame() {
         return this.#callFrame;
     }
     type() {
-        switch (this.#scope.kind) {
+        if (this.#scope.isStackFrame) {
+            return this.#isInnerMostFunction ? "local" /* Protocol.Debugger.ScopeType.Local */ : "closure" /* Protocol.Debugger.ScopeType.Closure */;
+        }
+        // `kind` is a free-form label. The spec encourages 'Global'/'Block' but doesn't mandate the casing.
+        switch (this.#scope.kind?.toLowerCase()) {
             case 'global':
                 return "global" /* Protocol.Debugger.ScopeType.Global */;
-            case 'function':
-                return this.#isInnerMostFunction ? "local" /* Protocol.Debugger.ScopeType.Local */ : "closure" /* Protocol.Debugger.ScopeType.Closure */;
             case 'block':
                 return "block" /* Protocol.Debugger.ScopeType.Block */;
         }
         return this.#scope.kind ?? '';
     }
     typeName() {
-        switch (this.#scope.kind) {
+        if (this.#scope.isStackFrame) {
+            return this.#isInnerMostFunction ? i18nString(UIStrings.local) : i18nString(UIStrings.closure);
+        }
+        switch (this.#scope.kind?.toLowerCase()) {
             case 'global':
                 return i18nString(UIStrings.global);
-            case 'function':
-                return this.#isInnerMostFunction ? i18nString(UIStrings.local) : i18nString(UIStrings.closure);
             case 'block':
                 return i18nString(UIStrings.block);
         }
@@ -84,7 +100,7 @@ export class SourceMapScopeChainEntry {
         return null;
     }
     object() {
-        return new SourceMapScopeRemoteObject(this.#callFrame, this.#scope, this.#range);
+        return new SourceMapScopeRemoteObject(this.#callFrame, this.#scope, this.#range, this.#scopeNumber);
     }
     description() {
         return '';
@@ -97,34 +113,60 @@ class SourceMapScopeRemoteObject extends RemoteObjectImpl {
     #callFrame;
     #scope;
     #range;
-    constructor(callFrame, scope, range) {
+    #scopeNumber;
+    constructor(callFrame, scope, range, scopeNumber) {
         super(callFrame.debuggerModel.runtimeModel(), /* objectId */ undefined, 'object', /* sub type */ undefined, 
         /* value */ null);
         this.#callFrame = callFrame;
         this.#scope = scope;
         this.#range = range;
+        this.#scopeNumber = scopeNumber;
     }
-    async doGetProperties(_ownProperties, accessorPropertiesOnly, generatePreview) {
+    async doGetProperties(_ownProperties, accessorPropertiesOnly, _nonIndexedPropertiesOnly, generatePreview) {
         if (accessorPropertiesOnly) {
             return { properties: [], internalProperties: [] };
         }
+        if (this.#scope.variables.length === 0) {
+            return { properties: [], internalProperties: [] };
+        }
+        const expressions = this.#scope.variables.map((_, index) => this.#findExpression(index));
+        if (expressions.every(expr => expr === null)) {
+            const properties = this.#scope.variables.map(v => SourceMapScopeRemoteObject.#unavailableProperty(v));
+            return { properties, internalProperties: [] };
+        }
+        const spreadEntries = [];
+        for (const [index, expr] of expressions.entries()) {
+            if (expr !== null) {
+                spreadEntries.push(`...(() => { try { return {${index}: eval(${JSON.stringify(expr)})}; } catch {} })()`);
+            }
+        }
+        const batchExpression = `({ __proto__: null, ${spreadEntries.join(', ')} })`;
+        const result = await this.#callFrame.evaluate({
+            expression: batchExpression,
+            generatePreview: false,
+            scopeNumber: this.#scopeNumber,
+        });
+        if ('error' in result || result.exceptionDetails || !result.object) {
+            const properties = this.#scope.variables.map(v => SourceMapScopeRemoteObject.#unavailableProperty(v));
+            return { properties, internalProperties: [] };
+        }
+        const { properties: objectProperties } = await result.object.getOwnProperties(generatePreview);
+        result.object.release();
+        const propertyMap = new Map();
+        if (objectProperties) {
+            for (const prop of objectProperties) {
+                propertyMap.set(prop.name, prop);
+            }
+        }
         const properties = [];
         for (const [index, variable] of this.#scope.variables.entries()) {
-            const expression = this.#findExpression(index);
-            if (expression === null) {
-                properties.push(SourceMapScopeRemoteObject.#unavailableProperty(variable));
-                continue;
-            }
-            // TODO(crbug.com/40277685): Once we can evaluate expressions in scopes other than the innermost one,
-            //         we need to find the find the CDP scope that matches `this.#range` and evaluate in that.
-            const result = await this.#callFrame.evaluate({ expression, generatePreview });
-            if ('error' in result || result.exceptionDetails) {
-                // TODO(crbug.com/40277685): Make these errors user-visible to aid tooling developers.
-                //         E.g. show the error on hover or expose it in the developer resources panel.
+            const prop = propertyMap.get(String(index));
+            if (!prop || !prop.value) {
                 properties.push(SourceMapScopeRemoteObject.#unavailableProperty(variable));
             }
             else {
-                properties.push(new RemoteObjectProperty(variable, result.object, /* enumerable */ false, /* writable */ false, /* isOwn */ true, 
+                properties.push(new RemoteObjectProperty(variable, prop.value, /* enumerable */ false, /* writable */ false, 
+                /* isOwn */ true, 
                 /* wasThrown */ false));
             }
         }
@@ -139,7 +181,7 @@ class SourceMapScopeRemoteObject extends RemoteObjectImpl {
         if (typeof expressionOrSubRanges === 'string') {
             return expressionOrSubRanges;
         }
-        if (expressionOrSubRanges === null) {
+        if (expressionOrSubRanges === null || expressionOrSubRanges === undefined) {
             return null;
         }
         const pausedPosition = this.#callFrame.location();
