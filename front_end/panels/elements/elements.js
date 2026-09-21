@@ -4384,7 +4384,7 @@ var UIStrings4 = {
    * @example {20} PH4
    * @example {Arial} PH5
    */
-  fontVariationSettingsWarning: 'Value for setting "{PH1}" {PH2} is outside the supported range [{PH3}, {PH4}] for font-family "{PH5}"',
+  fontVariationSettingsWarning: 'Value for setting "{PH1}" {PH2} is outside the supported range [{PH3}, {PH4}] for font-family "{PH5}".',
   /**
    * @description The message shown in the Styles tab when the user hovers over a property declaration that has no effect on flex or grid child items.
    * @example {flex} CONTAINER_DISPLAY_NAME
@@ -20281,6 +20281,10 @@ var elementsTreeOutline_css_default = `/*
   display: flex;
 }
 
+.elements-disclosure li .tree-element-title {
+  display: contents;
+}
+
 .elements-disclosure li.parent:not(.always-parent) {
   /** Keep it in sync with ElementsTreeElements.updateDecorations **/
   margin-left: calc(-1 * var(--sys-size-6));
@@ -20821,10 +20825,6 @@ li.hovered:not(.always-parent) + ol.children:not(.shadow-root) {
 
 .tree-outline-disclosure li.in-clipboard .highlight {
   outline: 1px dotted var(--sys-color-divider);
-}
-
-.tree-outline-disclosure li.elements-tree-expand-all {
-  margin: var(--sys-size-2) 0;
 }
 
 /*# sourceURL=${import.meta.resolve("./elementsTreeOutline.css")} */`;
@@ -21679,6 +21679,7 @@ var DECLARATIVE_VIEW = (input, _output, target) => {
     };
     return html15`
       <li role="treeitem"
+          selectable=${input.selectEnabled ? "true" : "false"}
           ?selected=${isSelected && !input.selectedClosingTag}
           class=${classes}
           style=${styleMap({ "--indent": `${computeLeftIndent(depth, isExpandable)}px` })}
@@ -21693,8 +21694,7 @@ var DECLARATIVE_VIEW = (input, _output, target) => {
           @dragleave=${on2(onDragLeave)}
           @drop=${on2(onDrop)}
           @dragend=${on2(onDragEnd)}
-          jslog=${treeItemJslog(void 0, true)}>
-        ${UI19.Widget.widget(ElementsTreeWidget, {
+          jslog=${treeItemJslog(void 0, true)}>${UI19.Widget.widget(ElementsTreeWidget, {
       node,
       isClosingTag: false,
       renderSelection: false,
@@ -21735,32 +21735,28 @@ var DECLARATIVE_VIEW = (input, _output, target) => {
         }
       },
       updateRecord: input.updateRecordForNode?.(node) ?? null
-    })}
-        ${hasChildren ? html15`
-          <ul role="group">
+    })}${hasChildren ? html15`<ul role="group">
             ${UI19.TreeOutline.ifExpanded(html15`
               ${node.adoptedStyleSheetsForNode.length > 0 ? renderAdoptedStyleSheets(node, depth + 1) : nothing6}
               ${repeat2(children, (child) => child.id, (child) => renderNode(child, depth + 1))}
               ${remainingChildrenCount > 0 ? html15`
                 <li role="treeitem"
+                    selectable="false"
                     class="elements-tree-expand-all"
                     style=${styleMap({ "--indent": `${computeLeftIndent(depth + 1, false)}px` })}
-                    jslog=${treeItemJslog("show-all-nodes")}>
-                  <devtools-button
+                    jslog=${treeItemJslog("show-all-nodes")}><devtools-button
                       .variant=${Buttons3.Button.Variant.OUTLINED}
                       title=${i18nString16(UIStrings17.showAllNodesDMore, { PH1: remainingChildrenCount })}
                       @click=${on2((event) => {
       event.stopPropagation();
       input.onExpandAllChildren?.(node);
-    })}>
-                    ${i18nString16(UIStrings17.showAllNodesDMore, { PH1: remainingChildrenCount })}
-                  </devtools-button>
-                </li>
+    })}>${i18nString16(UIStrings17.showAllNodesDMore, { PH1: remainingChildrenCount })}</devtools-button></li>
               ` : nothing6}
               ${node.isInsertionPoint() ? node.distributedNodes().map((distributedNode) => renderShortcut(distributedNode, depth + 1)) : nothing6}
               ${node instanceof SDK16.DOMModel.DOMDocument ? renderTopLayerContainer(node, depth + 1) : nothing6}
               ${needsClosingTag ? html15`
                 <li role="treeitem"
+                    selectable=${input.selectEnabled ? "true" : "false"}
                     ?selected=${isSelected && Boolean(input.selectedClosingTag)}
                     class=${classMap4({
       selected: isSelected && Boolean(input.selectedClosingTag),
@@ -21777,8 +21773,7 @@ var DECLARATIVE_VIEW = (input, _output, target) => {
                     @dragover=${on2(onClosingTagDragOver)}
                     @dragleave=${on2(onDragLeave)}
                     @drop=${on2(onClosingTagDrop)}
-                    @dragend=${on2(onDragEnd)}>
-                  ${UI19.Widget.widget(ElementsTreeWidget, {
+                    @dragend=${on2(onDragEnd)}>${UI19.Widget.widget(ElementsTreeWidget, {
       node,
       isClosingTag: true,
       renderSelection: false,
@@ -21796,13 +21791,10 @@ var DECLARATIVE_VIEW = (input, _output, target) => {
         }
       },
       updateRecord: input.updateRecordForNode?.(node) ?? null
-    })}
-                </li>
+    })}</li>
               ` : nothing6}
             `)}
-          </ul>
-        ` : nothing6}
-      </li>
+          </ul>` : nothing6}</li>
     `;
   };
   const isSingleNode = Boolean(input.deindentSingleNode && rootNodes.length === 1 && !nodeHasVisibleChildren(rootNodes[0], input.rootDOMNode, input.maxTreeDepth, input.omitRootDOMNode));
@@ -21847,19 +21839,16 @@ var DECLARATIVE_VIEW = (input, _output, target) => {
     const root = input.rootDOMNode;
     return html15`
                 <li role="treeitem"
+                    selectable="false"
                     class="elements-tree-expand-all"
                     style=${styleMap({ "--indent": `${computeLeftIndent(0, false)}px` })}
-                    jslog=${treeItemJslog("show-all-nodes")}>
-                  <devtools-button
+                    jslog=${treeItemJslog("show-all-nodes")}><devtools-button
                     .variant=${Buttons3.Button.Variant.OUTLINED}
                     title=${i18nString16(UIStrings17.showAllNodesDMore, { PH1: remaining })}
                     @click=${on((event) => {
       event.stopPropagation();
       input.onExpandAllChildren?.(root);
-    })}>
-                    ${i18nString16(UIStrings17.showAllNodesDMore, { PH1: remaining })}
-                  </devtools-button>
-                </li>
+    })}>${i18nString16(UIStrings17.showAllNodesDMore, { PH1: remaining })}</devtools-button></li>
               `;
   })() : nothing6}
             ${input.omitRootDOMNode && input.rootDOMNode instanceof SDK16.DOMModel.DOMDocument ? renderTopLayerContainer(input.rootDOMNode, 0) : nothing6}
