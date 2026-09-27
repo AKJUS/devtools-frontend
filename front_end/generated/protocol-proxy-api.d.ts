@@ -4332,6 +4332,12 @@ declare namespace ProtocolProxyApi {
     invoke_getPrivateVerificationTokens(): Promise<Protocol.Storage.GetPrivateVerificationTokensResponse>;
 
     /**
+     * Returns the configured Private Verification Tokens issuers and their redeemer
+     * origins.
+     */
+    invoke_getPrivateVerificationTokensIssuerConfigs(): Promise<Protocol.Storage.GetPrivateVerificationTokensIssuerConfigsResponse>;
+
+    /**
      * Removes all Private Verification Tokens issued by the provided issuerOrigin.
      */
     invoke_clearPrivateVerificationTokens(params: Protocol.Storage.ClearPrivateVerificationTokensRequest): Promise<Protocol.ProtocolResponseWithError>;
@@ -4360,12 +4366,6 @@ declare namespace ProtocolProxyApi {
      * Deletes state for sites identified as potential bounce trackers, immediately.
      */
     invoke_runBounceTrackingMitigations(): Promise<Protocol.Storage.RunBounceTrackingMitigationsResponse>;
-
-    /**
-     * Returns the effective Related Website Sets in use by this profile for the browser
-     * session. The effective Related Website Sets will not change during a browser session.
-     */
-    invoke_getRelatedWebsiteSets(): Promise<Protocol.Storage.GetRelatedWebsiteSetsResponse>;
 
   }
   export interface StorageDispatcher {

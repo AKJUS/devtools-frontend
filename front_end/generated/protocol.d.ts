@@ -816,7 +816,6 @@ export declare namespace Audits {
         ExcludeSameSiteLax = "ExcludeSameSiteLax",
         ExcludeSameSiteStrict = "ExcludeSameSiteStrict",
         ExcludeDomainNonASCII = "ExcludeDomainNonASCII",
-        ExcludeThirdPartyCookieBlockedInFirstPartySet = "ExcludeThirdPartyCookieBlockedInFirstPartySet",
         ExcludeThirdPartyPhaseout = "ExcludeThirdPartyPhaseout",
         ExcludePortMismatch = "ExcludePortMismatch",
         ExcludeSchemeMismatch = "ExcludeSchemeMismatch"
@@ -10479,7 +10478,6 @@ export declare namespace Network {
         SameSiteNoneInsecure = "SameSiteNoneInsecure",
         UserPreferences = "UserPreferences",
         ThirdPartyPhaseout = "ThirdPartyPhaseout",
-        ThirdPartyBlockedInFirstPartySet = "ThirdPartyBlockedInFirstPartySet",
         SyntaxError = "SyntaxError",
         SchemeNotSupported = "SchemeNotSupported",
         OverwriteSecure = "OverwriteSecure",
@@ -10506,7 +10504,6 @@ export declare namespace Network {
         SameSiteNoneInsecure = "SameSiteNoneInsecure",
         UserPreferences = "UserPreferences",
         ThirdPartyPhaseout = "ThirdPartyPhaseout",
-        ThirdPartyBlockedInFirstPartySet = "ThirdPartyBlockedInFirstPartySet",
         UnknownError = "UnknownError",
         SchemefulSameSiteStrict = "SchemefulSameSiteStrict",
         SchemefulSameSiteLax = "SchemefulSameSiteLax",
@@ -14049,6 +14046,10 @@ export declare namespace Page {
          * Frame swap timestamp.
          */
         timestamp?: Network.TimeSinceEpoch;
+        /**
+         * Frame swap timestamp as monotonic time.
+         */
+        monotonicTimestamp?: Network.MonotonicTime;
     }
     /**
      * Javascript dialog type.
@@ -17164,6 +17165,19 @@ export declare namespace Storage {
          */
         token: string;
     }
+    /**
+     * Configuration for a Private Verification Tokens issuer.
+     */
+    interface PrivateVerificationTokensIssuerConfig {
+        /**
+         * Origin of the token issuer.
+         */
+        issuerOrigin: string;
+        /**
+         * Origins authorized to redeem tokens from this issuer.
+         */
+        redeemerOrigins: string[];
+    }
     const enum StorageBucketsDurability {
         Relaxed = "relaxed",
         Strict = "strict"
@@ -17185,23 +17199,6 @@ export declare namespace Storage {
         quota: number;
         persistent: boolean;
         durability: StorageBucketsDurability;
-    }
-    /**
-     * A single Related Website Set object.
-     */
-    interface RelatedWebsiteSet {
-        /**
-         * The primary site of this set, along with the ccTLDs if there is any.
-         */
-        primarySites: string[];
-        /**
-         * The associated sites of this set, along with the ccTLDs if there is any.
-         */
-        associatedSites: string[];
-        /**
-         * The service sites of this set, along with the ccTLDs if there is any.
-         */
-        serviceSites: string[];
     }
     interface GetStorageKeyForFrameRequest {
         frameId: Page.FrameId;
@@ -17366,6 +17363,9 @@ export declare namespace Storage {
     interface GetPrivateVerificationTokensResponse extends ProtocolResponseWithError {
         tokens: PrivateVerificationToken[];
     }
+    interface GetPrivateVerificationTokensIssuerConfigsResponse extends ProtocolResponseWithError {
+        configs: PrivateVerificationTokensIssuerConfig[];
+    }
     interface ClearPrivateVerificationTokensRequest {
         issuerOrigin: string;
     }
@@ -17384,9 +17384,6 @@ export declare namespace Storage {
     }
     interface RunBounceTrackingMitigationsResponse extends ProtocolResponseWithError {
         deletedSites: string[];
-    }
-    interface GetRelatedWebsiteSetsResponse extends ProtocolResponseWithError {
-        sets: RelatedWebsiteSet[];
     }
     /**
      * A cache's contents have been modified.
@@ -18911,6 +18908,10 @@ export declare namespace WebMCP {
          * A hint indicating that executing the tool will result in consequential actions, ex: booking a flight, transferring money.
          */
         consequential?: boolean;
+        /**
+         * If true, indicates that the tool is intended for debugging and developer tooling rather than end-user interactions.
+         */
+        debugging?: boolean;
         /**
          * If the declarative tool was declared with the autosubmit attribute.
          */

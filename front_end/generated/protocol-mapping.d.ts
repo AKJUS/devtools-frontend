@@ -4955,6 +4955,14 @@ export namespace ProtocolMapping {
       returnType: Protocol.Storage.GetPrivateVerificationTokensResponse;
     };
     /**
+     * Returns the configured Private Verification Tokens issuers and their redeemer
+     * origins.
+     */
+    'Storage.getPrivateVerificationTokensIssuerConfigs': {
+      paramsType: [];
+      returnType: Protocol.Storage.GetPrivateVerificationTokensIssuerConfigsResponse;
+    };
+    /**
      * Removes all Private Verification Tokens issued by the provided issuerOrigin.
      */
     'Storage.clearPrivateVerificationTokens': {
@@ -4995,14 +5003,6 @@ export namespace ProtocolMapping {
     'Storage.runBounceTrackingMitigations': {
       paramsType: [];
       returnType: Protocol.Storage.RunBounceTrackingMitigationsResponse;
-    };
-    /**
-     * Returns the effective Related Website Sets in use by this profile for the browser
-     * session. The effective Related Website Sets will not change during a browser session.
-     */
-    'Storage.getRelatedWebsiteSets': {
-      paramsType: [];
-      returnType: Protocol.Storage.GetRelatedWebsiteSetsResponse;
     };
     /**
      * Returns information about the system.

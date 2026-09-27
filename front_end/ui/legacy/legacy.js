@@ -653,7 +653,7 @@ __export(Dialog_exports, {
 });
 import * as Common16 from "../../core/common/common.js";
 import * as i18n27 from "../../core/i18n/i18n.js";
-import { nothing as nothing5, render as render10 } from "../lit/lit.js";
+import { nothing as nothing6, render as render10 } from "../lit/lit.js";
 import * as Buttons7 from "../components/buttons/buttons.js";
 import * as VisualLogging17 from "../visual_logging/visual_logging.js";
 
@@ -841,7 +841,7 @@ import * as Root8 from "../../core/root/root.js";
 import * as Buttons5 from "../components/buttons/buttons.js";
 import * as VisualLogging15 from "../visual_logging/visual_logging.js";
 import { createIcon as createIcon7 } from "../kit/kit.js";
-import { nothing as nothing3, render as render7 } from "../lit/lit.js";
+import { nothing as nothing4, render as render7 } from "../lit/lit.js";
 import * as SettingUIRegistration from "../settings/settings.js";
 
 // ../../front_end/ui/legacy/ContextMenu.ts
@@ -4631,7 +4631,7 @@ import * as Common8 from "../../core/common/common.js";
 import * as i18n7 from "../../core/i18n/i18n.js";
 import * as Platform7 from "../../core/platform/platform.js";
 import * as Buttons2 from "../components/buttons/buttons.js";
-import { render } from "../lit/lit.js";
+import { nothing as nothing2, render } from "../lit/lit.js";
 import * as VisualLogging5 from "../visual_logging/visual_logging.js";
 import * as Geometry3 from "../geometry/geometry.js";
 import { createIcon as createIcon2, Icon } from "../kit/kit.js";
@@ -5689,8 +5689,13 @@ var TabbedPane = class extends TabbedPaneBase {
       this.focusedPlaceholderElement = focusedElement;
     }
     if (this.placeholderContainerElement) {
-      this.placeholderContainerElement.removeChildren();
-      this.placeholderContainerElement.appendChild(element);
+      if (element instanceof Element) {
+        render(nothing2, this.placeholderContainerElement);
+        this.placeholderContainerElement.removeChildren();
+        this.placeholderContainerElement.appendChild(element);
+      } else {
+        render(element, this.placeholderContainerElement);
+      }
     }
   }
   async waitForTabElementUpdate() {
@@ -5704,7 +5709,11 @@ var TabbedPane = class extends TabbedPaneBase {
       this.#contentElement.classList.add("has-no-tabs");
       if (this.placeholderElement && !this.placeholderContainerElement) {
         this.placeholderContainerElement = this.#contentElement.createChild("div", "tabbed-pane-placeholder fill");
-        this.placeholderContainerElement.appendChild(this.placeholderElement);
+        if (this.placeholderElement instanceof Element) {
+          this.placeholderContainerElement.appendChild(this.placeholderElement);
+        } else {
+          render(this.placeholderElement, this.placeholderContainerElement);
+        }
         if (this.focusedPlaceholderElement) {
           this.setDefaultFocusedElement(this.focusedPlaceholderElement);
         }
@@ -6570,10 +6579,15 @@ var TabbedPaneElement = class extends WidgetElement {
     this.getWidget()?.setTabDelegate(delegate);
   }
   #placeholderElement;
+  #headerJslog;
   #managedTabIds = /* @__PURE__ */ new Set();
   set placeholder(element) {
     this.#placeholderElement = element;
     this.getWidget()?.setPlaceholderElement(element);
+  }
+  set headerJslog(jslog) {
+    this.#headerJslog = jslog;
+    this.getWidget()?.headerElement().setAttribute("jslog", jslog);
   }
   #tabObserver = new MutationObserver(() => this.#updateTabs());
   constructor() {
@@ -6586,6 +6600,9 @@ var TabbedPaneElement = class extends WidgetElement {
         widget2.setAllowTabReorder(this.#allowTabReorder, this.#automaticReorder);
         if (this.#delegate) {
           widget2.setTabDelegate(this.#delegate);
+        }
+        if (this.#headerJslog) {
+          widget2.headerElement().setAttribute("jslog", this.#headerJslog);
         }
         const slot = widget2.contentElement.querySelector("slot:not([name])");
         if (slot) {
@@ -13539,7 +13556,7 @@ var Toolbar = class _Toolbar extends HTMLElement {
       }
     }
     this.items = [];
-    render7(nothing3, this);
+    render7(nothing4, this);
   }
   hideSeparatorDupes() {
     if (!this.items.length) {
@@ -18397,7 +18414,7 @@ var DialogWidget = class extends DialogWidgetBase {
   #open = false;
   #jslogContext = "";
   #dialogStack = false;
-  #content = nothing5;
+  #content = nothing6;
   #dialog = new Dialog();
   constructor(element) {
     super(element);
@@ -18457,7 +18474,7 @@ var DialogWidget = class extends DialogWidgetBase {
   }
   performUpdate() {
     if (this.open) {
-      render10(this.#content ?? nothing5, this.#dialog.contentElement);
+      render10(this.#content ?? nothing6, this.#dialog.contentElement);
       if (!this.#dialog.isShowing()) {
         this.#dialog.show(this.contentElement.ownerDocument, this.#dialogStack);
         this.#dialog.contentElement.focus();
@@ -19937,7 +19954,7 @@ __export(ListWidget_exports, {
 import * as i18n33 from "../../core/i18n/i18n.js";
 import * as Platform21 from "../../core/platform/platform.js";
 import * as Buttons8 from "../components/buttons/buttons.js";
-import { html as html7, nothing as nothing6, render as render12 } from "../lit/lit.js";
+import { html as html7, nothing as nothing7, render as render12 } from "../lit/lit.js";
 import * as VisualLogging20 from "../visual_logging/visual_logging.js";
 
 // gen/front_end/ui/legacy/listWidget.css.js
@@ -20288,7 +20305,7 @@ var ListWidget = class extends VBox {
       <div class="controls-gradient"></div>
       <div class="controls-buttons">
         <devtools-toolbar>
-          ${controlLabels?.hideEdit ? nothing6 : html7`<devtools-button class=toolbar-button
+          ${controlLabels?.hideEdit ? nothing7 : html7`<devtools-button class=toolbar-button
                            .iconName=${"edit"}
                            .jslogContext=${"edit-item"}
                            .title=${controlLabels?.edit ?? i18nString17(UIStrings17.editString)}
@@ -22778,7 +22795,7 @@ var treeoutline_css_default = `/*
   margin-left: -10000px;
 }
 
-.tree-outline:not(.hide-selection-when-blurred) li.selected {
+.tree-outline:not(.hide-selection-when-blurred, .elements-tree-outline) li.selected {
   color: var(--sys-color-on-surface-subtle);
 }
 
@@ -22833,7 +22850,7 @@ ol.tree-outline,
   min-height: var(--sys-size-8);
 }
 
-ol.tree-outline:not(.hide-selection-when-blurred) li.selected:focus {
+ol.tree-outline:not(.hide-selection-when-blurred, .elements-tree-outline) li.selected:focus {
   color: var(--sys-color-on-tonal-container);
 
   & ::selection {
@@ -23679,6 +23696,9 @@ var TreeElement = class {
   }
   set selectable(x) {
     this.selectableInternal = x;
+    if (!x && this.selected) {
+      this.deselect();
+    }
   }
   get listItemElement() {
     return this.listItemNode;
@@ -24410,7 +24430,7 @@ var TreeViewTreeElement = class _TreeViewTreeElement extends TreeElement {
     this.#clonedClasses.clear();
     for (let i = 0; i < this.configElement.attributes.length; ++i) {
       const attribute = this.configElement.attributes.item(i);
-      if (attribute && attribute.name !== "role" && _TreeViewTreeElement.CLONED_ATTRIBUTES.has(attribute.name)) {
+      if (attribute && attribute.name !== "role" && (_TreeViewTreeElement.CLONED_ATTRIBUTES.has(attribute.name) || attribute.name.startsWith("data-"))) {
         this.listItemElement.setAttribute(attribute.name, attribute.value);
         this.#clonedAttributes.add(attribute.name);
       }
@@ -24441,7 +24461,7 @@ var TreeViewTreeElement = class _TreeViewTreeElement extends TreeElement {
     this.toggleOnClick = hasBooleanAttribute(this.configElement, "toggle-on-click");
     this.updateExpansionFromAttribute();
     Highlighting.HighlightManager.HighlightManager.instance().apply(this.titleElement);
-    if (hadFocus) {
+    if (hadFocus && this.selected) {
       this.listItemElement.focus();
     }
   }
@@ -24791,7 +24811,13 @@ var IfExpandedDirective = class extends Lit5.Directive.Directive {
     this.#partInfo = partInfo;
   }
   render(content) {
-    return this.#isInExpandedRow(this.#partInfo.startNode) ? content : Lit5.nothing;
+    if (!this.#isInExpandedRow(this.#partInfo.startNode)) {
+      return Lit5.nothing;
+    }
+    if (typeof content === "function") {
+      return content();
+    }
+    return content;
   }
   #isInExpandedRow(element) {
     if (!element) {

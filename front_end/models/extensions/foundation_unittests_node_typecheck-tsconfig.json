@@ -26,7 +26,7 @@
     "noImplicitReturns": true,
     "outDir": ".",
     "preserveConstEnums": true,
-    "rootDir": "../../../../../../front_end/core/text_utils",
+    "rootDir": "../../../../../../front_end/models/extensions",
     "rootDirs": [
       "../../../../../../",
       "../../../"
@@ -47,27 +47,25 @@
     "useUnknownInCatchVariables": false
   },
   "files": [
-    "../../../../../../front_end/core/text_utils/ContentData.test.ts",
-    "../../../../../../front_end/core/text_utils/StaticContentProvider.test.ts",
-    "../../../../../../front_end/core/text_utils/StreamingContentData.test.ts",
-    "../../../../../../front_end/core/text_utils/Text.test.ts",
-    "../../../../../../front_end/core/text_utils/TextCursor.test.ts",
-    "../../../../../../front_end/core/text_utils/TextRange.test.ts",
-    "../../../../../../front_end/core/text_utils/TextUtils.test.ts",
-    "../../../../../../front_end/core/text_utils/WasmDisassembly.test.ts"
+    "../../../../../../front_end/models/extensions/HostUrlPattern.test.ts",
+    "../../../../../../front_end/models/extensions/LanguageExtensionEndpoint.test.ts",
+    "../../../../../../front_end/models/extensions/RecorderPluginManager.test.ts"
   ],
   "references": [
     {
       "path": "bundle-tsconfig.ref.json"
     },
     {
-      "path": "../common/bundle-tsconfig.ref.json"
+      "path": "../../core/platform/bundle-tsconfig.ref.json"
     },
     {
-      "path": "../platform/bundle-tsconfig.ref.json"
+      "path": "../../core/sdk/bundle-tsconfig.ref.json"
     },
     {
-      "path": "../../testing/testing-tsconfig.ref.json"
+      "path": "../../generated/generated-tsconfig.ref.json"
+    },
+    {
+      "path": "../bindings/bundle-tsconfig.ref.json"
     }
   ]
 }
