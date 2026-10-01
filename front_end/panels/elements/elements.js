@@ -951,6 +951,11 @@ var Emulation;
     SetDeviceMetricsOverrideRequestViewportMeta2["Enable"] = "enable";
     SetDeviceMetricsOverrideRequestViewportMeta2["Default"] = "default";
   })(SetDeviceMetricsOverrideRequestViewportMeta = Emulation3.SetDeviceMetricsOverrideRequestViewportMeta || (Emulation3.SetDeviceMetricsOverrideRequestViewportMeta = {}));
+  let SetDeviceMetricsOverrideRequestTextLayoutMode;
+  ((SetDeviceMetricsOverrideRequestTextLayoutMode2) => {
+    SetDeviceMetricsOverrideRequestTextLayoutMode2["Mobile"] = "mobile";
+    SetDeviceMetricsOverrideRequestTextLayoutMode2["Default"] = "default";
+  })(SetDeviceMetricsOverrideRequestTextLayoutMode = Emulation3.SetDeviceMetricsOverrideRequestTextLayoutMode || (Emulation3.SetDeviceMetricsOverrideRequestTextLayoutMode = {}));
   let SetEmitTouchEventsForMouseRequestConfiguration;
   ((SetEmitTouchEventsForMouseRequestConfiguration2) => {
     SetEmitTouchEventsForMouseRequestConfiguration2["Mobile"] = "mobile";
@@ -4342,12 +4347,14 @@ var UIStrings4 = {
    * @example {flex-wrap: nowrap} REASON_PROPERTY_DECLARATION_CODE
    * @example {align-content} AFFECTED_PROPERTY_DECLARATION_CODE
    */
+  // eslint-disable-next-line @devtools/l10n-uistrings-sentence-punctuation -- Two sentences displayed together in Styles pane
   ruleViolatedBySameElementRuleReason: "The {REASON_PROPERTY_DECLARATION_CODE} property prevents {AFFECTED_PROPERTY_DECLARATION_CODE} from having an effect.",
   /**
    * @description The message shown in the Styles tab when the user hovers over a property declaration that has no effect due to some other property.
    * @example {flex-wrap} PROPERTY_NAME
    * @example {nowrap} PROPERTY_VALUE
    */
+  // eslint-disable-next-line @devtools/l10n-uistrings-sentence-punctuation -- Two sentences displayed together in Styles pane
   ruleViolatedBySameElementRuleFix: "Try setting {PROPERTY_NAME} to something other than {PROPERTY_VALUE}.",
   /**
    * @description The message shown in the Styles tab when the user hovers over a property declaration that has no effect due to not being a flex or grid container.
@@ -4381,6 +4388,7 @@ var UIStrings4 = {
    * @example {20} PH4
    * @example {Arial} PH5
    */
+  // eslint-disable-next-line @devtools/l10n-uistrings-sentence-punctuation -- Multiple warnings can be joined with a space in the UI to form a multi-sentence message
   fontVariationSettingsWarning: 'Value for setting "{PH1}" {PH2} is outside the supported range [{PH3}, {PH4}] for font-family "{PH5}".',
   /**
    * @description The message shown in the Styles tab when the user hovers over a property declaration that has no effect on flex or grid child items.
@@ -25252,14 +25260,20 @@ var DEFAULT_VIEW8 = (input, output, target) => {
   );
 };
 var LayoutPane = class _LayoutPane extends UI20.Widget.Widget {
-  #settings = [];
+  #settings;
   #uaShadowDOMSetting;
   #domModels;
   #view;
   constructor(element, view = DEFAULT_VIEW8) {
     super(element);
-    this.#settings = this.#makeSettings();
-    this.#uaShadowDOMSetting = Common13.Settings.Settings.instance().moduleSetting("show-ua-shadow-dom");
+    const settings = Common13.Settings.Settings.instance();
+    this.#settings = [
+      settings.resolve(SDK17.SDKSettings.showGridLineLabelsSettingDescriptor),
+      settings.resolve(SDK17.SDKSettings.showGridTrackSizesSettingDescriptor),
+      settings.resolve(SDK17.SDKSettings.showGridAreasSettingDescriptor),
+      settings.resolve(SDK17.SDKSettings.extendGridLinesSettingDescriptor)
+    ];
+    this.#uaShadowDOMSetting = settings.moduleSetting("show-ua-shadow-dom");
     this.#domModels = [];
     this.#view = view;
   }
@@ -25332,8 +25346,7 @@ var LayoutPane = class _LayoutPane extends UI20.Widget.Widget {
   }
   #makeSettings() {
     const settings = [];
-    for (const settingName of ["show-grid-line-labels", "show-grid-track-sizes", "show-grid-areas", "extend-grid-lines"]) {
-      const setting = Common13.Settings.Settings.instance().moduleSetting(settingName);
+    for (const setting of this.#settings) {
       const settingValue = setting.get();
       const settingType = setting.type();
       if (!settingType) {
@@ -25372,12 +25385,12 @@ var LayoutPane = class _LayoutPane extends UI20.Widget.Widget {
     return settings;
   }
   onSettingChanged(setting, value5) {
-    Common13.Settings.Settings.instance().moduleSetting(setting).set(value5);
+    this.#settings.find((s) => s.name === setting)?.set(value5);
   }
   wasShown() {
     super.wasShown();
     for (const setting of this.#settings) {
-      Common13.Settings.Settings.instance().moduleSetting(setting.name).addChangeListener(this.requestUpdate, this);
+      setting.addChangeListener(this.requestUpdate, this);
     }
     for (const domModel of this.#domModels) {
       this.modelRemoved(domModel);
@@ -25391,7 +25404,7 @@ var LayoutPane = class _LayoutPane extends UI20.Widget.Widget {
   willHide() {
     super.willHide();
     for (const setting of this.#settings) {
-      Common13.Settings.Settings.instance().moduleSetting(setting.name).removeChangeListener(this.requestUpdate, this);
+      setting.removeChangeListener(this.requestUpdate, this);
     }
     SDK17.TargetManager.TargetManager.instance().unobserveModels(SDK17.DOMModel.DOMModel, this);
     UI20.Context.Context.instance().removeFlavorChangeListener(SDK17.DOMModel.DOMNode, this.requestUpdate, this);
@@ -25416,6 +25429,7 @@ var LayoutPane = class _LayoutPane extends UI20.Widget.Widget {
     }
   }
   async performUpdate() {
+    const settings = this.#makeSettings();
     const input = {
       gridElements: gridNodesToElements(await this.#fetchGridNodes()),
       flexContainerElements: flexContainerNodesToElements(await this.#fetchFlexContainerNodes()),
@@ -25426,17 +25440,11 @@ var LayoutPane = class _LayoutPane extends UI20.Widget.Widget {
       onMouseEnter: this.#onElementMouseEnter.bind(this),
       onElementToggle: this.#onElementToggle.bind(this),
       onBooleanSettingChange: this.#onBooleanSettingChange.bind(this),
-      enumSettings: this.#getEnumSettings(),
-      booleanSettings: this.#getBooleanSettings(),
+      enumSettings: settings.filter(isEnumSetting),
+      booleanSettings: settings.filter(isBooleanSetting),
       onSummaryKeyDown: this.#onSummaryKeyDown.bind(this)
     };
     this.#view(input, {}, this.contentElement);
-  }
-  #getEnumSettings() {
-    return this.#settings.filter(isEnumSetting);
-  }
-  #getBooleanSettings() {
-    return this.#settings.filter(isBooleanSetting);
   }
   #onBooleanSettingChange(setting, event) {
     event.preventDefault();
@@ -28435,7 +28443,7 @@ var ClassNamePrompt = class extends UI27.TextPrompt.TextPrompt {
     }
     let completions = await this.classNamesPromise;
     const classesMap = this.nodeClasses(selectedNode);
-    const existingClasses = new Set(expression.split(/[,\s]/).map((className) => className.trim()).filter(Boolean));
+    const existingClasses = new Set(expression.split(/[,\s]/).map((className) => className.trim().replace(/^\./, "")).filter(Boolean));
     completions = completions.filter((value5) => !classesMap.get(value5) && !existingClasses.has(value5));
     if (prefix[0] === ".") {
       completions = completions.map((value5) => "." + value5);

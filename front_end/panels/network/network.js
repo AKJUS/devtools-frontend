@@ -1956,6 +1956,11 @@ var Emulation;
     SetDeviceMetricsOverrideRequestViewportMeta2["Enable"] = "enable";
     SetDeviceMetricsOverrideRequestViewportMeta2["Default"] = "default";
   })(SetDeviceMetricsOverrideRequestViewportMeta = Emulation2.SetDeviceMetricsOverrideRequestViewportMeta || (Emulation2.SetDeviceMetricsOverrideRequestViewportMeta = {}));
+  let SetDeviceMetricsOverrideRequestTextLayoutMode;
+  ((SetDeviceMetricsOverrideRequestTextLayoutMode2) => {
+    SetDeviceMetricsOverrideRequestTextLayoutMode2["Mobile"] = "mobile";
+    SetDeviceMetricsOverrideRequestTextLayoutMode2["Default"] = "default";
+  })(SetDeviceMetricsOverrideRequestTextLayoutMode = Emulation2.SetDeviceMetricsOverrideRequestTextLayoutMode || (Emulation2.SetDeviceMetricsOverrideRequestTextLayoutMode = {}));
   let SetEmitTouchEventsForMouseRequestConfiguration;
   ((SetEmitTouchEventsForMouseRequestConfiguration2) => {
     SetEmitTouchEventsForMouseRequestConfiguration2["Mobile"] = "mobile";
@@ -10757,7 +10762,7 @@ var NetworkLogViewColumns = class _NetworkLogViewColumns {
       const setting = savedSettings[columnId];
       let columnConfig = this.columns.find((columnConfig2) => columnConfig2.id === columnId);
       if (!columnConfig && setting.title) {
-        columnConfig = this.addCustomHeader(setting.title, columnId) || void 0;
+        columnConfig = this.registerCustomHeader(setting.title, columnId) || void 0;
       }
       if (columnConfig) {
         if (columnConfig.hideable && typeof setting.visible === "boolean") {
@@ -10939,6 +10944,14 @@ var NetworkLogViewColumns = class _NetworkLogViewColumns {
     return true;
   }
   addCustomHeader(headerTitle, headerId, index) {
+    const columnConfig = this.registerCustomHeader(headerTitle, headerId, index);
+    if (columnConfig) {
+      this.saveColumnsSettings();
+      this.updateColumns();
+    }
+    return columnConfig;
+  }
+  registerCustomHeader(headerTitle, headerId, index) {
     if (!headerId) {
       headerId = headerTitle;
     }
@@ -10967,8 +10980,6 @@ var NetworkLogViewColumns = class _NetworkLogViewColumns {
     if (this.#dataGrid) {
       this.#dataGrid.addColumn(_NetworkLogViewColumns.convertToDataGridDescriptor(columnConfig), index);
     }
-    this.saveColumnsSettings();
-    this.updateColumns();
     return columnConfig;
   }
   changeCustomHeader(oldHeaderId, newHeaderTitle, newHeaderId) {
@@ -15313,7 +15324,7 @@ var DEFAULT_VIEW7 = (input, output, target) => {
     if (input.copy) {
       contextMenu.clipboardSection().appendItem(i18nString15(UIStrings16.copy), input.copy, { jslogContext: "copy" });
     }
-    if (!input.showMore) {
+    if (!input.showMore && input.text.length > MAX_LENGTH) {
       contextMenu.newSection().appendItem(i18nString15(UIStrings16.showMore), input.onToggle, { jslogContext: "show-more" });
     }
     void contextMenu.show();

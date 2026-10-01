@@ -14,11 +14,11 @@ export declare class SourceMapScopesInfo {
      * We create the generated ranges from the scope tree and for each range we create an original scope that matches the bounds 1:1.
      */
     static createFromAst(sourceMap: SourceMap, scopeTree: Formatter.FormatterWorkerPool.ScopeTreeNode, text: TextUtils.Text.Text): SourceMapScopesInfo;
-    addOriginalScopes(scopes: Array<ScopesCodec.OriginalScope | null>): void;
+    addOriginalScopes(scopes: Array<ScopesCodec.OriginalScope[] | null>): void;
     addGeneratedRanges(ranges: ScopesCodec.GeneratedRange[]): void;
     hasOriginalScopes(sourceIdx: number): boolean;
     isEmpty(): boolean;
-    addOriginalScopesAtIndex(sourceIdx: number, scope: ScopesCodec.OriginalScope): void;
+    addOriginalScopesAtIndex(sourceIdx: number, scopes: ScopesCodec.OriginalScope[]): void;
     /**
      * @returns true, iff the function surrounding the provided position is marked as "hidden".
      */
@@ -57,7 +57,7 @@ export declare class SourceMapScopesInfo {
      *      values.
      */
     resolveMappedScopeChain(callFrame: CallFrame): ScopeChainEntry[] | null;
-    resolveMappedVariablesAtPosition(line: number, column: number, ignoreInnerBlockScopes?: boolean): Array<Map<string, string | null>> | null;
+    resolveMappedVariablesAtPosition(line: number, column: number, ignoreInnerBlockScopes?: boolean, inlineFrameIndex?: number): Array<Map<string, string | null>> | null;
     /**
      * Returns the authored function name of the function containing the provided generated position.
      */

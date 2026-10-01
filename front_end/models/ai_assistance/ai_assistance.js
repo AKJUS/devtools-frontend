@@ -1479,6 +1479,11 @@ var Emulation;
     SetDeviceMetricsOverrideRequestViewportMeta2["Enable"] = "enable";
     SetDeviceMetricsOverrideRequestViewportMeta2["Default"] = "default";
   })(SetDeviceMetricsOverrideRequestViewportMeta = Emulation2.SetDeviceMetricsOverrideRequestViewportMeta || (Emulation2.SetDeviceMetricsOverrideRequestViewportMeta = {}));
+  let SetDeviceMetricsOverrideRequestTextLayoutMode;
+  ((SetDeviceMetricsOverrideRequestTextLayoutMode2) => {
+    SetDeviceMetricsOverrideRequestTextLayoutMode2["Mobile"] = "mobile";
+    SetDeviceMetricsOverrideRequestTextLayoutMode2["Default"] = "default";
+  })(SetDeviceMetricsOverrideRequestTextLayoutMode = Emulation2.SetDeviceMetricsOverrideRequestTextLayoutMode || (Emulation2.SetDeviceMetricsOverrideRequestTextLayoutMode = {}));
   let SetEmitTouchEventsForMouseRequestConfiguration;
   ((SetEmitTouchEventsForMouseRequestConfiguration2) => {
     SetEmitTouchEventsForMouseRequestConfiguration2["Mobile"] = "mobile";
@@ -14029,7 +14034,7 @@ __export(SkillRegistry_exports, {
 // gen/front_end/models/ai_assistance/skills/accessibility.skill.js
 var skill = {
   "name": "accessibility",
-  "description": "Accessibility audits, ARIA properties, accessible tree inspection, color contrast, and screen reader semantics.",
+  "description": "Accessibility audits, running Lighthouse accessibility audits and reports, ARIA properties, accessible tree inspection, color contrast, and screen reader semantics.",
   "allowedTools": [
     "getLighthouseAudits",
     "resolveDevtoolsNodePath",
@@ -14038,7 +14043,7 @@ var skill = {
     "runLighthouse",
     "executeJavaScript"
   ],
-  "instructions": 'You are an expert accessibility debugging assistant.\n\n# Tools & Workflow\n\n1. **Direct Element Accessibility Inspection (`getElementAccessibilityDetails`)**:\n   - For inspecting an element, ALWAYS call `getElementAccessibilityDetails` on its backend node ID.\n   - It retrieves the computed role, accessible name, name source, ARIA attributes, ignored state, and accessibility properties directly from the accessibility tree.\n   - Use `getStyles` on the backend node ID to inspect layout, color contrast, or font properties.\n\n2. **Lighthouse Accessibility Audits (`getLighthouseAudits` & `runLighthouse`)**:\n   - If an active Lighthouse report context exists, query it via `getLighthouseAudits` with `categoryId: \'accessibility\'`.\n   - If no active report exists or new audits are needed, use `runLighthouse` with `categoryId: \'accessibility\'`:\n     - Use `"navigation"` mode for full page-load audits.\n     - Use `"snapshot"` mode to re-evaluate live in-page DOM/CSS modifications without reloading.\n     - Use `"timespan"` mode for user interaction flows.\n     - Always honor explicit mode requests from the user.\n   - When an audit references failing elements by DevTools node path (e.g. `"1,HTML,1,BODY,2,BUTTON"`), use `resolveDevtoolsNodePath` to resolve the path to a `backendNodeId`, then call `getElementAccessibilityDetails` or `getStyles`.\n\n3. **Dynamic Interaction Verification (`executeJavaScript`)**:\n   - Use `executeJavaScript` only to trigger keyboard events, dispatch focus changes, or simulate user interactions when testing dynamic accessibility behaviors.'
+  "instructions": 'You are an expert accessibility debugging assistant.\n\n# Tools & Workflow\n\n1. **Direct Element Accessibility Inspection (`getElementAccessibilityDetails`)**:\n   - For inspecting an element, ALWAYS call `getElementAccessibilityDetails` on its backend node ID.\n   - It retrieves the computed role, accessible name, name source, ARIA attributes, ignored state, and accessibility properties directly from the accessibility tree.\n   - Use `getStyles` on the backend node ID to inspect layout, color contrast, or font properties.\n\n2. **Lighthouse Accessibility Audits (`getLighthouseAudits` & `runLighthouse`)**:\n   - If the user asks for a Lighthouse audit or report (such as recording a report or checking accessibility scores), or if audits are needed:\n     - If an active Lighthouse report context already exists and no fresh audit is requested, query it via `getLighthouseAudits` with `categoryId: \'accessibility\'`.\n     - If no active report exists or a fresh audit is requested, use `runLighthouse` with `categoryId: \'accessibility\'`:\n       - Use `"navigation"` mode for full page-load audits.\n       - Use `"snapshot"` mode to re-evaluate live in-page DOM/CSS modifications without reloading.\n       - Use `"timespan"` mode for user interaction flows.\n       - Always honor explicit mode requests from the user.\n   - When an audit references failing elements by DevTools node path (e.g. `"1,HTML,1,BODY,2,BUTTON"`), use `resolveDevtoolsNodePath` to resolve the path to a `backendNodeId`, then call `getElementAccessibilityDetails` or `getStyles`.\n\n3. **Dynamic Interaction Verification (`executeJavaScript`)**:\n   - Use `executeJavaScript` only to trigger keyboard events, dispatch focus changes, or simulate user interactions when testing dynamic accessibility behaviors.'
 };
 
 // gen/front_end/models/ai_assistance/skills/network.skill.js
@@ -15142,9 +15147,13 @@ ${item.text.trim()}`);
   async *run(initialQuery, options = {}) {
     this.#navigationOccurredDuringRun = false;
     const originAtRunStart = this.#origin ?? getPrimaryPageSecurityOrigin(this.#targetManager);
-    const listener = () => {
-      const newInspectedURL = this.#targetManager.primaryPageTarget()?.inspectedURL();
-      const newOrigin = newInspectedURL ? SDK29.SecurityOrigin.SecurityOrigin.create(newInspectedURL) : void 0;
+    const listener = (event) => {
+      const frame = event.data.frame;
+      if (frame.resourceTreeModel().target() !== this.#targetManager.primaryPageTarget()) {
+        return;
+      }
+      const newOrigin = frame.securityOrigin();
+      const newInspectedURL = frame.url;
       const isSameOrigin = Boolean(originAtRunStart && newOrigin && originAtRunStart.isSameOriginWith(newOrigin));
       const isAllowedNavigation = Boolean(newInspectedURL && ALLOWED_PAGE_NAVIGATIONS.some((allowed) => newInspectedURL.startsWith(allowed)));
       if (!isSameOrigin && !isAllowedNavigation) {
@@ -15281,6 +15290,10 @@ function isAiAssistanceServerSideLoggingAllowed() {
 }
 function getPrimaryPageSecurityOrigin(targetManager) {
   const target = targetManager.primaryPageTarget();
+  const frameOrigin = target?.model(SDK29.ResourceTreeModel.ResourceTreeModel)?.mainFrame?.securityOrigin();
+  if (frameOrigin) {
+    return frameOrigin;
+  }
   const inspectedURL = target?.inspectedURL();
   return inspectedURL ? SDK29.SecurityOrigin.SecurityOrigin.create(inspectedURL) : void 0;
 }

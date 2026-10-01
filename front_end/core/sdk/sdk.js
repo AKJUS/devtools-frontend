@@ -1003,6 +1003,11 @@ var Emulation;
     SetDeviceMetricsOverrideRequestViewportMeta2["Enable"] = "enable";
     SetDeviceMetricsOverrideRequestViewportMeta2["Default"] = "default";
   })(SetDeviceMetricsOverrideRequestViewportMeta = Emulation2.SetDeviceMetricsOverrideRequestViewportMeta || (Emulation2.SetDeviceMetricsOverrideRequestViewportMeta = {}));
+  let SetDeviceMetricsOverrideRequestTextLayoutMode;
+  ((SetDeviceMetricsOverrideRequestTextLayoutMode2) => {
+    SetDeviceMetricsOverrideRequestTextLayoutMode2["Mobile"] = "mobile";
+    SetDeviceMetricsOverrideRequestTextLayoutMode2["Default"] = "default";
+  })(SetDeviceMetricsOverrideRequestTextLayoutMode = Emulation2.SetDeviceMetricsOverrideRequestTextLayoutMode || (Emulation2.SetDeviceMetricsOverrideRequestTextLayoutMode = {}));
   let SetEmitTouchEventsForMouseRequestConfiguration;
   ((SetEmitTouchEventsForMouseRequestConfiguration2) => {
     SetEmitTouchEventsForMouseRequestConfiguration2["Mobile"] = "mobile";
@@ -21922,37 +21927,26 @@ __export(SourceMapFunctionRanges_exports, {
 function buildOriginalScopes(ranges) {
   validateStartBeforeEnd(ranges);
   ranges.sort((a, b) => comparePositions(a.start, b.start) || comparePositions(b.end, a.end));
-  const root = {
-    start: { line: 0, column: 0 },
-    end: { line: Number.POSITIVE_INFINITY, column: Number.POSITIVE_INFINITY },
-    kind: "Global",
-    isStackFrame: false,
-    children: [],
-    variables: []
-  };
-  const stack = [root];
+  const roots = [];
+  const stack = [];
   for (const range of ranges) {
     let stackTop = stack.at(-1);
-    while (true) {
-      if (comparePositions(stackTop.end, range.start) <= 0) {
-        stack.pop();
-        stackTop = stack.at(-1);
-      } else {
-        break;
-      }
+    while (stackTop && comparePositions(stackTop.end, range.start) <= 0) {
+      stack.pop();
+      stackTop = stack.at(-1);
     }
-    if (comparePositions(range.start, stackTop.end) < 0 && comparePositions(stackTop.end, range.end) < 0) {
-      throw new Error(`Range ${JSON.stringify(range)} and ${JSON.stringify(stackTop)} partially overlap.`);
+    if (stackTop && comparePositions(range.start, stackTop.end) < 0 && comparePositions(stackTop.end, range.end) < 0) {
+      throw new Error(`Range ${JSON.stringify(range)} and ${JSON.stringify(stackTop, (key, value) => key === "parent" ? void 0 : value)} partially overlap.`);
     }
-    const scope = createScopeFrom(range);
-    stackTop.children.push(scope);
+    const scope = createScopeFrom(range, stackTop);
+    if (stackTop) {
+      stackTop.children.push(scope);
+    } else {
+      roots.push(scope);
+    }
     stack.push(scope);
   }
-  const lastChild = root.children.at(-1);
-  if (lastChild) {
-    root.end = lastChild.end;
-  }
-  return root;
+  return roots;
 }
 function validateStartBeforeEnd(ranges) {
   for (const range of ranges) {
@@ -21961,11 +21955,12 @@ function validateStartBeforeEnd(ranges) {
     }
   }
 }
-function createScopeFrom(range) {
+function createScopeFrom(range, parent) {
   return {
     ...range,
     kind: "Function",
     isStackFrame: true,
+    parent,
     children: [],
     variables: []
   };
@@ -22229,7 +22224,7 @@ var SourceMapScopeRemoteObject = class _SourceMapScopeRemoteObject extends Remot
         variable,
         value,
         /* enumerable */
-        false,
+        true,
         /* writable */
         false,
         /* isOwn */
@@ -22312,7 +22307,7 @@ var SourceMapScopeRemoteObject = class _SourceMapScopeRemoteObject extends Remot
       name,
       null,
       /* enumerable */
-      false,
+      true,
       /* writeable */
       false,
       /* isOwn */
@@ -22342,17 +22337,7 @@ var SourceMapScopesInfo = class _SourceMapScopesInfo {
    */
   static createFromAst(sourceMap, scopeTree, text) {
     const numSourceUrls = sourceMap.sourceURLs().length;
-    const scopeBySourceUrl = [];
-    for (let i = 0; i < numSourceUrls; i++) {
-      const scope = {
-        start: { line: 0, column: 0 },
-        end: { line: Number.POSITIVE_INFINITY, column: Number.POSITIVE_INFINITY },
-        isStackFrame: false,
-        variables: [],
-        children: []
-      };
-      scopeBySourceUrl.push(scope);
-    }
+    const scopesBySourceUrl = Array.from({ length: numSourceUrls }, () => []);
     const stack = [{ node: scopeTree }];
     let rootRange = void 0;
     while (stack.length > 0) {
@@ -22403,21 +22388,20 @@ var SourceMapScopesInfo = class _SourceMapScopesInfo {
       parentRange?.children.push(range);
       let nextParentScopeHint = parentScopeHint;
       if (canMapOriginalPosition && scope) {
-        const rootScope = scopeBySourceUrl[sourceIndex];
-        const startSearchFrom = parentScopeHint && containsOriginal(parentScopeHint, scope) ? parentScopeHint : rootScope;
-        insertInScope(startSearchFrom, scope);
+        const startParent = parentScopeHint && containsOriginal(parentScopeHint, scope) ? parentScopeHint : void 0;
+        insertInScope(sourceIndex, startParent, scope);
         nextParentScopeHint = scope;
       }
       for (let i = node.children.length - 1; i >= 0; --i) {
         stack.push({ node: node.children[i], parentRange: range, parentScopeHint: nextParentScopeHint });
       }
     }
-    return new _SourceMapScopesInfo(sourceMap, { scopes: scopeBySourceUrl, ranges: rootRange ? [rootRange] : [] });
-    function insertInScope(rootScope, newScope) {
-      let parent = rootScope;
+    return new _SourceMapScopesInfo(sourceMap, { scopes: scopesBySourceUrl, ranges: rootRange ? [rootRange] : [] });
+    function insertInScope(sourceIndex, parent, newScope) {
+      let children = parent ? parent.children : scopesBySourceUrl[sourceIndex];
       while (true) {
         let deeperParent = null;
-        for (const child of parent.children) {
+        for (const child of children) {
           if (containsOriginal(child, newScope)) {
             deeperParent = child;
             break;
@@ -22425,12 +22409,13 @@ var SourceMapScopesInfo = class _SourceMapScopesInfo {
         }
         if (deeperParent) {
           parent = deeperParent;
+          children = deeperParent.children;
         } else {
           break;
         }
       }
       const childrenToKeep = [];
-      for (const child of parent.children) {
+      for (const child of children) {
         if (containsOriginal(newScope, child)) {
           newScope.children.push(child);
           child.parent = newScope;
@@ -22444,7 +22429,11 @@ var SourceMapScopesInfo = class _SourceMapScopesInfo {
       } else {
         childrenToKeep.splice(insertIndex, 0, newScope);
       }
-      parent.children = childrenToKeep;
+      if (parent) {
+        parent.children = childrenToKeep;
+      } else {
+        scopesBySourceUrl[sourceIndex] = childrenToKeep;
+      }
       newScope.parent = parent;
     }
     function containsOriginal(outer, inner) {
@@ -22469,15 +22458,15 @@ var SourceMapScopesInfo = class _SourceMapScopesInfo {
     }
   }
   hasOriginalScopes(sourceIdx) {
-    return Boolean(this.#originalScopes[sourceIdx]);
+    return Boolean(this.#originalScopes[sourceIdx]?.length);
   }
   isEmpty() {
-    const noScopes = this.#originalScopes.every((scope) => scope === null);
+    const noScopes = this.#originalScopes.every((scopes) => scopes === null || scopes.length === 0);
     return noScopes && !this.#generatedRanges.length;
   }
-  addOriginalScopesAtIndex(sourceIdx, scope) {
-    if (!this.#originalScopes[sourceIdx]) {
-      this.#originalScopes[sourceIdx] = scope;
+  addOriginalScopesAtIndex(sourceIdx, scopes) {
+    if (!this.#originalScopes[sourceIdx]?.length) {
+      this.#originalScopes[sourceIdx] = scopes;
     } else {
       throw new Error(`Trying to re-augment existing scopes for source at index: ${sourceIdx}`);
     }
@@ -22515,9 +22504,10 @@ var SourceMapScopesInfo = class _SourceMapScopesInfo {
   }
   /**
    * Given a generated position, this returns all the surrounding generated ranges from outer
-   * to inner.
+   * to inner. When `inlineFrameIndex > 0`, drops inner ranges up to the specified virtual
+   * call frame.
    */
-  #findGeneratedRangeChain(line, column) {
+  #findGeneratedRangeChain(line, column, inlineFrameIndex = 0) {
     const result = [];
     (function walkRanges(ranges) {
       for (const range of ranges) {
@@ -22528,6 +22518,15 @@ var SourceMapScopesInfo = class _SourceMapScopesInfo {
         walkRanges(range.children);
       }
     })(this.#generatedRanges);
+    for (let inlineIndex = 0; inlineIndex < inlineFrameIndex; ) {
+      const range = result.pop();
+      if (!range) {
+        break;
+      }
+      if (range.callSite) {
+        ++inlineIndex;
+      }
+    }
     return result;
   }
   /**
@@ -22543,9 +22542,6 @@ var SourceMapScopesInfo = class _SourceMapScopesInfo {
   #areVariablesAndBindingsPresent() {
     function walkTree(nodes) {
       for (const node of nodes) {
-        if (!node) {
-          continue;
-        }
         if ("variables" in node && node.variables.length > 0) {
           return true;
         }
@@ -22558,7 +22554,7 @@ var SourceMapScopesInfo = class _SourceMapScopesInfo {
       }
       return false;
     }
-    return walkTree(this.#originalScopes) && walkTree(this.#generatedRanges);
+    return this.#originalScopes.some((scopes) => scopes !== null && walkTree(scopes)) && walkTree(this.#generatedRanges);
   }
   /**
    * Constructs a scope chain based on the CallFrame's paused position.
@@ -22618,23 +22614,12 @@ var SourceMapScopesInfo = class _SourceMapScopesInfo {
     }
     return result;
   }
-  /** Similar to #findGeneratedRangeChain, but takes inlineFrameIndex of virtual call frames into account */
   #findGeneratedRangeChainForFrame(callFrame) {
     const { line, column } = scriptRelativePosition(callFrame.location());
-    const rangeChain = this.#findGeneratedRangeChain(line, column);
-    if (callFrame.inlineFrameIndex === 0) {
-      return rangeChain;
-    }
-    for (let inlineIndex = 0; inlineIndex < callFrame.inlineFrameIndex; ) {
-      const range = rangeChain.pop();
-      if (range?.callSite) {
-        ++inlineIndex;
-      }
-    }
-    return rangeChain;
+    return this.#findGeneratedRangeChain(line, column, callFrame.inlineFrameIndex);
   }
-  resolveMappedVariablesAtPosition(line, column, ignoreInnerBlockScopes = false) {
-    const rangeChain = this.#findGeneratedRangeChain(line, column);
+  resolveMappedVariablesAtPosition(line, column, ignoreInnerBlockScopes = false, inlineFrameIndex = 0) {
+    const rangeChain = this.#findGeneratedRangeChain(line, column, inlineFrameIndex);
     const startScope = rangeChain.at(-1)?.originalScope;
     const innerMostScope = startScope && ignoreInnerBlockScopes && this.#findFunctionScopeInOriginalScopeChain(startScope) || startScope;
     const result = [];
@@ -22679,7 +22664,7 @@ var SourceMapScopesInfo = class _SourceMapScopesInfo {
     while (rootScope.parent) {
       rootScope = rootScope.parent;
     }
-    const sourceIndex = this.#originalScopes.indexOf(rootScope);
+    const sourceIndex = this.#originalScopes.findIndex((scopes) => scopes?.includes(rootScope));
     const url = sourceIndex !== -1 ? this.#sourceMap.sourceURLForSourceIndex(sourceIndex) : void 0;
     return functionScope ? { scope: functionScope, url } : null;
   }
@@ -22688,20 +22673,20 @@ var SourceMapScopesInfo = class _SourceMapScopesInfo {
    * to inner.
    */
   #findOriginalScopeChain({ sourceIndex, line, column }) {
-    const scope = this.#originalScopes[sourceIndex];
-    if (!scope) {
+    const scopes = this.#originalScopes[sourceIndex];
+    if (!scopes) {
       return [];
     }
     const result = [];
-    (function walkScopes(scopes) {
-      for (const scope2 of scopes) {
-        if (!contains(scope2, line, column)) {
+    (function walkScopes(scopes2) {
+      for (const scope of scopes2) {
+        if (!contains(scope, line, column)) {
           continue;
         }
-        result.push(scope2);
-        walkScopes(scope2.children);
+        result.push(scope);
+        walkScopes(scope.children);
       }
-    })([scope]);
+    })(scopes);
     return result;
   }
   #findFunctionScopeInOriginalScopeChain(innerOriginalScope) {
@@ -23269,12 +23254,12 @@ var SourceMap = class _SourceMap {
     if (!this.#scopesInfo) {
       this.#scopesInfo = new SourceMapScopesInfo(this, { scopes: [], ranges: [] });
     }
-    if (map.scopes) {
+    if (map.scopes || map.ranges) {
       const { scopes, ranges } = ScopesCodec.decode(
         map,
         { mode: ScopesCodec.DecodeMode.LAX, generatedOffset: { line: baseLineNumber, column: baseColumnNumber } }
       );
-      this.#scopesInfo.addOriginalScopes(scopes);
+      this.#scopesInfo.addOriginalScopes(scopes.length ? scopes : new Array(map.sources.length).fill(null));
       this.#scopesInfo.addGeneratedRanges(ranges);
     } else if (map.x_com_bloomberg_sourcesFunctionMappings) {
       const originalScopes = this.parseBloombergScopes(map);
@@ -23465,7 +23450,12 @@ var SourceMap = class _SourceMap {
       return null;
     }
     const { line, column } = scriptRelativePosition(location);
-    return this.#scopesInfo.resolveMappedVariablesAtPosition(line, column, ignoreInnerBlockScopes);
+    return this.#scopesInfo.resolveMappedVariablesAtPosition(
+      line,
+      column,
+      ignoreInnerBlockScopes,
+      location.inlineFrameIndex
+    );
   }
   findOriginalFunctionName(position) {
     this.#ensureSourceMapProcessed();
@@ -24571,22 +24561,23 @@ var PageResourceLoader = class _PageResourceLoader extends Common12.ObjectWrappe
     if (eligibleForLoadFromTarget) {
       const isHttp = parsedURL.scheme === "http" || parsedURL.scheme === "https";
       let mustEnforceCSP = isHttp;
-      if (isHttp && initiator.target) {
-        const networkManager = initiator.target.model(NetworkManager);
+      let frameTarget = initiator.target;
+      while (frameTarget && !frameTarget.model(ResourceTreeModel)) {
+        frameTarget = frameTarget.parentTarget();
+      }
+      const frameId = initiator.frameId ?? frameTarget?.model(ResourceTreeModel)?.mainFrame?.id ?? null;
+      if (isHttp && frameTarget) {
+        const networkManager = frameTarget.model(NetworkManager);
         if (networkManager) {
-          let status = await networkManager.getSecurityIsolationStatus(initiator.frameId);
-          if (!status && initiator.frameId) {
-            status = await networkManager.getSecurityIsolationStatus(null);
-          }
-          if (status) {
-            const csps = status.csp ?? [];
-            mustEnforceCSP = csps.some((csp) => csp.effectiveDirectives.includes("connect-src") || csp.effectiveDirectives.includes("default-src"));
+          const status = await networkManager.getSecurityIsolationStatus(frameId);
+          if (status?.csp) {
+            mustEnforceCSP = status.csp.some((csp) => csp.effectiveDirectives.includes("connect-src") || csp.effectiveDirectives.includes("default-src"));
           }
         }
       }
       try {
         Host3.userMetrics.developerResourceLoaded(Host3.UserMetrics.DeveloperResourceLoaded.LOAD_THROUGH_PAGE_VIA_TARGET);
-        const result2 = await this.loadFromTarget(initiator.target, initiator.frameId, url, isBinary);
+        const result2 = await this.loadFromTarget(frameTarget ?? initiator.target, frameId, url, isBinary);
         return result2;
       } catch (e) {
         if (e instanceof Error) {
@@ -28922,7 +28913,7 @@ var DOMNode = class _DOMNode extends Common20.ObjectWrapper.ObjectWrapper {
     }
     const frameOwnerTags = /* @__PURE__ */ new Set(["EMBED", "IFRAME", "OBJECT", "FENCEDFRAME"]);
     if (payload.contentDocument) {
-      this.contentDocumentInternal = new DOMDocument(this.#domModel, payload.contentDocument);
+      this.contentDocumentInternal = new DOMDocument(this.#domModel, payload.contentDocument, payload.frameId);
       this.contentDocumentInternal.parentNode = this;
       this.childrenInternal = [];
     } else if (payload.frameId && frameOwnerTags.has(payload.nodeName)) {
@@ -29813,16 +29804,27 @@ var DOMNode = class _DOMNode extends Common20.ObjectWrapper.ObjectWrapper {
     return response.backendNodeIds.map((backendNodeId) => new DeferredDOMNode(target, backendNodeId));
   }
   async takeSnapshot(ownerDocumentSnapshot) {
-    const snapshot = this instanceof DOMDocument ? new DOMDocumentSnapshot(this.domModel(), {
-      nodeId: this.id,
-      backendNodeId: this.backendNodeId(),
-      nodeType: this.nodeType(),
-      nodeName: this.nodeName(),
-      localName: this.localName(),
-      nodeValue: this.nodeValueInternal,
-      documentURL: this.documentURL,
-      baseURL: this.baseURL
-    }) : new DOMNodeSnapshot(this.domModel());
+    let snapshot;
+    if (this instanceof DOMDocument) {
+      const doc = this;
+      snapshot = new DOMDocumentSnapshot(
+        this.domModel(),
+        {
+          nodeId: this.id,
+          backendNodeId: this.backendNodeId(),
+          nodeType: this.nodeType(),
+          nodeName: this.nodeName(),
+          localName: this.localName(),
+          nodeValue: this.nodeValueInternal,
+          documentURL: this.documentURL,
+          baseURL: this.baseURL
+        },
+        this.frameId(),
+        doc.securityOrigin()
+      );
+    } else {
+      snapshot = new DOMNodeSnapshot(this.domModel());
+    }
     snapshot.id = this.id;
     snapshot.#backendNodeId = this.#backendNodeId;
     snapshot.#frameOwnerFrameId = this.#frameOwnerFrameId;
@@ -29962,15 +29964,19 @@ var DOMDocument = class extends DOMNode {
   documentElement;
   #documentURL;
   #baseURL;
+  #frameId;
   #securityOrigin;
-  constructor(domModel, payload) {
+  constructor(domModel, payload, frameId) {
     super(domModel);
     this.body = null;
     this.documentElement = null;
     this.init(this, false, payload);
     this.#documentURL = payload.documentURL || "";
     this.#baseURL = payload.baseURL || "";
-    this.#securityOrigin = SecurityOrigin.create(this.#documentURL);
+    this.#frameId = frameId ?? null;
+    const resourceTreeModel = this.domModel().target().model(ResourceTreeModel);
+    const frame = this.#frameId ? resourceTreeModel?.frameForId(this.#frameId) : resourceTreeModel?.mainFrame;
+    this.#securityOrigin = frame?.securityOrigin() ?? SecurityOrigin.create(this.#documentURL);
   }
   get documentURL() {
     return this.#documentURL;
@@ -29978,22 +29984,25 @@ var DOMDocument = class extends DOMNode {
   get baseURL() {
     return this.#baseURL;
   }
+  frameId() {
+    return this.#frameId;
+  }
   /**
    * Returns the security origin of this document.
    *
-   * The security origin is derived from the document URL and is recomputed
+   * The security origin is resolved from the document's frame and is recomputed
    * when the document navigates to a new URL via `setDocumentURL`.
    */
   securityOrigin() {
     return this.#securityOrigin;
   }
   /**
-   * Updates the document and base URLs, and recomputes the document's security origin.
+   * Updates the document and base URLs, and updates the document's security origin.
    */
-  setDocumentURL(url) {
+  setDocumentURL(url, securityOrigin) {
     this.#documentURL = url;
     this.#baseURL = url;
-    this.#securityOrigin = SecurityOrigin.create(url);
+    this.#securityOrigin = securityOrigin ?? SecurityOrigin.create(url);
   }
 };
 var AdoptedStyleSheet = class {
@@ -30066,7 +30075,7 @@ var DOMModel = class _DOMModel extends SDKModel {
     if (node) {
       const contentDocument = node.contentDocument();
       if (contentDocument && contentDocument.documentURL !== frame.url) {
-        contentDocument.setDocumentURL(frame.url);
+        contentDocument.setDocumentURL(frame.url, frame.securityOrigin());
         this.dispatchEventToListeners("DocumentURLChanged" /* DocumentURLChanged */, contentDocument);
       }
     }
@@ -30218,7 +30227,8 @@ var DOMModel = class _DOMModel extends SDKModel {
     this.idToDOMNode = /* @__PURE__ */ new Map();
     this.frameIdToOwnerNode = /* @__PURE__ */ new Map();
     if (payload && "nodeId" in payload) {
-      this.#document = new DOMDocument(this, payload);
+      const mainFrameId = this.target().model(ResourceTreeModel)?.mainFrame?.id;
+      this.#document = new DOMDocument(this, payload, mainFrameId);
     } else {
       this.#document = null;
     }
@@ -30750,6 +30760,14 @@ var DOMNodeSnapshot = class extends DOMNode {
   }
 };
 var DOMDocumentSnapshot = class extends DOMDocument {
+  #snapshotSecurityOrigin;
+  constructor(domModel, payload, frameId, securityOrigin) {
+    super(domModel, payload, frameId);
+    this.#snapshotSecurityOrigin = securityOrigin;
+  }
+  securityOrigin() {
+    return this.#snapshotSecurityOrigin;
+  }
   init(_doc, _isInShadowTree, _payload, _retainedNodes) {
   }
   setNodeName(_name, _callback) {
@@ -33706,9 +33724,6 @@ var Scope = class {
   }
   icon() {
     return void 0;
-  }
-  empty() {
-    return Boolean(this.#payload.empty);
   }
   extraProperties() {
     if (this !== this.#callFrame.localScope() || this.#callFrame.script.isWasm()) {
@@ -42240,16 +42255,18 @@ var CPUThrottlingManager = class _CPUThrottlingManager extends Common37.ObjectWr
       void this.updateHostDefaultCPUPerformanceTier();
     }
   }
-  #isCPUPerformanceOverrideActive() {
-    return this.#manualCPUPerformanceOverride !== void 0 || this.#cpuThrottlingRate !== 1;
+  #activeCPUPerformanceOverride() {
+    if (this.#manualCPUPerformanceOverride === void 0 && this.#cpuThrottlingRate === 1) {
+      return void 0;
+    }
+    return this.effectiveCPUPerformanceTier();
   }
   #syncCPUPerformanceTier() {
-    const effectiveTier = this.effectiveCPUPerformanceTier();
-    const activeOverride = this.#isCPUPerformanceOverrideActive() ? effectiveTier : void 0;
+    const activeOverride = this.#activeCPUPerformanceOverride();
     for (const emulationModel of this.#targetManager.models(EmulationModel)) {
       void emulationModel.setCPUPerformanceOverride(activeOverride);
     }
-    this.dispatchEventToListeners("CpuPerformanceTierChanged" /* CPU_PERFORMANCE_TIER_CHANGED */, effectiveTier);
+    this.dispatchEventToListeners("CpuPerformanceTierChanged" /* CPU_PERFORMANCE_TIER_CHANGED */, this.effectiveCPUPerformanceTier());
   }
   setCPUThrottlingRate(rate) {
     if (rate === this.#cpuThrottlingRate) {
@@ -42314,7 +42331,7 @@ var CPUThrottlingManager = class _CPUThrottlingManager extends Common37.ObjectWr
     return result.value;
   }
   async updateHostDefaultCPUPerformanceTier() {
-    if (this.#isCPUPerformanceOverrideActive()) {
+    if (this.#activeCPUPerformanceOverride() !== void 0) {
       return;
     }
     const target = this.#targetManager.primaryPageTarget();
@@ -42344,8 +42361,9 @@ var CPUThrottlingManager = class _CPUThrottlingManager extends Common37.ObjectWr
     if (this.#hardwareConcurrency !== void 0) {
       void emulationModel.setHardwareConcurrency(this.#hardwareConcurrency);
     }
-    if (this.#isCPUPerformanceOverrideActive()) {
-      void emulationModel.setCPUPerformanceOverride(this.effectiveCPUPerformanceTier());
+    const activeOverride = this.#activeCPUPerformanceOverride();
+    if (activeOverride !== void 0) {
+      void emulationModel.setCPUPerformanceOverride(activeOverride);
     }
     if (this.#pendingMainTargetPromise) {
       const existingCallback = this.#pendingMainTargetPromise;
