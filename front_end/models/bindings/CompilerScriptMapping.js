@@ -290,7 +290,7 @@ export class CompilerScriptMapping {
             }
             rawFrames.shift();
             const result = [];
-            translatedFrames.push(result);
+            translatedFrames.push({ kind: "VISIBLE" /* StackTraceImpl.Trie.FrameKind.VISIBLE */, frames: result });
             const project = this.#sourceMapToProject.get(sourceMap);
             for (const frame of frames) {
                 // Switch out url for UISourceCode where we have it.

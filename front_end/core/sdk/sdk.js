@@ -29587,7 +29587,7 @@ var DOMNode = class _DOMNode extends Common20.ObjectWrapper.ObjectWrapper {
     return Boolean(this.#xmlVersion);
   }
   isCustomElement() {
-    if (this.nodeType() !== 1 /* ELEMENT_NODE */ || this.isXMLNode()) {
+    if (this.nodeType() !== 1 /* ELEMENT_NODE */ || this.isXMLNode() || Boolean(this.pseudoType())) {
       return false;
     }
     const localName = this.localName() || this.nodeName().toLowerCase();

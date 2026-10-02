@@ -3586,6 +3586,9 @@ async function resolveEvaluationTarget(options) {
   }
   return { location };
 }
+function canCompleteProperties(target) {
+  return Boolean(target.callFrame) || !target.location;
+}
 function completion(options) {
   return CodeMirror6.javascript.javascriptLanguage.data.of({
     autocomplete: (cx) => javascriptCompletionSource(cx, options)
@@ -3781,6 +3784,9 @@ async function javascriptCompletionSource(cx, options) {
       result = global;
     }
   } else if (query.type === 1 /* PROPERTY_NAME */ || query.type === 2 /* PROPERTY_EXPRESSION */) {
+    if (!canCompleteProperties(target)) {
+      return null;
+    }
     const objectExpr = query.relatedNode.getChild("Expression");
     if (query.type === 2 /* PROPERTY_EXPRESSION */) {
       quote = query.from === void 0 ? "'" : cx.state.sliceDoc(query.from, query.from + 1);
@@ -3796,7 +3802,7 @@ async function javascriptCompletionSource(cx, options) {
     );
   } else if (query.type === 3 /* POTENTIALLY_RETRIEVING_FROM_MAP */) {
     const potentialMapObject = query.relatedNode;
-    if (!potentialMapObject) {
+    if (!potentialMapObject || !canCompleteProperties(target)) {
       return null;
     }
     result = await maybeCompleteKeysFromMap(cx.state.sliceDoc(potentialMapObject.from, potentialMapObject.to), target);
@@ -3817,16 +3823,14 @@ function getExecutionContext() {
 }
 async function evaluateExpression(context, expression, group, substituteNames = true, target) {
   const callFrame = target ? target.callFrame : context.debuggerModel.selectedCallFrame();
-  const location = target ? target.location : callFrame?.location();
-  const script = callFrame?.script ?? location?.script();
-  if (substituteNames && script?.isJavaScript()) {
-    const debuggerWorkspaceBinding = Bindings.DebuggerWorkspaceBinding.DebuggerWorkspaceBinding.instance();
-    const nameMap = callFrame ? await SourceMapScopes.NamesResolver.allVariablesInCallFrame(callFrame, debuggerWorkspaceBinding) : location ? await SourceMapScopes.NamesResolver.allVariablesAtPosition(location, debuggerWorkspaceBinding) : [];
-    if (nameMap.length > 0) {
-      try {
-        expression = await Formatter.FormatterWorkerPool.formatterWorkerPool().javaScriptSubstitute(expression, nameMap);
-      } catch {
-      }
+  if (substituteNames && callFrame?.script.isJavaScript()) {
+    const nameMap = await SourceMapScopes.NamesResolver.allVariablesInCallFrame(
+      callFrame,
+      Bindings.DebuggerWorkspaceBinding.DebuggerWorkspaceBinding.instance()
+    );
+    try {
+      expression = await Formatter.FormatterWorkerPool.formatterWorkerPool().javaScriptSubstitute(expression, nameMap);
+    } catch {
     }
   }
   const evaluationOptions = {
@@ -3916,9 +3920,8 @@ async function maybeCompleteKeysFromMap(objectVariable, target) {
 }
 async function completeProperties(expression, quoted, hasBracket = false, target) {
   const cache = PropertyCache.instance();
-  const cacheKey = target?.location && !target.callFrame ? `${target.location.scriptId}:${target.location.lineNumber}:${target.location.columnNumber}:${expression}` : expression;
   if (!quoted) {
-    const cached = cache.get(cacheKey);
+    const cached = cache.get(expression);
     if (cached) {
       return await cached;
     }
@@ -3929,7 +3932,7 @@ async function completeProperties(expression, quoted, hasBracket = false, target
   }
   const result = completePropertiesInner(expression, context, quoted, hasBracket, target);
   if (!quoted) {
-    cache.set(cacheKey, result);
+    cache.set(expression, result);
   }
   return await result;
 }

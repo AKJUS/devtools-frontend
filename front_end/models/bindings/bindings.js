@@ -585,7 +585,7 @@ var CompilerScriptMapping = class {
       }
       rawFrames.shift();
       const result = [];
-      translatedFrames.push(result);
+      translatedFrames.push({ kind: StackTraceImpl.Trie.FrameKind.VISIBLE, frames: result });
       const project = this.#sourceMapToProject.get(sourceMap);
       for (const frame2 of frames) {
         const uiSourceCode = frame2.url ? project?.uiSourceCodeForURL(frame2.url) : void 0;
@@ -4520,6 +4520,7 @@ var Runtime;
 
 // ../../front_end/models/bindings/DebuggerLanguagePlugins.ts
 import * as StackTrace from "../stack_trace/stack_trace.js";
+import * as StackTraceImpl2 from "../stack_trace/stack_trace_impl.js";
 import * as Workspace11 from "../workspace/workspace.js";
 var UIStrings2 = {
   /**
@@ -5152,29 +5153,18 @@ var DebuggerLanguagePluginManager = class {
         const uiLocation2 = await this.rawLocationToUILocation(rawLocation);
         return translatedFromUILocation(uiLocation2, name, frame);
       });
-      translatedFrames.push(await Promise.all(framePromises));
+      translatedFrames.push({ kind: StackTraceImpl2.Trie.FrameKind.VISIBLE, frames: await Promise.all(framePromises) });
       return true;
     }
     const uiLocation = await this.#debuggerWorkspaceBinding.rawLocationToUILocation(
       new SDK7.DebuggerModel.Location(script.debuggerModel, script.scriptId, frame.lineNumber, frame.columnNumber)
     );
     const mappedFrame = translatedFromUILocation(uiLocation, frame.functionName, frame);
-    if ("missingSymbolFiles" in functionInfo && functionInfo.missingSymbolFiles.length) {
-      translatedFrames.push([{
-        ...mappedFrame,
-        missingDebugInfo: {
-          type: StackTrace.StackTrace.MissingDebugInfoType.PARTIAL_INFO,
-          missingDebugFiles: functionInfo.missingSymbolFiles
-        }
-      }]);
-    } else {
-      translatedFrames.push([{
-        ...mappedFrame,
-        missingDebugInfo: {
-          type: StackTrace.StackTrace.MissingDebugInfoType.NO_INFO
-        }
-      }]);
-    }
+    const missingDebugInfo = "missingSymbolFiles" in functionInfo && functionInfo.missingSymbolFiles.length ? {
+      type: StackTrace.StackTrace.MissingDebugInfoType.PARTIAL_INFO,
+      missingDebugFiles: functionInfo.missingSymbolFiles
+    } : { type: StackTrace.StackTrace.MissingDebugInfoType.NO_INFO };
+    translatedFrames.push({ kind: StackTraceImpl2.Trie.FrameKind.VISIBLE, frames: [{ ...mappedFrame, missingDebugInfo }] });
     return true;
     function translatedFromUILocation(uiLocation2, name, fallback) {
       if (uiLocation2) {
@@ -5556,7 +5546,7 @@ __export(DebuggerWorkspaceBinding_exports, {
 import * as Platform6 from "../../core/platform/platform.js";
 import * as Root3 from "../../core/root/root.js";
 import * as SDK11 from "../../core/sdk/sdk.js";
-import * as StackTraceImpl2 from "../stack_trace/stack_trace_impl.js";
+import * as StackTraceImpl3 from "../stack_trace/stack_trace_impl.js";
 import * as Workspace17 from "../workspace/workspace.js";
 
 // ../../front_end/models/bindings/DefaultScriptMapping.ts
@@ -6243,7 +6233,7 @@ var DebuggerWorkspaceBinding = class _DebuggerWorkspaceBinding {
     this.#liveLocationPromises.add(promise);
   }
   async updateLocations(script) {
-    const stackTraceUpdatePromise = script.target().model(StackTraceImpl2.StackTraceModel.StackTraceModel)?.scriptInfoChanged(script, this.#translateRawFrames.bind(this));
+    const stackTraceUpdatePromise = script.target().model(StackTraceImpl3.StackTraceModel.StackTraceModel)?.scriptInfoChanged(script, this.#translateRawFrames.bind(this));
     if (stackTraceUpdatePromise) {
       this.recordLiveLocationChange(stackTraceUpdatePromise);
     }
@@ -6257,19 +6247,19 @@ var DebuggerWorkspaceBinding = class _DebuggerWorkspaceBinding {
     await Promise.all(updatePromises);
   }
   async createStackTraceFromProtocolRuntime(stackTrace, target) {
-    const model = target.model(StackTraceImpl2.StackTraceModel.StackTraceModel);
+    const model = target.model(StackTraceImpl3.StackTraceModel.StackTraceModel);
     const stackTracePromise = model.createFromProtocolRuntime(stackTrace, this.#translateRawFrames.bind(this));
     this.recordLiveLocationChange(stackTracePromise);
     return await stackTracePromise;
   }
   async createStackTraceFromDebuggerPaused(pausedDetails, target) {
-    const model = target.model(StackTraceImpl2.StackTraceModel.StackTraceModel);
+    const model = target.model(StackTraceImpl3.StackTraceModel.StackTraceModel);
     const stackTracePromise = model.createFromDebuggerPaused(pausedDetails, this.#translateRawFrames.bind(this));
     this.recordLiveLocationChange(stackTracePromise);
     return await stackTracePromise;
   }
   async createStackTraceFromErrorStackLikeString(target, stack, exceptionDetails) {
-    const model = target.model(StackTraceImpl2.StackTraceModel.StackTraceModel);
+    const model = target.model(StackTraceImpl3.StackTraceModel.StackTraceModel);
     const stackTracePromise = model.createFromErrorStackLikeString(stack, this.#translateRawFrames.bind(this), exceptionDetails);
     this.recordLiveLocationChange(stackTracePromise);
     return await stackTracePromise;
@@ -6305,12 +6295,12 @@ var DebuggerWorkspaceBinding = class _DebuggerWorkspaceBinding {
     ]);
     const issueSummary = fetchedExceptionDetails?.exceptionMetaData?.issueSummary;
     if (typeof issueSummary === "string") {
-      errorStack = StackTraceImpl2.DetailedErrorStackParser.concatErrorDescriptionAndIssueSummary(errorStack, issueSummary);
+      errorStack = StackTraceImpl3.DetailedErrorStackParser.concatErrorDescriptionAndIssueSummary(errorStack, issueSummary);
     }
     if (!stackTrace) {
       return new UnparsableError(errorStack, cause);
     }
-    const message = StackTraceImpl2.DetailedErrorStackParser.parseMessage(errorStack);
+    const message = StackTraceImpl3.DetailedErrorStackParser.parseMessage(errorStack);
     if (remoteObject.subtype === "error" && remoteObject.className === "SyntaxError" && fetchedExceptionDetails) {
       return await SymbolizedErrorObject.createForSyntaxError(
         remoteObject.runtimeModel().target(),
@@ -6532,7 +6522,10 @@ var DebuggerWorkspaceBinding = class _DebuggerWorkspaceBinding {
     }
     const frame = rawFrames.shift();
     const { url, lineNumber, columnNumber, functionName } = frame;
-    translatedFrames.push([{ url, line: lineNumber, column: columnNumber, name: functionName }]);
+    translatedFrames.push({
+      kind: StackTraceImpl3.Trie.FrameKind.VISIBLE,
+      frames: [{ url, line: lineNumber, column: columnNumber, name: functionName }]
+    });
   }
 };
 var ModelData2 = class {
@@ -6616,19 +6609,14 @@ var ModelData2 = class {
     const frame = rawFrames.shift();
     const { scriptId, url, lineNumber, columnNumber, functionName } = frame;
     const rawLocation = scriptId ? this.#debuggerModel.createRawLocationByScriptId(scriptId, lineNumber, columnNumber) : url ? this.#debuggerModel.createRawLocationByURL(url, lineNumber, columnNumber) : null;
-    if (rawLocation) {
-      const uiLocation = this.rawLocationToUILocation(rawLocation);
-      if (uiLocation) {
-        translatedFrames.push([{
-          uiSourceCode: uiLocation.uiSourceCode,
-          name: functionName,
-          line: uiLocation.lineNumber,
-          column: uiLocation.columnNumber ?? -1
-        }]);
-        return;
-      }
-    }
-    translatedFrames.push([{ url, line: lineNumber, column: columnNumber, name: functionName }]);
+    const uiLocation = rawLocation && this.rawLocationToUILocation(rawLocation);
+    const translatedFrame = uiLocation ? {
+      uiSourceCode: uiLocation.uiSourceCode,
+      name: functionName,
+      line: uiLocation.lineNumber,
+      column: uiLocation.columnNumber ?? -1
+    } : { url, line: lineNumber, column: columnNumber, name: functionName };
+    translatedFrames.push({ kind: StackTraceImpl3.Trie.FrameKind.VISIBLE, frames: [translatedFrame] });
   }
   getMappedLines(uiSourceCode) {
     const mappedLines = this.compilerMapping.getMappedLines(uiSourceCode);

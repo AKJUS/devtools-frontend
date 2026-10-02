@@ -150,7 +150,9 @@ export class StackTraceModel extends SDK.SDKModel.SDKModel {
         }
         const rawFrames = fragment.node.getCallStack().map(node => node.rawFrame).toArray();
         const uiFrames = await rawFramesToUIFrames(rawFrames, this.target());
-        console.assert(rawFrames.length === uiFrames.length, 'Broken rawFramesToUIFrames implementation');
+        if (rawFrames.length !== uiFrames.length) {
+            throw new Error('Broken rawFramesToUIFrames implementation');
+        }
         const evalOriginPromises = [];
         for (const node of fragment.node.getCallStack()) {
             if (node.parsedFrameInfo?.evalOrigin) {
@@ -162,9 +164,7 @@ export class StackTraceModel extends SDK.SDKModel.SDKModel {
         let i = 0;
         let evalI = 0;
         for (const node of fragment.node.getCallStack()) {
-            const group = uiFrames[i++];
-            node.frames =
-                group.map((frame, index) => new FrameImpl(frame.url, frame.uiSourceCode, frame.name, frame.line, frame.column, frame.missingDebugInfo, node.rawFrame.functionName, node.rawFrame.isWasm, index < group.length - 1));
+            applyTranslation(node, uiFrames[i++]);
             if (node.parsedFrameInfo?.evalOrigin) {
                 node.evalOrigin = evalOrigins[evalI++];
             }
@@ -196,10 +196,28 @@ export class StackTraceModel extends SDK.SDKModel.SDKModel {
     }
 }
 _a = StackTraceModel;
+function toFrameImpls(rawFrame, frames) {
+    return frames.map((f, index) => new FrameImpl(f.url, f.uiSourceCode, f.name, f.line, f.column, f.missingDebugInfo, rawFrame.functionName, rawFrame.isWasm, index < frames.length - 1));
+}
+/** Stores a context-free translation on `node`. A VISIBLE or OUTLINED translation without frames becomes HIDDEN. */
+function applyTranslation(node, translation) {
+    if (translation.kind === "HIDDEN" /* FrameKind.HIDDEN */ || translation.frames.length === 0) {
+        console.assert(translation.kind === "HIDDEN" /* FrameKind.HIDDEN */, 'Non-HIDDEN translation without frames');
+        node.kind = "HIDDEN" /* FrameKind.HIDDEN */;
+        node.frames = [];
+        node.functionKeys = undefined;
+        return;
+    }
+    node.kind = translation.kind;
+    node.frames = toFrameImpls(node.rawFrame, translation.frames);
+    node.functionKeys = translation.functionKeys;
+}
 async function translateEvalOrigin(rawFrame, rawFramesToUIFrames, target) {
-    const uiFrames = await rawFramesToUIFrames([rawFrame], target);
-    const group = uiFrames[0];
-    const frames = group.map((frame, index) => new FrameImpl(frame.url, frame.uiSourceCode, frame.name, frame.line, frame.column, frame.missingDebugInfo, rawFrame.functionName, rawFrame.isWasm, index < group.length - 1));
+    const [translation] = await rawFramesToUIFrames([rawFrame], target);
+    // A HIDDEN eval origin still shows where the eval happened, in generated coordinates.
+    const frames = translation.frames.length ?
+        toFrameImpls(rawFrame, translation.frames) :
+        [new FrameImpl(rawFrame.url, undefined, rawFrame.functionName, rawFrame.lineNumber, rawFrame.columnNumber, undefined, rawFrame.functionName, rawFrame.isWasm, false)];
     let parentEvalOrigin;
     if (rawFrame.parsedFrameInfo?.evalOrigin) {
         parentEvalOrigin = await translateEvalOrigin(rawFrame.parsedFrameInfo.evalOrigin, rawFramesToUIFrames, target);
